@@ -38,6 +38,36 @@ Sto migrando una web app esistente da HTML+JS vanilla a React. L'app è un track
 
 ---
 
+## WORKFLOW GIT (obbligatorio)
+
+Il progetto è su GitHub: `https://github.com/robertotommasogrossi7-bit/poker-tracker.git`
+Branch principale: `main`. **L'utente conserva ogni fase su un branch separato** per fare un controllo finale di tutte le fasi insieme prima di unirle.
+
+**All'inizio di ogni fase:**
+```bash
+git checkout main
+git pull
+git checkout -b react-fase-N    # es. react-fase-1, react-fase-2, ...
+```
+
+**A fine di ogni micro-step (ogni 30-60 minuti di lavoro):**
+```bash
+git add .
+git commit -m "Fase N - step X: <cosa hai fatto>"
+```
+NON pushare ancora — fai checkpoint locali.
+
+**A fine fase (quando l'utente ha confermato che tutto funziona):**
+```bash
+git push -u origin react-fase-N
+```
+Poi DICI all'utente: "Fase N pushata sul branch `react-fase-N`. Apri una nuova chat per il controllo, poi torna qui per la fase N+1."
+**NON fare merge in main** — lo fa l'utente alla fine di tutte le fasi.
+
+**Se durante la fase scopri un bug nelle fasi precedenti**, non risolverlo in questo branch: prendi nota e segnalalo all'utente a fine fase.
+
+---
+
 ## REGOLE DI LETTURA (anti-bug)
 
 Il codice è splittato in 16 file, ma le interazioni tra file esistono. Per evitare bug ai confini:
@@ -112,103 +142,137 @@ poker-react/
 
 ### **Fase 1 — Setup, types, store, utils** (sessione 1)
 
-**Deliverable:**
-- Progetto Vite+TS+React scaffoldato in `C:\Users\rober\Desktop\Programmi\poker-react\`
-- `package.json` con dipendenze: react, react-dom, react-router-dom, zustand
-- `tsconfig.json` configurato (strict mode)
-- `src/types/index.ts` con tutte le interfaces da POKER_MAP.md
-- `src/utils/calc.ts`, `format.ts`, `migrations.ts` — traduzione 1:1 da `calc.js` + parti di `data.js`
-- `src/store/useStore.ts` con Zustand + persist middleware su chiave `'pokerTracker_v2'`
-- Store contiene: `db` (leghe, _lid, _currentLegaId), `ui` (_serataView, _setupModalita, _storicoOpen, _classificaFrom/To, ecc.), e azioni come `saveLega`, `setCurrentLega`, `setSerataView`, ecc.
-- `src/styles/styles.css` copiato da `css/styles.css`
-- App "Hello World" che gira con `npm run dev`
+**Branch:** `react-fase-1`
 
-**A fine sessione:** verifica che `npm run dev` non dia errori e che lo store si popoli leggendo dal localStorage esistente.
+**Micro-step:**
+1. **1.1 — Scaffolding** Vite+TS+React in `C:\Users\rober\Desktop\Programmi\poker-react\` (`npm create vite@latest`), install dipendenze base. Commit "1.1 scaffold".
+2. **1.2 — Dipendenze extra:** `npm install zustand react-router-dom`. Commit "1.2 deps".
+3. **1.3 — TypeScript strict** in `tsconfig.json` (`strict: true`, `noUncheckedIndexedAccess: true`). Commit "1.3 tsconfig".
+4. **1.4 — Struttura cartelle:** crea `src/types/`, `src/store/`, `src/utils/`, `src/components/`, `src/hooks/`, `src/styles/`. Copia `css/styles.css` in `src/styles/styles.css`. Importa in `main.tsx`. Commit "1.4 folders + css".
+5. **1.5 — Tipi:** crea `src/types/index.ts` con `Lega`, `Sessione`, `GiocatoreSessione`, `Partita`, `GiocatorePartita`, `Settlement`, `Premio`, `Livello`, ecc. — copia 1:1 da POKER_MAP.md. Commit "1.5 types".
+6. **1.6 — Utils format:** `src/utils/format.ts` con `euro`, `euroSigned`, `fmtData`, `oggi`, `esc`, `numVal`, `getNome` (da `calc.js` parte utils). Commit "1.6 format".
+7. **1.7 — Utils calc:** `src/utils/calc.ts` con `calcolaMontepremi`, `calcolaMontepremiIncassato`, `calcolaPremiPagati`, `calcolaPremi`. Commit "1.7 calc".
+8. **1.8 — Migrations:** `src/utils/migrations.ts` con `migrateSessione` e `migratePartita` (da `data.js`). Commit "1.8 migrations".
+9. **1.9 — Zustand store:** `src/store/useStore.ts` con stato `db` (leghe, _lid, _currentLegaId), `ui` (tutte le variabili `_*` di config.js), e azioni (`saveLega`, `setCurrentLega`, `setSerataView`, `setStoricoFilter`, ecc.). Middleware `persist` su chiave `'pokerTracker_v2'`. **Importante:** il `partialize` salva solo `db`, non lo stato UI temporaneo. Commit "1.9 store".
+10. **1.10 — App.tsx Hello World** che mostra `useStore(s => s.db.leghe.length) + ' leghe nel localStorage'`. Verifica che legge il localStorage esistente del progetto vanilla. Commit "1.10 hello world".
+11. **1.11 — Test utente:** `npm run dev`, apri browser, verifica che vedi il count corretto delle leghe esistenti. Se OK, push del branch.
+
+**Letture richieste:** POKER_MAP.md, `js/config.js`, `js/data.js`, `js/calc.js`.
 
 ---
 
 ### **Fase 2 — Auth, routing, schermate "circoli"** (sessione 2)
 
-**Deliverable:**
-- React Router con route: `/login`, `/circoli`, `/nuova-lega`, `/leghe`, `/app/:legaId`, `/debiti`, `/chiusura`
-- Componente `<LoginScreen />` con tabs Login/Registrati (da `auth.js`)
-- `<CircoliHome />` con la lista delle leghe attive + widget "Serate in corso" (da `leghe.js`)
-- `<NuovaLega />` form (da `leghe.js`)
-- `<ListaLeghe />` con stats per lega (da `leghe.js`)
-- `<Toast />` componente globale collegato allo store
-- Hook `useCurrentLega()` che ritorna la lega corrente dallo store
+**Branch:** `react-fase-2` (creato da `main`, NON da `react-fase-1` — l'utente farà merge solo alla fine)
 
-**A fine sessione:** dovresti poter fare login → vedere circoli → creare una lega → entrarci (anche se la lega è ancora vuota dentro).
+**Micro-step:**
+1. **2.1 — Router setup:** `react-router-dom` v6 in `App.tsx` con route placeholder `/login`, `/circoli`, `/nuova-lega`, `/leghe`, `/app/:legaId`, `/debiti`, `/chiusura`. Commit "2.1 router".
+2. **2.2 — Toast globale:** `<Toast />` in `components/common/Toast.tsx` collegato allo store (azione `toast(msg)`). Render in `App.tsx`. Commit "2.2 toast".
+3. **2.3 — Auth slice nello store:** funzioni `login`, `register`, `logout`, `getUser` (sessionStorage chiave `'pokerTrackerUser_v2'`). Commit "2.3 auth".
+4. **2.4 — `<LoginScreen />`** in `components/auth/LoginScreen.tsx` con tabs Login/Registrati, Enter key → submit. Commit "2.4 login".
+5. **2.5 — `<CircoliHome />`** in `components/leghe/CircoliHome.tsx` con saluto, hero cards "Nuova lega" / "Le tue leghe", widget "Serate in corso". Commit "2.5 circoli".
+6. **2.6 — `<NuovaLega />`** in `components/leghe/NuovaLega.tsx`: foto picker, nome, partecipanti dinamici, bottone crea. Commit "2.6 nuova lega".
+7. **2.7 — `<ListaLeghe />`** in `components/leghe/ListaLeghe.tsx`: lista card con stats (serate, vittorie, netto utente loggato). Commit "2.7 lista leghe".
+8. **2.8 — Hook `useCurrentLega()`** in `src/hooks/useCurrentLega.ts` che ritorna la lega corrente dallo store. Commit "2.8 hook".
+9. **2.9 — Auto-redirect:** in `App.tsx`, all'avvio, se loggato → `/circoli`, altrimenti `/login`. Commit "2.9 auto redirect".
+10. **2.10 — Test utente:** login → vedi circoli → crea lega → entri (anche se vuota dentro). Push.
+
+**Letture richieste:** POKER_MAP.md, `js/auth.js`, `js/leghe.js`.
 
 ---
 
 ### **Fase 3 — App layout, partecipanti, storico, classifica** (sessione 3)
 
-**Deliverable:**
-- `<AppLayout />` con `<BottomNav />` (4 tab) e `<FabDebiti />`
-- Tab 1: `<TabPartecipanti />` (da `giocatori.js`) — aggiungi/elimina giocatori
-- Tab 3: `<TabStorico />` con filtri date + accordion card (da `storico.js`)
-- Tab 4: `<TabClassifica />` con filtri date e medaglie (da `classifica.js`)
-- `<DebitiScreen />` (da `debiti.js`) raggiunta dal FAB
+**Branch:** `react-fase-3` (da `main`)
 
-**A fine sessione:** entrando in una lega vedi le 4 tab funzionanti, lo storico mostra le partite (anche quelle salvate prima nel localStorage), la classifica si aggiorna.
+**Micro-step:**
+1. **3.1 — `<AppLayout />`** in `components/app/AppLayout.tsx` con header (back, nome lega, meta), `<Outlet />` per tab, `<BottomNav />`, `<FabDebiti />`. Commit "3.1 layout".
+2. **3.2 — `<BottomNav />`** con 4 tab (Partecipanti, Serata, Storico, Classifica), gestione stato attivo. Commit "3.2 bottom nav".
+3. **3.3 — `<TabPartecipanti />`** in `components/giocatori/TabPartecipanti.tsx`: lista giocatori, aggiungi (form), elimina. Commit "3.3 partecipanti".
+4. **3.4 — Slice storico nello store:** azioni `setStoricoFrom/To`, `toggleStoricoOpen`, `eliminaPartita`, `toggleSettlementPaid`. Commit "3.4 storico actions".
+5. **3.5 — `<TabStorico />`** con filtri date, accordion per card, tabella ranking per partita. Commit "3.5 storico".
+6. **3.6 — Slice classifica:** azioni `setClassificaFrom/To`. Commit "3.6 classifica actions".
+7. **3.7 — `<TabClassifica />`** con filtri date, ranking aggregato, medaglie top 3. Commit "3.7 classifica".
+8. **3.8 — `<FabDebiti />`** con badge contatore debiti aperti calcolato live. Commit "3.8 fab".
+9. **3.9 — `<DebitiScreen />`** in `components/debiti/DebitiScreen.tsx`: lista debiti aperti, toggle pagato/non pagato. Commit "3.9 debiti".
+10. **3.10 — Test utente:** entri in una lega esistente con dati → vedi i partecipanti, lo storico delle partite vecchie, la classifica, i debiti. Push.
+
+**Letture richieste:** POKER_MAP.md, `js/giocatori.js`, `js/storico.js`, `js/classifica.js`, `js/debiti.js`, `js/ui.js`.
 
 ---
 
 ### **Fase 4 — Serata Hub + Setup** (sessione 4)
 
-**Deliverable:**
-- Tab 2: `<TabSerata />` con dispatcher su `serataView`: `'hub' | 'live' | 'setup'`
-- `<SerataHub />` (da `session-hub.js`) — card per ogni sessione attiva + bottone "Nuova serata"
-- Logica `apriSerataAttiva` per swappare sessioni in background
-- `<SetupForm />` (da `session-setup.js`):
-  - Selettore data/ora
-  - Toggle cash/torneo
-  - `<ConfigCash />` e `<ConfigTorneo />` (con generazione automatica struttura blind, late reg, add-on)
-  - Pillole partecipanti
-  - Bottone "Inizia serata"
-- `<LiveCash />` placeholder (riempito nella fase successiva)
+**Branch:** `react-fase-4` (da `main`)
 
-**A fine sessione:** dovresti poter creare una nuova serata cash, aprirla, vederla nell'hub e poter swappare tra serate in background.
+**Micro-step:**
+1. **4.1 — `<TabSerata />`** dispatcher su `serataView`. Commit "4.1 dispatcher".
+2. **4.2 — `<SerataHub />`** in `components/serata/SerataHub.tsx`: hero "Nuova serata" + card per ogni sessione attiva (compreso `serate_bg`). Commit "4.2 hub".
+3. **4.3 — Azione `apriSerataAttiva(bgIdx)`** nello store: swap sessione attiva ↔ background. Commit "4.3 swap".
+4. **4.4 — Azione `annullaSessione()`** nello store: rimuove sessione attiva, promuove prima bg. Commit "4.4 annulla".
+5. **4.5 — `<SetupForm />`** in `components/serata/SetupForm.tsx`: data, ora, toggle modalità, pillole partecipanti. Commit "4.5 setup base".
+6. **4.6 — `<ConfigCash />`** sub-componente: solo input buy-in. Commit "4.6 config cash".
+7. **4.7 — `<ConfigTorneo />`** sub-componente: tutti i campi (buy-in, n. giocatori, durata, fiche, struttura livelli, late reg, add-on). Commit "4.7 config torneo".
+8. **4.8 — `suggerisciTorneo` + `roundChipVal`** come utility pure in `utils/torneo.ts`. Commit "4.8 suggerimenti".
+9. **4.9 — `avviaSessione()`** azione: crea oggetto sessione, sposta vecchia in bg se presente, set `serataView='live'`. Commit "4.9 avvia".
+10. **4.10 — `<LiveCash />` placeholder** che mostra "Sessione attiva: cash/torneo" — sarà riempito nella fase 5. Commit "4.10 live placeholder".
+11. **4.11 — Test utente:** crea due serate diverse, vedi entrambe nell'hub, swappi tra loro. Push.
+
+**Letture richieste:** POKER_MAP.md, `js/session-hub.js`, `js/session-setup.js`.
 
 ---
 
 ### **Fase 5 — Live Cash + Live Torneo + Premi** (sessione 5)
 
-**Deliverable:**
-- `<LiveCash />` completo (da `session-cash.js`):
-  - Sub-tab Giocatori (aggiungi, entra, buy-in, extra, rimuovi)
-  - Sub-tab Attivi (ricariche, soldi ricevuti, fiches, netto live, mancante)
-  - Hook `useComputeLive(lega)` come `useMemo` su giocatori
-- `<LiveTorneo />` completo (da `session-tournament.js`):
-  - Sub-tab Orologio con timer countdown (`useEffect` + `setInterval`, recovery dopo refresh)
-  - Sub-tab Giocatori con seat assignment, rebuy, add-on, eliminazione
-  - Controlli avvia/pausa/riprendi/avanza/stop torneo
-- `<SubPremi />` (da `session-premi.js`):
-  - Struttura premi calcolata sul monte teorico
-  - Barra Incassato/Pagato/Da incassare
-- `<PrizeModal />` per eliminazione in zona premi
-- `consolidaPremiSeNecessario` come funzione utility
+**Branch:** `react-fase-5` (da `main`)
 
-**A fine sessione:** una serata cash o torneo completa (apri, gioca, segna pagamenti, elimina giocatori, premi).
+**Micro-step:**
+1. **5.1 — Hook `useComputeLive(lega)`** in `src/hooks/useComputeLive.ts` con `useMemo` (da `computeLive` in session-cash.js). Commit "5.1 compute live".
+2. **5.2 — `<LiveCash />`** struttura: header sommario, sub-tabs Giocatori/Attivi, bottom bar. Commit "5.2 cash shell".
+3. **5.3 — `<SubGiocatoriCash />`**: aggiungi giocatore, toggle entrato, buy-in, extra. Commit "5.3 sub giocatori".
+4. **5.4 — `<SubAttivi />`**: ricariche (add/edit/toggle pagata), soldi ricevuti, fiches finali, netto live, mancante. Commit "5.4 sub attivi".
+5. **5.5 — `<LiveTorneo />`** struttura: header, sub-tabs Orologio/Giocatori/Premi. Commit "5.5 torneo shell".
+6. **5.6 — Hook `useTimer(sessione)`** in `src/hooks/useTimer.ts`: `useEffect` con `setInterval` 1s, recovery dopo refresh (calcola tempo passato da `inizio_livello_ms`). Commit "5.6 timer hook".
+7. **5.7 — `<SubOrologio />`**: timer card, blinds correnti/prossimi, banner late reg, stats mini bar, controlli (avvia/pausa/avanza/stop). Commit "5.7 orologio".
+8. **5.8 — `<SubGiocatoriTorneo />`**: card per giocatore con seat, stato, buy-in, rebuy, add-on, eliminazione. Commit "5.8 sub giocatori torneo".
+9. **5.9 — `consolidaPremiSeNecessario` + `<SubPremi />`** con barra Incassato/Pagato/Da incassare. Commit "5.9 premi".
+10. **5.10 — `torneoElimina` + `<PrizeModal />`**: assegna posizione, mostra modal se in zona premi, gestisce caso "ultimo rimasto = vincitore". Commit "5.10 elim + modal".
+11. **5.11 — Azioni torneo nello store:** `avviaTorneo`, `pausaTorneo`, `riprendiTorneo`, `avanzaLivelloAuto/Manuale`, `stopTorneo`, `torneoAddRebuy`, `torneoAddOn`, `torneoRevive`, ecc. Commit "5.11 azioni torneo".
+12. **5.12 — Test utente:** gioca una serata cash completa + un torneo completo (incluso eliminazione in zona premi). Push.
+
+**Letture richieste:** POKER_MAP.md, `js/session-cash.js`, `js/session-tournament.js`, `js/session-premi.js`, `js/calc.js`.
 
 ---
 
-### **Fase 6 — Settlement + Polish + verifica finale** (sessione 6)
+### **Fase 6 — Settlement + verifica finale** (sessione 6)
 
-**Deliverable:**
-- `<ChiusuraCash />` (da `settlement.js`):
-  - losers = mancante > 0, winners = netto > 0
-  - Auto-allocazione greedy
-  - Possibilità di marcare singoli pagamenti come effettuati
-- `<ChiusuraTorneo />` (da `settlement.js`):
-  - Basato su contributo_residuo / premio_residuo
-- `confermaChiusura` che salva in `lega.partite` e svuota sessioneAttiva
-- Test manuale completo: crea una lega da zero, gioca una serata cash, gioca un torneo, controlla storico, classifica, debiti
-- Build di produzione (`npm run build`) funzionante
-- README.md con istruzioni rapide
+**Branch:** `react-fase-6` (da `main`)
 
-**A fine sessione:** app React completa e identica per comportamento alla vanilla. Pronto per il prossimo step (Tailwind, Supabase, React Native).
+**Micro-step:**
+1. **6.1 — Slice settlement nello store:** stato `_settlement` (con `isTorneo`, `arr`, `losers`, `winners`, `neutri`, `allocazioni`). Commit "6.1 slice".
+2. **6.2 — Azione `apriChiusura()`**: per cash calcola losers=mancante>0, winners=netto>0, auto-alloca greedy. Commit "6.2 apri cash".
+3. **6.3 — Azione `apriChiusuraTorneo()`**: forza consolidamento, assegna posizioni residue, calcola contributo_residuo/premio_residuo, auto-alloca. Commit "6.3 apri torneo".
+4. **6.4 — `<ChiusuraCash />`** in `components/settlement/ChiusuraCash.tsx`: tabella allocazioni, toggle "pagato adesso", ricalcolo live. Commit "6.4 chiusura cash".
+5. **6.5 — `<ChiusuraTorneo />`** in `components/settlement/ChiusuraTorneo.tsx`: stesso schema ma campi torneo. Commit "6.5 chiusura torneo".
+6. **6.6 — Azione `confermaChiusura()`**: costruisce oggetto `Partita`, deriva `settlements`, popola `pagamenti_effettuati/ricevuti`, salva in `lega.partite`, svuota `sessioneAttiva`, promuove prima `serate_bg`. Commit "6.6 conferma".
+7. **6.7 — `<ChiusuraScreen />`** route `/chiusura` con dispatcher cash vs torneo. Commit "6.7 chiusura route".
+8. **6.8 — Build production:** `npm run build`, verifica che non dia errori TS/lint. Commit "6.8 build ok".
+9. **6.9 — README.md** breve con istruzioni: `npm install`, `npm run dev`, `npm run build`. Commit "6.9 readme".
+10. **6.10 — Test finale completo:** lega nuova da zero → aggiungi giocatori → cash completa → torneo completo → chiusura entrambi → storico → classifica → debiti. Push.
+
+**Letture richieste:** POKER_MAP.md, `js/settlement.js`.
+
+---
+
+## DOPO LE 6 FASI
+
+L'utente fa un controllo finale di tutti i 6 branch insieme (`git log --all --oneline --graph`), poi sceglie come unirli — probabilmente squash merge di ogni branch in `main`. A quel punto la migrazione vanilla → React è completa.
+
+**Cosa viene dopo (NON in queste 6 fasi):**
+- Migrazione styles.css → Tailwind (find/replace meccanico grazie alle regole di stile imposte)
+- Backend Supabase per multi-utente
+- Migrazione web → React Native con Expo
+- Nuove feature (es. galleria foto, sezioni speciali, statistiche avanzate, ecc.)
 
 ---
 
