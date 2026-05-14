@@ -1,0 +1,33 @@
+# Dipendenze (per il futuro progetto React)
+node_modules/
+dist/
+build/
+.vite/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Cartelle utente (non versionarle)
+Altro/
+Partite_giocate/
+
+# Config locale Claude Code
+.claude/

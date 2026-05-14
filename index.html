@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>♠ Poker Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- PRIZE MODAL (eliminazione in zona premi) -->
+<div class="modal-overlay" id="prize-modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-emoji" id="prize-modal-emoji">🏆</div>
+    <div class="modal-title" id="prize-modal-title">In the money!</div>
+    <div class="modal-pos" id="prize-modal-pos"></div>
+    <div class="modal-name" id="prize-modal-name"></div>
+    <div class="modal-prize">
+      <div class="modal-prize-lbl">Premio</div>
+      <div class="modal-prize-amt" id="prize-modal-amt">€0,00</div>
+    </div>
+    <p class="help-note" style="margin:0 0 14px;font-style:normal;font-size:12px">È stato pagato adesso o si segna come debito?</p>
+    <div class="modal-actions">
+      <button class="btn btn-gray"  onclick="confirmaPremio(false)">⏱ Più tardi</button>
+      <button class="btn btn-green" onclick="confirmaPremio(true)">✓ Pagato</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: LOGIN
+════════════════════════════════════════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-logo">♠</div>
+    <div class="login-title">Poker Tracker</div>
+    <div class="login-sub">Organizza le serate di poker con i tuoi amici</div>
+
+    <div class="login-card">
+      <div class="login-tabs">
+        <button class="login-tab active" id="ltab-login" onclick="switchLoginTab('login')">Accedi</button>
+        <button class="login-tab"        id="ltab-reg"   onclick="switchLoginTab('reg')">Registrati</button>
+      </div>
+
+      <div id="login-form-login">
+        <div class="form-row">
+          <label>Username o Email</label>
+          <input type="text" id="li-user" placeholder="es. mario.rossi" autocomplete="username">
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" id="li-pwd" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-green btn-block" onclick="doLogin()">Accedi</button>
+      </div>
+
+      <div id="login-form-reg" style="display:none">
+        <div class="form-row">
+          <label>Username</label>
+          <input type="text" id="rg-user" placeholder="Scegli un username" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label>Email</label>
+          <input type="email" id="rg-mail" placeholder="email@esempio.it" autocomplete="off">
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" id="rg-pwd" placeholder="Almeno 6 caratteri" autocomplete="new-password">
+        </div>
+        <button class="btn btn-green btn-block" onclick="doRegister()">Crea account</button>
+      </div>
+
+      <p class="login-note">Versione demo — i dati account non sono ancora salvati su server.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: CIRCOLI HOME
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-circoli">
+  <header class="app-header">
+    <div class="hdr-back" style="visibility:hidden"></div>
+    <div class="hdr-center">
+      <h1>♠ I tuoi circoli</h1>
+      <p id="circoli-saluto">Ciao!</p>
+    </div>
+    <div class="hdr-right">
+      <button class="hdr-icon" onclick="doLogout()" title="Esci">⎋</button>
+    </div>
+  </header>
+
+  <div style="padding: 18px 14px">
+    <div class="hero-card" onclick="goNuovaLega()">
+      <div class="h-ico">➕</div>
+      <div class="h-text">
+        <h3>Nuova lega</h3>
+        <p>Crea un nuovo circolo, aggiungi i partecipanti e parti subito</p>
+      </div>
+    </div>
+
+    <div class="hero-card gold" onclick="goListaLeghe()">
+      <div class="h-ico">🏆</div>
+      <div class="h-text">
+        <h3>Leghe a cui sei iscritto</h3>
+        <p id="circoli-cnt">0 leghe</p>
+      </div>
+    </div>
+
+    <div id="serate-in-corso"></div>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: NUOVA LEGA
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-nuova-lega">
+  <header class="app-header">
+    <button class="hdr-back" onclick="goCircoli()">‹</button>
+    <div class="hdr-center"><h1>Nuova lega</h1></div>
+    <div class="hdr-right"></div>
+  </header>
+
+  <div style="padding: 14px">
+    <div class="card">
+      <div class="card-title">Foto del circolo</div>
+      <div class="photo-picker">
+        <label class="photo-preview" id="nl-foto-prev" for="nl-foto-input">📷</label>
+        <input type="file" id="nl-foto-input" accept="image/*" onchange="caricaFotoLega(event)">
+        <span class="photo-hint">Tocca per scegliere una foto (opzionale)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Nome della lega</div>
+      <div class="form-row">
+        <input type="text" id="nl-nome" placeholder="es. Lega del Mercoledì" maxlength="40">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Partecipanti</div>
+      <div id="nl-part-list"></div>
+      <button class="btn btn-outline btn-block" onclick="aggiungiCampoPartecipante()" style="margin-top:6px">
+        + Aggiungi partecipante
+      </button>
+    </div>
+
+    <button class="btn btn-green btn-block" style="margin-top:6px" onclick="creaLega()">
+      ✓ Crea lega
+    </button>
+    <div style="height:18px"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: LISTA LEGHE
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-lista-leghe">
+  <header class="app-header">
+    <button class="hdr-back" onclick="goCircoli()">‹</button>
+    <div class="hdr-center"><h1>Le tue leghe</h1></div>
+    <div class="hdr-right"></div>
+  </header>
+
+  <div style="padding: 14px">
+    <div id="lista-leghe-container"></div>
+    <div style="height:80px"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: DEBITI APERTI
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-debiti">
+  <header class="app-header">
+    <button class="hdr-back" onclick="chiudiDebiti()">‹</button>
+    <div class="hdr-center"><h1>Debiti aperti</h1></div>
+    <div class="hdr-right"></div>
+  </header>
+  <div style="padding: 14px" id="debiti-content"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: CHIUSURA SERATA (settlement)
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-chiusura">
+  <header class="app-header">
+    <button class="hdr-back" onclick="chiudiAnnulla()">‹</button>
+    <div class="hdr-center"><h1>Chiusura serata</h1></div>
+    <div class="hdr-right"></div>
+  </header>
+  <div style="padding: 14px" id="chiusura-content"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCREEN: APP (dentro una lega) — 4 TAB
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="screen-app">
+  <header class="app-header">
+    <button class="hdr-back" onclick="goCircoli()">‹</button>
+    <div class="hdr-center">
+      <h1 id="app-lega-nome">Lega</h1>
+      <p id="app-lega-meta">0 partecipanti</p>
+    </div>
+    <div class="hdr-right"></div>
+  </header>
+
+  <!-- TAB 1: PARTECIPANTI -->
+  <div class="page active" id="page-partecipanti">
+    <div class="sec-hdr">
+      <h2>Partecipanti</h2>
+      <span id="cnt-giocatori">0 iscritti</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Aggiungi partecipante</div>
+      <div class="form-row">
+        <input type="text" id="inp-nome" placeholder="Nome del partecipante"
+               maxlength="25" autocomplete="off" autocorrect="off" autocapitalize="words">
+      </div>
+      <button class="btn btn-green btn-block" onclick="aggiungiGiocatore()">+ Aggiungi</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Lista partecipanti</div>
+      <div id="lista-giocatori">
+        <div class="empty"><div class="eico">👥</div><p>Nessun partecipante aggiunto</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: ORGANIZZA UNA SERATA -->
+  <div class="page" id="page-partita">
+    <div class="sec-hdr">
+      <h2 id="hdr-partita">Organizza una serata</h2>
+    </div>
+    <div id="partita-content"></div>
+  </div>
+
+  <!-- TAB 3: STORICO -->
+  <div class="page" id="page-storico">
+    <div class="sec-hdr">
+      <h2>Storico</h2>
+      <span id="cnt-partite">0 partite</span>
+    </div>
+    <div id="storico-container">
+      <div class="empty"><div class="eico">📋</div><p>Nessuna partita salvata</p></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: CLASSIFICA -->
+  <div class="page" id="page-classifica">
+    <div class="sec-hdr">
+      <h2>Classifica</h2>
+    </div>
+    <div id="classifica-container">
+      <div class="empty"><div class="eico">🏆</div><p>Nessuna partita giocata</p></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="navTo('partecipanti',this)">
+      <span class="ico">👥</span><span>Partecipanti</span>
+    </button>
+    <button class="nav-btn" onclick="navTo('partita',this)">
+      <span class="ico">♠</span><span>Serata</span>
+    </button>
+    <button class="nav-btn" onclick="navTo('storico',this)">
+      <span class="ico">📋</span><span>Storico</span>
+    </button>
+    <button class="nav-btn" onclick="navTo('classifica',this)">
+      <span class="ico">🏆</span><span>Classifica</span>
+    </button>
+  </nav>
+
+  <!-- FAB DEBITI: visibile in qualsiasi tab della lega se ci sono debiti aperti -->
+  <button class="fab-debiti" id="fab-debiti" style="display:none" onclick="apriDebiti()" title="Salda debiti">
+    💰
+    <span class="fab-count" id="fab-count">0</span>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS — ordine di caricamento (dipendenze)
+     config → auth → data → calc → ui → leghe → giocatori →
+     session-hub → session-setup → session-cash →
+     session-tournament → session-premi → settlement →
+     storico → classifica → debiti
+═══════════════════════════════════════════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/leghe.js"></script>
+<script src="js/giocatori.js"></script>
+<script src="js/session-hub.js"></script>
+<script src="js/session-setup.js"></script>
+<script src="js/session-cash.js"></script>
+<script src="js/session-tournament.js"></script>
+<script src="js/session-premi.js"></script>
+<script src="js/settlement.js"></script>
+<script src="js/storico.js"></script>
+<script src="js/classifica.js"></script>
+<script src="js/debiti.js"></script>
+</body>
+</html>
