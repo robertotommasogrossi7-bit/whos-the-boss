@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { Db, Lega, Sessione, SettlementState } from '../types';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 
@@ -98,6 +98,47 @@ type PokerStore = { db: Db } & UiState & StoreActions;
 function emptyDb(): Db {
   return { leghe: [], _lid: 1, _currentLegaId: undefined };
 }
+
+/* ══════════════════════════════════════════════════════
+   STORAGE ADAPTER — retrocompatibile col formato vanilla
+   ─────────────────────────────────────────────────────
+   La vanilla app salva direttamente: { leghe, _lid, _currentLegaId }
+   Zustand persist si aspetta:        { state: { db: {...} }, version }
+   Questo adapter rileva il formato vanilla e lo converte al volo,
+   senza perdere i dati esistenti.
+══════════════════════════════════════════════════════ */
+const vanillaCompatStorage: StateStorage = {
+  getItem: (name) => {
+    const raw = localStorage.getItem(name);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      // Già nel formato Zustand
+      if (parsed && typeof parsed === 'object' && 'state' in parsed) {
+        return raw;
+      }
+      // Formato vanilla → wrap come Zustand attende
+      if (parsed && Array.isArray(parsed.leghe)) {
+        const wrapped = {
+          state: {
+            db: {
+              leghe: parsed.leghe,
+              _lid: typeof parsed._lid === 'number' ? parsed._lid : 1,
+              _currentLegaId: parsed._currentLegaId,
+            },
+          },
+          version: 0,
+        };
+        return JSON.stringify(wrapped);
+      }
+      return raw;
+    } catch {
+      return raw;
+    }
+  },
+  setItem: (name, value) => localStorage.setItem(name, value),
+  removeItem: (name) => localStorage.removeItem(name),
+};
 
 /* ══════════════════════════════════════════════════════
    STORE
@@ -209,7 +250,7 @@ export const useStore = create<PokerStore>()(
     }),
     {
       name: STORE_KEY,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => vanillaCompatStorage),
       // Persisti solo il db, non lo stato UI temporaneo
       partialize: (state) => ({ db: state.db }),
     }
