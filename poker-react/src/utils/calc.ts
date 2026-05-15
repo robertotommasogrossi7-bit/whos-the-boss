@@ -1,4 +1,4 @@
-import type { Sessione, Premio } from '../types';
+import type { Sessione, Premio, Lega } from '../types';
 
 export function calcolaMontepremi(sess: Sessione): number {
   // Monte TEORICO: include tutti i contributi (pagati e non).
@@ -34,6 +34,17 @@ export function calcolaPremiPagati(sess: Sessione): number {
     if (p) totale += p.importo;
   });
   return Math.round(totale * 100) / 100;
+}
+
+/** Conta i debiti non ancora pagati in tutte le partite di una lega */
+export function contaDebitiAperti(lega: Lega): number {
+  let count = 0;
+  for (const p of lega.partite) {
+    for (const s of p.settlements) {
+      if (!s.pagato) count++;
+    }
+  }
+  return count;
 }
 
 export function calcolaPremi(montepremi: number, num_giocatori_entrati: number): Premio[] {

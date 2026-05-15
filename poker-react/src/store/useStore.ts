@@ -89,6 +89,18 @@ interface StoreActions {
   // Toast
   toast: (msg: string) => void;
 
+  // Giocatori
+  aggiungiGiocatore: (legaId: number, nome: string) => string | null;
+  eliminaGiocatore: (legaId: number, idNome: number) => string | null;
+
+  // Partite
+  eliminaPartita: (legaId: number, partitaId: number) => void;
+
+  // Debiti / settlement
+  toggleSettlementPaid: (legaId: number, partitaId: number, idx: number) => void;
+  saldaDebito: (legaId: number, partitaId: number, idx: number) => void;
+  saldaTuttiDi: (legaId: number, debtorId: number) => number;
+
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
 }
@@ -266,6 +278,101 @@ export const useStore = create<PokerStore>()(
       toast: (msg) => {
         set({ toastMsg: msg, toastVisible: true });
         setTimeout(() => set({ toastVisible: false }), 2700);
+      },
+
+      /* ── Giocatori ── */
+      aggiungiGiocatore: (legaId, nome) => {
+        const n = nome.trim();
+        if (!n) return 'Inserisci un nome';
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return 'Lega non trovata';
+        if (lega.nomi.some(nm => nm.nome.toLowerCase() === n.toLowerCase()))
+          return 'Nome già presente';
+        saveLega({
+          ...lega,
+          nomi: [...lega.nomi, { id: lega._nid, nome: n }],
+          _nid: lega._nid + 1,
+        });
+        return null;
+      },
+
+      eliminaGiocatore: (legaId, idNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return 'Lega non trovata';
+        const inUso = lega.partite.some(p =>
+          p.giocatori.some(g => g.id_nome === idNome),
+        );
+        if (inUso) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
+        saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
+        return null;
+      },
+
+      /* ── Partite ── */
+      eliminaPartita: (legaId, partitaId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        saveLega({ ...lega, partite: lega.partite.filter(p => p.id !== partitaId) });
+      },
+
+      /* ── Debiti ── */
+      toggleSettlementPaid: (legaId, partitaId, idx) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        saveLega({
+          ...lega,
+          partite: lega.partite.map(p => {
+            if (p.id !== partitaId) return p;
+            return {
+              ...p,
+              settlements: p.settlements.map((s, i) =>
+                i === idx ? { ...s, pagato: !s.pagato } : s,
+              ),
+            };
+          }),
+        });
+      },
+
+      saldaDebito: (legaId, partitaId, idx) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        saveLega({
+          ...lega,
+          partite: lega.partite.map(p => {
+            if (p.id !== partitaId) return p;
+            return {
+              ...p,
+              settlements: p.settlements.map((s, i) =>
+                i === idx ? { ...s, pagato: true } : s,
+              ),
+            };
+          }),
+        });
+      },
+
+      saldaTuttiDi: (legaId, debtorId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return 0;
+        let count = 0;
+        saveLega({
+          ...lega,
+          partite: lega.partite.map(p => ({
+            ...p,
+            settlements: p.settlements.map(s => {
+              if (s.from === debtorId && !s.pagato) {
+                count++;
+                return { ...s, pagato: true };
+              }
+              return s;
+            }),
+          })),
+        });
+        return count;
       },
 
       /* ── Migrations ── */
