@@ -1,8 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
+import Toast from './components/common/Toast';
+import LoginScreen from './components/auth/LoginScreen';
+import CircoliHome from './components/leghe/CircoliHome';
+import NuovaLega from './components/leghe/NuovaLega';
+import ListaLeghe from './components/leghe/ListaLeghe';
+
+/* ── Guard: richiede utente loggato ── */
+function RequireAuth({ children }: { children: ReactNode }) {
+  const utente = useStore(s => s.utente);
+  if (!utente) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+/* ── Redirect iniziale in base allo stato auth ── */
+function AutoRedirect() {
+  const utente = useStore(s => s.utente);
+  return <Navigate to={utente ? '/circoli' : '/login'} replace />;
+}
 
 export default function App() {
-  const leghe = useStore(s => s.db.leghe);
   const runMigrations = useStore(s => s.runMigrations);
 
   useEffect(() => {
@@ -10,23 +28,23 @@ export default function App() {
   }, [runMigrations]);
 
   return (
-    <div style={{ padding: '40px 24px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 8 }}>Poker Tracker — React</h1>
-      <p style={{ color: '#555' }}>
-        Leghe nel localStorage: <strong>{leghe.length}</strong>
-      </p>
-      {leghe.length > 0 && (
-        <ul style={{ marginTop: 16, paddingLeft: 20 }}>
-          {leghe.map(l => (
-            <li key={l.id} style={{ marginBottom: 4 }}>
-              {l.nome} — {l.partite?.length ?? 0} partite, {l.nomi?.length ?? 0} giocatori
-            </li>
-          ))}
-        </ul>
-      )}
-      <p style={{ marginTop: 24, color: '#888', fontSize: 13 }}>
-        Fase 1 completata. Prossima fase: auth, routing, schermate circoli.
-      </p>
-    </div>
+    <BrowserRouter>
+      <Toast />
+      <Routes>
+        <Route path="/login"      element={<LoginScreen />} />
+
+        <Route path="/circoli"    element={<RequireAuth><CircoliHome /></RequireAuth>} />
+        <Route path="/nuova-lega" element={<RequireAuth><NuovaLega /></RequireAuth>} />
+        <Route path="/leghe"      element={<RequireAuth><ListaLeghe /></RequireAuth>} />
+
+        {/* Placeholder — implementati nelle fasi successive */}
+        <Route path="/app/:legaId" element={<RequireAuth><div className="screen-body">App — Fase 3</div></RequireAuth>} />
+        <Route path="/debiti"     element={<RequireAuth><div className="screen-body">Debiti — Fase 3</div></RequireAuth>} />
+        <Route path="/chiusura"   element={<RequireAuth><div className="screen-body">Chiusura — Fase 6</div></RequireAuth>} />
+
+        {/* Catch-all: redirect in base all'auth */}
+        <Route path="*" element={<AutoRedirect />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
