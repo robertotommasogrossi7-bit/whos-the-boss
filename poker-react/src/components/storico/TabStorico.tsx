@@ -147,7 +147,7 @@ export default function TabStorico() {
                                 {vincitore?.id_nome === g.id_nome && <span className="crown">👑</span>}
                               </span>
                             </td>
-                            <td>{euro(g.entrate * partita.buy_in)}</td>
+                            <td>{euro(g.entrate)}</td>
                             <td className={g.netto_finale >= 0 ? 'pos' : 'neg'}>
                               {euro(g.netto_finale)}
                             </td>

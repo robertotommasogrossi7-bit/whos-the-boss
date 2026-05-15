@@ -9,7 +9,7 @@ import ListaLeghe from './components/leghe/ListaLeghe';
 import AppLayout from './components/app/AppLayout';
 import TabPartecipanti from './components/giocatori/TabPartecipanti';
 import TabSerata from './components/serata/TabSerata';
-import TabStorico from './components/serata/TabStorico';
+import TabStorico from './components/storico/TabStorico';
 import TabClassifica from './components/classifica/TabClassifica';
 import DebitiScreen from './components/debiti/DebitiScreen';
 

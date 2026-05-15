@@ -10,6 +10,9 @@ export default function FabDebiti({ legaId }: Props) {
   const lega = leghe.find(l => l.id === legaId);
   const nDebiti = lega ? contaDebitiAperti(lega) : 0;
 
+  /* Nessun debito aperto → FAB nascosto del tutto (come la versione vanilla) */
+  if (nDebiti === 0) return null;
+
   return (
     <button
       className="fab-debiti"
@@ -17,7 +20,7 @@ export default function FabDebiti({ legaId }: Props) {
       title="Debiti aperti"
     >
       💳
-      {nDebiti > 0 && <span className="fab-count">{nDebiti}</span>}
+      <span className="fab-count">{nDebiti}</span>
     </button>
   );
 }
