@@ -3,6 +3,11 @@
    Derivati da POKER_MAP.md — mantenere sincronizzati.
 ══════════════════════════════════════════════════════ */
 
+export interface User {
+  username: string;
+  email?: string;
+}
+
 export interface NomeGiocatore {
   id: number;
   nome: string;

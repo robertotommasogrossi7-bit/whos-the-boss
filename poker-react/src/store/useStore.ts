@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import type { Db, Lega, Sessione, SettlementState } from '../types';
+import type { Db, Lega, Sessione, SettlementState, User } from '../types';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 
 /* ══════════════════════════════════════════════════════
@@ -14,6 +14,9 @@ export const USER_KEY  = 'pokerTrackerUser_v2';
 ══════════════════════════════════════════════════════ */
 
 interface UiState {
+  // Auth (sessionStorage — non persistito in localStorage)
+  utente: User | null;
+
   // Nuova lega
   nlFoto: string;
 
@@ -51,10 +54,10 @@ interface StoreActions {
   setCurrentLega: (id: number) => void;
   addLega: (lega: Lega) => void;
 
-  // Auth helpers
-  getUser: () => string | null;
-  setUser: (nome: string) => void;
-  removeUser: () => void;
+  // Auth — restituisce messaggio di errore o null se OK
+  login: (username: string, password: string) => string | null;
+  register: (username: string, email: string, password: string) => string | null;
+  logout: () => void;
 
   // Serata view
   setSerataView: (v: UiState['serataView']) => void;
@@ -97,6 +100,15 @@ type PokerStore = { db: Db } & UiState & StoreActions;
 ══════════════════════════════════════════════════════ */
 function emptyDb(): Db {
   return { leghe: [], _lid: 1, _currentLegaId: undefined };
+}
+
+/* ── Legge l'utente da sessionStorage all'avvio ── */
+function readUtente(): User | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(USER_KEY) ?? 'null') as User | null;
+  } catch {
+    return null;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -150,6 +162,7 @@ export const useStore = create<PokerStore>()(
       db: emptyDb(),
 
       /* ── Stato UI (NON persistito) ── */
+      utente: readUtente(),
       nlFoto: '',
       serataView: 'hub',
       setupPartIds: new Set<number>(),
@@ -187,9 +200,30 @@ export const useStore = create<PokerStore>()(
         })),
 
       /* ── Auth ── */
-      getUser: () => sessionStorage.getItem(USER_KEY),
-      setUser: (nome) => sessionStorage.setItem(USER_KEY, nome),
-      removeUser: () => sessionStorage.removeItem(USER_KEY),
+      login: (username, password) => {
+        const u = username.trim();
+        if (!u || !password) return 'Inserisci username e password';
+        const utente: User = { username: u };
+        sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
+        set({ utente });
+        return null;
+      },
+
+      register: (username, email, password) => {
+        const u = username.trim();
+        const e = email.trim();
+        if (!u || !e || !password) return 'Compila tutti i campi';
+        if (password.length < 6)    return 'Password almeno 6 caratteri';
+        const utente: User = { username: u, email: e };
+        sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
+        set({ utente });
+        return null;
+      },
+
+      logout: () => {
+        sessionStorage.removeItem(USER_KEY);
+        set({ utente: null });
+      },
 
       /* ── Serata view ── */
       setSerataView: (v) => set({ serataView: v }),
@@ -231,7 +265,7 @@ export const useStore = create<PokerStore>()(
       /* ── Toast ── */
       toast: (msg) => {
         set({ toastMsg: msg, toastVisible: true });
-        setTimeout(() => set({ toastVisible: false }), 2200);
+        setTimeout(() => set({ toastVisible: false }), 2700);
       },
 
       /* ── Migrations ── */
