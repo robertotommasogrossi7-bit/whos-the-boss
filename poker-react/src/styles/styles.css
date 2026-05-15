@@ -1128,3 +1128,14 @@ tr:nth-child(even) td { background: #fafafa; }
 .pay-pill--static { cursor: default; pointer-events: none; }
 /* Area pillole settlement dentro il corpo del game-card (storico) */
 .pay-cell-wrap { padding: 10px 15px 14px; }
+/* Setup serata: form-row compatta (niente margin-bottom) */
+.form-row--compact { margin-bottom: 0; }
+/* Setup serata: prima sezione di config (spazio sopra dopo toggle modalità) */
+.form-row--top { margin-top: 14px; }
+/* Setup serata: riga bottoni "aggiungi livello / pausa" */
+.torneo-btn-row { display: flex; gap: 6px; margin-top: 6px; }
+.torneo-btn-row .btn { flex: 1; }
+/* Etichetta "PAUSA" nelle blinds-row che occupa le colonne centrali */
+.blinds-pausa-label { grid-column: 2 / span 3; font-weight: 700; }
+/* Pulsante back nella serata (sotto header) */
+.btn-back-serata { margin: 0 0 8px; padding: 5px 12px; font-size: 13px; }

@@ -68,6 +68,11 @@ interface StoreActions {
   clearSetupPartIds: () => void;
   setNlFoto: (url: string) => void;
 
+  // Serata hub — azioni sessione
+  apriSerataAttiva: (legaId: number, bgIdx: number) => void;
+  annullaSessione: (legaId: number) => void;
+  avviaSessione: (legaId: number, sess: Sessione) => void;
+
   // Live sub-tab
   setLiveSubTab: (t: UiState['liveSubTab']) => void;
 
@@ -278,6 +283,56 @@ export const useStore = create<PokerStore>()(
       toast: (msg) => {
         set({ toastMsg: msg, toastVisible: true });
         setTimeout(() => set({ toastVisible: false }), 2700);
+      },
+
+      /* ── Serata hub ── */
+      apriSerataAttiva: (legaId, bgIdx) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        // Sessione già attiva: basta cambiare la vista
+        if (bgIdx === -1) {
+          set({ serataView: 'live' });
+          return;
+        }
+        const serate_bg = [...(lega.serate_bg ?? [])];
+        const bg = serate_bg[bgIdx];
+        if (!bg) return;
+        // Sostituisci bg[bgIdx] con la sessioneAttiva (o rimuovilo se undefined)
+        const nuoveBg: Sessione[] = serate_bg.flatMap((s, i) =>
+          i === bgIdx
+            ? lega.sessioneAttiva ? [lega.sessioneAttiva] : []
+            : [s],
+        );
+        saveLega({ ...lega, sessioneAttiva: bg, serate_bg: nuoveBg });
+        set({ serataView: 'live' });
+      },
+
+      annullaSessione: (legaId) => {
+        if (!confirm('Annullare la serata in corso? Tutti i dati saranno persi.')) return;
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const serate_bg = [...(lega.serate_bg ?? [])];
+        const nuovaAttiva = serate_bg.shift();
+        saveLega({ ...lega, sessioneAttiva: nuovaAttiva, serate_bg });
+        set({ serataView: 'hub', setupPartIds: new Set<number>() });
+        get().toast('Serata annullata');
+      },
+
+      avviaSessione: (legaId, sess) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const serate_bg = [...(lega.serate_bg ?? [])];
+        if (lega.sessioneAttiva) serate_bg.push(lega.sessioneAttiva);
+        saveLega({ ...lega, sessioneAttiva: sess, serate_bg });
+        set({
+          serataView:   'live',
+          liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'giocatori',
+          setupPartIds: new Set<number>(),
+        });
+        get().toast('▶ Serata iniziata!');
       },
 
       /* ── Giocatori ── */
