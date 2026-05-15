@@ -1107,8 +1107,24 @@ tr:nth-child(even) td { background: #fafafa; }
 .screen-body { padding: 14px 14px 90px; }
 /* Padding top più alto per circoli home */
 .screen-body--wide { padding: 18px 14px 90px; }
+/* Contenuto tab dell'app (rimpiazza .page inside nested routes) */
+.tab-content { padding: 12px 12px 80px; }
 /* Placeholder invisibile per bilanciare l'header */
 .invisible { visibility: hidden; }
 /* Foto lega come <img> dentro .photo-preview / .lega-foto */
 .photo-preview img,
 .lega-foto img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+/* game-card-head è sempre cliccabile nella versione React */
+.game-card-head { cursor: pointer; }
+/* Sub-info serata nello storico (data, ora, modalità) */
+.game-card-date-sub { font-size: 12px; opacity: .85; margin-top: 1px; }
+/* Icona toggle accordion storico ▶/▼ */
+.storico-toggle { font-size: 13px; opacity: .8; margin-right: 4px; }
+/* Card senza padding interno (per tabelle full-width) */
+.card--flush { padding: 0; overflow: hidden; }
+/* Nota in fondo alla classifica */
+.classifica-nota { font-size: 11px; color: var(--muted); margin: 10px 4px 0; line-height: 1.5; }
+/* Pillola debito/credito non interattiva (classifica, read-only) */
+.pay-pill--static { cursor: default; pointer-events: none; }
+/* Area pillole settlement dentro il corpo del game-card (storico) */
+.pay-cell-wrap { padding: 10px 15px 14px; }
