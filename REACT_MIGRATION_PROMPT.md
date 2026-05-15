@@ -50,17 +50,17 @@ git pull
 git checkout -b react-fase-N    # es. react-fase-1, react-fase-2, ...
 ```
 
-**A fine di ogni micro-step (ogni 30-60 minuti di lavoro):**
+**A fine di ogni micro-step:**
 ```bash
 git add .
 git commit -m "Fase N - step X: <cosa hai fatto>"
 ```
-NON pushare ancora — fai checkpoint locali.
 
-**A fine fase (quando l'utente ha confermato che tutto funziona):**
+**Push frequente (ogni 3-4 commit, OBBLIGATORIO):**
 ```bash
 git push -u origin react-fase-N
 ```
+NON aspettare fine fase per il primo push. Se i tuoi token finiscono a metà fase il lavoro non commitato/pushato è perso. Il primo push crea il branch remoto, i successivi sono `git push` semplici.
 Poi DICI all'utente: "Fase N pushata sul branch `react-fase-N`. Apri una nuova chat per il controllo, poi torna qui per la fase N+1."
 **NON fare merge in main** — lo fa l'utente alla fine di tutte le fasi.
 
