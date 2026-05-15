@@ -50,6 +50,8 @@ git pull
 git checkout -b react-fase-N    # es. react-fase-1, react-fase-2, ...
 ```
 
+**Importante:** ogni fase costruisce sulla precedente. L'utente al termine di ogni fase fa il merge in `main` (`git merge react-fase-N --no-ff`). Se ti rendi conto che `main` NON contiene il lavoro della fase precedente (es. l'utente ha deciso di tenere tutto separato), allora dopo lo step "checkout -b" fai anche `git merge react-fase-(N-1) --no-ff` per importare il lavoro precedente. **Verifica sempre con `git log main --oneline | head -5`** prima di iniziare a scrivere codice.
+
 **A fine di ogni micro-step:**
 ```bash
 git add .
