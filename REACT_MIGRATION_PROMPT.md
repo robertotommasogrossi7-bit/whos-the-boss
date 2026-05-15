@@ -52,17 +52,18 @@ git checkout -b react-fase-N    # es. react-fase-1, react-fase-2, ...
 
 **Importante:** ogni fase costruisce sulla precedente. L'utente al termine di ogni fase fa il merge in `main` (`git merge react-fase-N --no-ff`). Se ti rendi conto che `main` NON contiene il lavoro della fase precedente (es. l'utente ha deciso di tenere tutto separato), allora dopo lo step "checkout -b" fai anche `git merge react-fase-(N-1) --no-ff` per importare il lavoro precedente. **Verifica sempre con `git log main --oneline | head -5`** prima di iniziare a scrivere codice.
 
-**A fine di ogni micro-step:**
+**Commit a checkpoint logici:**
 ```bash
 git add .
-git commit -m "Fase N - step X: <cosa hai fatto>"
+git commit -m "Fase N - <area>: <cosa hai fatto>"
 ```
+Non serve un commit per ogni singolo micro-step: raggruppare 2-4 micro-step correlati in un commit coerente va bene (es. "i 3 file utils" = un commit). 3-6 commit a fase è la granularità giusta.
 
-**Push frequente (ogni 3-4 commit, OBBLIGATORIO):**
+**Push dopo OGNI commit, sempre — OBBLIGATORIO:**
 ```bash
 git push -u origin react-fase-N
 ```
-NON aspettare fine fase per il primo push. Se i tuoi token finiscono a metà fase il lavoro non commitato/pushato è perso. Il primo push crea il branch remoto, i successivi sono `git push` semplici.
+Subito dopo ogni `git commit`, fai `git push`. Visto che i commit sono pochi, pushare ognuno costa pochissimo e azzera il rischio di perdere lavoro se i token finiscono a metà fase. Il primo push crea il branch remoto (`-u`), i successivi sono `git push` semplici. **Non aspettare mai la fine della fase per pushare.**
 Poi DICI all'utente: "Fase N pushata sul branch `react-fase-N`. Apri una nuova chat per il controllo, poi torna qui per la fase N+1."
 **NON fare merge in main** — lo fa l'utente alla fine di tutte le fasi.
 
