@@ -131,4 +131,4 @@ MIT — see [LICENSE](LICENSE) file.
 
 ## Author
 
-Roberto Tommaso Grossi — [@robertotommasogrossi7-bit](https://github.com/robertotommasogrossi7-bit)
+Roberto Grossi — [@robertotommasogrossi7-bit](https://github.com/robertotommasogrossi7-bit)
