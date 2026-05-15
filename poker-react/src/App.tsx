@@ -6,6 +6,12 @@ import LoginScreen from './components/auth/LoginScreen';
 import CircoliHome from './components/leghe/CircoliHome';
 import NuovaLega from './components/leghe/NuovaLega';
 import ListaLeghe from './components/leghe/ListaLeghe';
+import AppLayout from './components/app/AppLayout';
+import TabPartecipanti from './components/giocatori/TabPartecipanti';
+import TabSerata from './components/serata/TabSerata';
+import TabStorico from './components/serata/TabStorico';
+import TabClassifica from './components/classifica/TabClassifica';
+import DebitiScreen from './components/debiti/DebitiScreen';
 
 /* ── Guard: richiede utente loggato ── */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -37,10 +43,20 @@ export default function App() {
         <Route path="/nuova-lega" element={<RequireAuth><NuovaLega /></RequireAuth>} />
         <Route path="/leghe"      element={<RequireAuth><ListaLeghe /></RequireAuth>} />
 
-        {/* Placeholder — implementati nelle fasi successive */}
-        <Route path="/app/:legaId" element={<RequireAuth><div className="screen-body">App — Fase 3</div></RequireAuth>} />
-        <Route path="/debiti"     element={<RequireAuth><div className="screen-body">Debiti — Fase 3</div></RequireAuth>} />
-        <Route path="/chiusura"   element={<RequireAuth><div className="screen-body">Chiusura — Fase 6</div></RequireAuth>} />
+        {/* App principale: layout con bottom nav e tab annidati */}
+        <Route
+          path="/app/:legaId"
+          element={<RequireAuth><AppLayout /></RequireAuth>}
+        >
+          <Route index element={<Navigate to="serata" replace />} />
+          <Route path="partecipanti" element={<TabPartecipanti />} />
+          <Route path="serata"       element={<TabSerata />} />
+          <Route path="storico"      element={<TabStorico />} />
+          <Route path="classifica"   element={<TabClassifica />} />
+        </Route>
+
+        <Route path="/debiti"   element={<RequireAuth><DebitiScreen /></RequireAuth>} />
+        <Route path="/chiusura" element={<RequireAuth><div className="screen-body">Chiusura — Fase 6</div></RequireAuth>} />
 
         {/* Catch-all: redirect in base all'auth */}
         <Route path="*" element={<AutoRedirect />} />
