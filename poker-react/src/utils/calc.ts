@@ -61,3 +61,17 @@ export function calcolaPremi(montepremi: number, num_giocatori_entrati: number):
     importo: Math.round(montepremi * p * 100) / 100,
   }));
 }
+
+/** Consolida il montepremi e i premi se la late reg è chiusa o il torneo è concluso.
+ *  Muta `sess` in-place (usare solo nelle azioni store su copie). */
+export function consolidaPremiSeNecessario(sess: Sessione): void {
+  if (sess.premi_consolidati) return;
+  const gameLvlNow = sess.livelli
+    .slice(0, sess.livello_corrente + 1)
+    .filter(l => l.tipo === 'gioco').length;
+  if (gameLvlNow > sess.late_reg.fino_a_livello || sess.stato === 'concluso') {
+    const entrati = sess.giocatori.filter(g => g.entrato).length;
+    sess.premi = calcolaPremi(calcolaMontepremi(sess), entrati);
+    sess.premi_consolidati = true;
+  }
+}
