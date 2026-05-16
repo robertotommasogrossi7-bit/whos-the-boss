@@ -1139,3 +1139,45 @@ tr:nth-child(even) td { background: #fafafa; }
 .blinds-pausa-label { grid-column: 2 / span 3; font-weight: 700; }
 /* Pulsante back nella serata (sotto header) */
 .btn-back-serata { margin: 0 0 8px; padding: 5px 12px; font-size: 13px; }
+/* ─── LIVE SESSION UTILITIES (fase 5) ─── */
+/* Bottone "aggiungi ricarica" full-width con margine */
+.btn--full-mt { width: 100%; margin-top: 8px; }
+/* Prima lc-row nella card attivi (soldi ricevuti) */
+.lc-row--mt { margin-top: 12px; }
+/* Righe torneo-info-row con sfondo grigio (buy-in / rebuys) */
+.ti-row-gray { background: #f7f7f7; padding: 6px 9px; border-radius: 8px; }
+/* Righe torneo-info-row con sfondo oro (add-on) */
+.ti-row-gold { background: var(--gold-bg); padding: 6px 9px; border-radius: 8px; }
+/* Riga totale versato con margine sopra */
+.ti-row-mt { margin-top: 6px; }
+/* Avviso mancante dentro una torneo-pcard */
+.mancante-btn--card { margin-top: 6px; font-size: 13px; }
+/* Nota "Procedi alla chiusura" quando torneo concluso */
+.tc-concluso-note { opacity: .85; flex: 1; text-align: center; padding: 10px; font-weight: 700; }
+/* Stats-mini-bar con margine inferiore (in SubPremi) */
+.smb--mb { margin-bottom: 10px; }
+/* Separatore invisibile h16 (fine bottom bar) */
+.spacer-16 { height: 16px; }
+/* help-note con solo margine inferiore (non entrato card) */
+.help-note--bt { margin: 0 0 8px; }
+/* Testo nel reg-banner (flex stretch) */
+.reg-banner-text { flex: 1; }
+/* ─── PRIZE MODAL OVERLAY (fase 5) ─── */
+.prize-modal-overlay {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.60); z-index: 9000;
+}
+.prize-modal-inner {
+  background: var(--white); border-radius: 18px;
+  padding: 28px 22px; width: min(90vw, 340px);
+  text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,.30);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.prize-modal-emoji  { font-size: 52px; line-height: 1; }
+.prize-modal-title  { font-size: 22px; font-weight: 900; margin-top: 4px; }
+.prize-modal-pos    { font-size: 13px; color: var(--muted); }
+.prize-modal-name   { font-size: 20px; font-weight: 800; margin-top: 2px; }
+.prize-modal-amt    { font-size: 36px; font-weight: 900; color: var(--green); margin: 6px 0 12px; }
+.prize-modal-btns   { display: flex; gap: 10px; width: 100%; }
+.prize-modal-btns .btn { flex: 1; }
