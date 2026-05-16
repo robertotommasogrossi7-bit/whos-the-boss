@@ -1,29 +1,26 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro } from '../../utils/format';
-import { useTimer } from '../../hooks/useTimer';
 import { calcolaMontepremi } from '../../utils/calc';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: OROLOGIO (torneo)
    Derivato da renderSubOrologio() in session-tournament.js
+   Il clock (clockStr) arriva da LiveTorneo, che gestisce il timer
+   così che giri anche quando si è su altri sub-tab.
 ══════════════════════════════════════════════════════ */
-export default function SubOrologio() {
+interface Props {
+  clockStr: string;
+}
+
+export default function SubOrologio({ clockStr }: Props) {
   const lega               = useStore(selectCurrentLega);
   const avviaTorneo        = useStore(s => s.avviaTorneo);
   const pausaTorneo        = useStore(s => s.pausaTorneo);
   const riprendiTorneo     = useStore(s => s.riprendiTorneo);
   const avanzaLivelloManuale = useStore(s => s.avanzaLivelloManuale);
   const stopTorneo         = useStore(s => s.stopTorneo);
-  const avanzaLivelloAuto  = useStore(s => s.avanzaLivelloAuto);
-  const recoveryTorneo     = useStore(s => s.recoveryTorneo);
 
   const sess = lega?.sessioneAttiva;
-
-  const { clockStr } = useTimer(
-    sess,
-    () => { if (lega) avanzaLivelloAuto(lega.id); },
-    () => { if (lega) recoveryTorneo(lega.id); },
-  );
 
   if (!lega || !sess) return null;
 

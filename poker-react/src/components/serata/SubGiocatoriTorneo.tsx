@@ -7,6 +7,7 @@ import { euro, getNome } from '../../utils/format';
 ══════════════════════════════════════════════════════ */
 export default function SubGiocatoriTorneo() {
   const lega                     = useStore(selectCurrentLega);
+  const toggleEntrato            = useStore(s => s.toggleEntrato);
   const toggleBuyInPagato        = useStore(s => s.toggleBuyInPagato);
   const torneoAggiungiGiocatore  = useStore(s => s.torneoAggiungiGiocatore);
   const torneoAddRebuy           = useStore(s => s.torneoAddRebuy);
@@ -109,7 +110,7 @@ export default function SubGiocatoriTorneo() {
             <>
               <p className="help-note help-note--bt">Tocca "Entra" quando si siede al tavolo.</p>
               <div className="torneo-pcard-actions">
-                <button className="ta-paid" onClick={() => toggleBuyInPagato(lega!.id, g.id_nome)}>✓ Entra</button>
+                <button className="ta-paid" onClick={() => toggleEntrato(lega!.id, g.id_nome)}>✓ Entra</button>
                 <button className="ta-bust" onClick={() => {
                   if (!confirm(`Rimuovere ${nome} dal torneo?`)) return;
                   rimuoviGiocatoreSessione(lega!.id, g.id_nome);

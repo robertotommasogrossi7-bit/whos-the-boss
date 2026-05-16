@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
+import { useTimer } from '../../hooks/useTimer';
 import SubOrologio          from './SubOrologio';
 import SubGiocatoriTorneo   from './SubGiocatoriTorneo';
 import SubPremi             from './SubPremi';
@@ -15,9 +16,20 @@ export default function LiveTorneo() {
   const setLiveSubTab   = useStore(s => s.setLiveSubTab);
   const setSerataView   = useStore(s => s.setSerataView);
   const annullaSessione = useStore(s => s.annullaSessione);
+  const avanzaLivelloAuto = useStore(s => s.avanzaLivelloAuto);
+  const recoveryTorneo    = useStore(s => s.recoveryTorneo);
 
-  if (!lega?.sessioneAttiva) return null;
-  const sess = lega.sessioneAttiva;
+  const sess = lega?.sessioneAttiva;
+
+  /* Timer gestito qui (non in SubOrologio): così gira su tutti i sub-tab —
+     il clock avanza e i livelli si auto-consolidano anche da Player/Premi. */
+  const { clockStr } = useTimer(
+    sess,
+    () => { if (lega) avanzaLivelloAuto(lega.id); },
+    () => { if (lega) recoveryTorneo(lega.id); },
+  );
+
+  if (!lega || !sess) return null;
 
   // Forza sub-tab valido per torneo
   const subTab: 'orologio' | 'giocatori' | 'premi' =
@@ -78,7 +90,7 @@ export default function LiveTorneo() {
       </div>
 
       {/* Contenuto sub-tab */}
-      {subTab === 'orologio'  && <SubOrologio />}
+      {subTab === 'orologio'  && <SubOrologio clockStr={clockStr} />}
       {subTab === 'giocatori' && <SubGiocatoriTorneo />}
       {subTab === 'premi'     && <SubPremi />}
 

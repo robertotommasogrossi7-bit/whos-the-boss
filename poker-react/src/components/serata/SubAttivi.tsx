@@ -17,11 +17,13 @@ export default function SubAttivi() {
   const aggiornaFiches       = useStore(s => s.aggiornaFiches);
   const toast                = useStore(s => s.toast);
 
-  if (!lega?.sessioneAttiva) return null;
-  const sess = lega.sessioneAttiva;
+  /* useComputeLive PRIMA di qualsiasi return: rispetta le Rules of Hooks */
+  const sessAttiva = lega?.sessioneAttiva;
+  const { arr, leaderId } = useComputeLive(sessAttiva);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { arr, leaderId } = useComputeLive(sess);
+  if (!lega || !sessAttiva) return null;
+  const sess = sessAttiva;  // ora Sessione (non-undefined): usabile anche nelle closure
+
   const attivi = arr.filter(c => c.entrato);
 
   if (!attivi.length) {

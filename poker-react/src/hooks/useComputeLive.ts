@@ -22,7 +22,8 @@ export interface LiveResult {
 }
 
 /** Pure function — calcola netto/mancante per ogni giocatore cash. */
-export function computeLive(sess: Sessione): LiveResult {
+export function computeLive(sess: Sessione | undefined): LiveResult {
+  if (!sess) return { arr: [], leaderId: null };
   const arr: LiveGiocatore[] = sess.giocatori.map(g => {
     const ricaricheTot    = g.ricariche.reduce((a, r) => a + r.importo, 0);
     const ricarichePagate = g.ricariche.reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
@@ -52,7 +53,9 @@ export function computeLive(sess: Sessione): LiveResult {
   return { arr, leaderId };
 }
 
-/** Hook — memoized wrapper di computeLive. */
-export function useComputeLive(sess: Sessione): LiveResult {
+/** Hook — memoized wrapper di computeLive. Accetta sess undefined così
+ *  da poter essere chiamato prima di un eventuale return condizionale
+ *  (rispetta le Rules of Hooks). */
+export function useComputeLive(sess: Sessione | undefined): LiveResult {
   return useMemo(() => computeLive(sess), [sess]);
 }
