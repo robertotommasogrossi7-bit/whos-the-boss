@@ -1181,3 +1181,37 @@ tr:nth-child(even) td { background: #fafafa; }
 .prize-modal-amt    { font-size: 36px; font-weight: 900; color: var(--green); margin: 6px 0 12px; }
 .prize-modal-btns   { display: flex; gap: 10px; width: 100%; }
 .prize-modal-btns .btn { flex: 1; }
+
+/* ─── SETTLEMENT CHIUSURA (fase 6) ─── */
+/* Titolo pagina chiusura (più grande di settle-section-title) */
+.settle-page-title {
+  font-size: 17px; font-weight: 900;
+  margin: 4px 0 14px;
+}
+/* Carta neutra (senza colore border-left) */
+.settle-card--neutro { border-left-color: #ddd; }
+/* Testo info secondario sotto l'intestazione della card */
+.settle-info-txt { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* Riga classifica finale (torneo) */
+.settle-rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.settle-rank-row:last-child { border-bottom: none; }
+.settle-rank-pos { width: 24px; font-weight: 900; font-size: 15px; text-align: center; }
+.settle-rank-nome { flex: 1; font-weight: 600; }
+/* Bottone con margine sopra */
+.btn--mt16 { margin-top: 16px; }
+.btn--mt8  { margin-top: 8px; }
+/* Separatore h20 */
+.spacer-20 { height: 20px; }
+/* input[type="time"] stilizzato come gli altri input */
+input[type="time"] {
+  display: block; width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 15px; color: var(--text); background: var(--white);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color .15s;
+}
+input[type="time"]:focus { outline: none; border-color: var(--green); }

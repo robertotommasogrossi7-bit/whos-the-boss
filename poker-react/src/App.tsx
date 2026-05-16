@@ -12,6 +12,7 @@ import TabSerata from './components/serata/TabSerata';
 import TabStorico from './components/storico/TabStorico';
 import TabClassifica from './components/classifica/TabClassifica';
 import DebitiScreen from './components/debiti/DebitiScreen';
+import ChiusuraScreen from './components/settlement/ChiusuraScreen';
 
 /* ── Guard: richiede utente loggato ── */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -53,10 +54,10 @@ export default function App() {
           <Route path="serata"       element={<TabSerata />} />
           <Route path="storico"      element={<TabStorico />} />
           <Route path="classifica"   element={<TabClassifica />} />
+          <Route path="chiusura"     element={<ChiusuraScreen />} />
         </Route>
 
-        <Route path="/debiti"   element={<RequireAuth><DebitiScreen /></RequireAuth>} />
-        <Route path="/chiusura" element={<RequireAuth><div className="screen-body">Chiusura — Fase 6</div></RequireAuth>} />
+        <Route path="/debiti" element={<RequireAuth><DebitiScreen /></RequireAuth>} />
 
         {/* Catch-all: redirect in base all'auth */}
         <Route path="*" element={<AutoRedirect />} />

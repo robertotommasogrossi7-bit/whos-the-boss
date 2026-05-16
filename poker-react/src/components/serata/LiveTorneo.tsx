@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
 import { useTimer } from '../../hooks/useTimer';
@@ -11,13 +12,15 @@ import PrizeModal           from './PrizeModal';
    Derivato da renderLiveTorneoHtml() in session-tournament.js
 ══════════════════════════════════════════════════════ */
 export default function LiveTorneo() {
-  const lega            = useStore(selectCurrentLega);
-  const liveSubTab      = useStore(s => s.liveSubTab);
-  const setLiveSubTab   = useStore(s => s.setLiveSubTab);
-  const setSerataView   = useStore(s => s.setSerataView);
-  const annullaSessione = useStore(s => s.annullaSessione);
-  const avanzaLivelloAuto = useStore(s => s.avanzaLivelloAuto);
-  const recoveryTorneo    = useStore(s => s.recoveryTorneo);
+  const navigate              = useNavigate();
+  const lega                  = useStore(selectCurrentLega);
+  const liveSubTab            = useStore(s => s.liveSubTab);
+  const setLiveSubTab         = useStore(s => s.setLiveSubTab);
+  const setSerataView         = useStore(s => s.setSerataView);
+  const annullaSessione       = useStore(s => s.annullaSessione);
+  const avanzaLivelloAuto     = useStore(s => s.avanzaLivelloAuto);
+  const recoveryTorneo        = useStore(s => s.recoveryTorneo);
+  const apriChiusuraTorneo    = useStore(s => s.apriChiusuraTorneo);
 
   const sess = lega?.sessioneAttiva;
 
@@ -98,7 +101,11 @@ export default function LiveTorneo() {
       <div className="session-end-bar">
         <button
           className="btn btn-green btn-block"
-          onClick={() => { window.alert('Chiusura serata — disponibile nella Fase 6'); }}
+          onClick={() => {
+            if (apriChiusuraTorneo(lega.id)) {
+              navigate(`/app/${lega.id}/chiusura`);
+            }
+          }}
         >
           ✓ Chiudi serata
         </button>
