@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { Db, Lega, Sessione, SettlementState, User } from '../types';
 import { migrateSessione, migratePartita } from '../utils/migrations';
+import { nuovoGiocatoreSessione } from '../utils/torneo';
+import {
+  calcolaMontepremi,
+  calcolaPremi,
+  consolidaPremiSeNecessario,
+} from '../utils/calc';
 
 /* ══════════════════════════════════════════════════════
    CHIAVI STORAGE
@@ -105,6 +111,38 @@ interface StoreActions {
   toggleSettlementPaid: (legaId: number, partitaId: number, idx: number) => void;
   saldaDebito: (legaId: number, partitaId: number, idx: number) => void;
   saldaTuttiDi: (legaId: number, debtorId: number) => number;
+
+  // Cash live — giocatori
+  toggleEntrato:             (legaId: number, idNome: number) => void;
+  toggleBuyInPagato:         (legaId: number, idNome: number) => void;
+  setExtraAmt:               (legaId: number, idNome: number, val: number) => void;
+  toggleExtraPagato:         (legaId: number, idNome: number) => void;
+  aggiungiRicarica:          (legaId: number, idNome: number, importo: number, pagata: boolean) => void;
+  modificaRicarica:          (legaId: number, idNome: number, idx: number, importo: number) => void;
+  toggleRicaricaPagata:      (legaId: number, idNome: number, idx: number) => void;
+  setSoldiRicevuti:          (legaId: number, idNome: number, val: number) => void;
+  aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
+  addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
+  rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
+
+  // Torneo live — timer & stato
+  avviaTorneo:               (legaId: number) => void;
+  pausaTorneo:               (legaId: number) => void;
+  riprendiTorneo:            (legaId: number) => void;
+  avanzaLivelloAuto:         (legaId: number) => void;
+  avanzaLivelloManuale:      (legaId: number) => void;
+  stopTorneo:                (legaId: number) => void;
+  recoveryTorneo:            (legaId: number) => void;
+
+  // Torneo live — giocatori
+  torneoAggiungiGiocatore:   (legaId: number, nome: string) => string | null;
+  torneoAddRebuy:            (legaId: number, idNome: number, pagata: boolean) => void;
+  torneoAddOn:               (legaId: number, idNome: number, pagato: boolean) => void;
+  torneoRevive:              (legaId: number, idNome: number) => void;
+  torneoToggleAddOnPag:      (legaId: number, idNome: number) => void;
+  torneoToggleRebuyPag:      (legaId: number, idNome: number, idx: number) => void;
+  torneoElimina:             (legaId: number, idNome: number) => void;
+  confirmaPremio:            (legaId: number, pagato: boolean) => void;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -428,6 +466,472 @@ export const useStore = create<PokerStore>()(
           })),
         });
         return count;
+      },
+
+      /* ══════════════════════════════════════════════════════
+         LIVE CASH — helper interno
+      ══════════════════════════════════════════════════════ */
+      /** Aggiorna un singolo GiocatoreSessione nella sessioneAttiva e salva. */
+      // (usato solo internamente — non esposto nell'interface)
+
+      /* ── Cash live — giocatori ── */
+      toggleEntrato: (legaId, idNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, entrato: !g.entrato } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      toggleBuyInPagato: (legaId, idNome) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.entrato) { toast('Prima segna il giocatore come entrato'); return; }
+        const giocatori = sess.giocatori.map(x =>
+          x.id_nome === idNome ? { ...x, buy_in_pagato: !x.buy_in_pagato } : x,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      setExtraAmt: (legaId, idNome, val) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome
+            ? { ...g, extra_amt: val, extra_pagato: val === 0 ? true : g.extra_pagato }
+            : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      toggleExtraPagato: (legaId, idNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, extra_pagato: !g.extra_pagato } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      aggiungiRicarica: (legaId, idNome, importo, pagata) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome
+            ? { ...g, ricariche: [...g.ricariche, { importo, pagata }] }
+            : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      modificaRicarica: (legaId, idNome, idx, importo) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g => {
+          if (g.id_nome !== idNome) return g;
+          const ricariche = importo === 0
+            ? g.ricariche.filter((_, i) => i !== idx)
+            : g.ricariche.map((r, i) => i === idx ? { ...r, importo } : r);
+          return { ...g, ricariche };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      toggleRicaricaPagata: (legaId, idNome, idx) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g => {
+          if (g.id_nome !== idNome) return g;
+          const ricariche = g.ricariche.map((r, i) =>
+            i === idx ? { ...r, pagata: !r.pagata } : r,
+          );
+          return { ...g, ricariche };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      setSoldiRicevuti: (legaId, idNome, val) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, soldi_ricevuti: val } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      aggiornaFiches: (legaId, idNome, val) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, fiches_finali: val } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      addGiocatoreSessione: (legaId, nome) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return 'Sessione non trovata';
+        const sess = lega.sessioneAttiva;
+        const inSess = new Set(sess.giocatori.map(g => g.id_nome));
+        const n = nome.trim();
+        if (!n) return 'Inserisci un nome';
+        let nomi = [...lega.nomi];
+        let _nid = lega._nid;
+        let existing = nomi.find(x => x.nome.toLowerCase() === n.toLowerCase());
+        if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return null; }
+        if (!existing) {
+          existing = { id: _nid++, nome: n };
+          nomi = [...nomi, existing];
+        }
+        const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
+        saveLega({ ...lega, nomi, _nid, sessioneAttiva: { ...sess, giocatori } });
+        toast(`✓ ${n} aggiunto alla serata`);
+        return null;
+      },
+
+      rimuoviGiocatoreSessione: (legaId, idNome) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g) return;
+        if (g.entrato) { toast('Non puoi rimuovere un giocatore già entrato'); return; }
+        const giocatori = sess.giocatori.filter(x => x.id_nome !== idNome);
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      /* ── Torneo live — timer & stato ── */
+      avviaTorneo: (legaId) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        if (sess.stato !== 'pre') return;
+        const updSess: Sessione = {
+          ...sess,
+          stato: 'attivo',
+          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
+          trascorso_ms: 0,
+        };
+        saveLega({ ...lega, sessioneAttiva: updSess });
+        toast('▶ Torneo avviato!');
+      },
+
+      pausaTorneo: (legaId) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        if (sess.stato !== 'attivo') return;
+        const updSess: Sessione = {
+          ...sess,
+          stato: 'pausa',
+          trascorso_ms: Date.now() - sess.inizio_livello_ms,
+        };
+        saveLega({ ...lega, sessioneAttiva: updSess });
+        toast('⏸ Pausa');
+      },
+
+      riprendiTorneo: (legaId) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        if (sess.stato !== 'pausa') return;
+        const updSess: Sessione = {
+          ...sess,
+          stato: 'attivo',
+          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
+          trascorso_ms: 0,
+        };
+        saveLega({ ...lega, sessioneAttiva: updSess });
+        toast('▶ Ripreso');
+      },
+
+      avanzaLivelloAuto: (legaId) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = { ...lega.sessioneAttiva };
+        if (sess.stato === 'concluso') return;
+        if (sess.livello_corrente + 1 >= sess.livelli.length) {
+          sess.stato = 'concluso';
+          consolidaPremiSeNecessario(sess);
+          saveLega({ ...lega, sessioneAttiva: sess });
+          toast('Ultimo livello completato');
+          return;
+        }
+        sess.livello_corrente++;
+        sess.inizio_livello_ms = Date.now();
+        sess.trascorso_ms = 0;
+        consolidaPremiSeNecessario(sess);
+        saveLega({ ...lega, sessioneAttiva: sess });
+      },
+
+      avanzaLivelloManuale: (legaId) => {
+        if (!confirm('Passare al livello successivo?')) return;
+        get().avanzaLivelloAuto(legaId);
+        get().toast('▶ Livello successivo');
+      },
+
+      stopTorneo: (legaId) => {
+        if (!confirm('Concludere il torneo? Lo stato verrà bloccato e potrai chiudere la serata.')) return;
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = { ...lega.sessioneAttiva, stato: 'concluso' as const };
+        consolidaPremiSeNecessario(sess);
+        saveLega({ ...lega, sessioneAttiva: sess });
+        toast('⏹ Torneo terminato');
+      },
+
+      recoveryTorneo: (legaId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = { ...lega.sessioneAttiva };
+        if (sess.modalita !== 'torneo' || sess.stato !== 'attivo') return;
+        let advanced = 0;
+        while (sess.livello_corrente < sess.livelli.length) {
+          const livello = sess.livelli[sess.livello_corrente];
+          if (!livello) break;
+          const totaleMs  = livello.durata * 60 * 1000;
+          const trascorso = Date.now() - sess.inizio_livello_ms;
+          if (trascorso < totaleMs) break;
+          sess.livello_corrente++;
+          sess.inizio_livello_ms += totaleMs;
+          advanced++;
+          consolidaPremiSeNecessario(sess);
+        }
+        if (sess.livello_corrente >= sess.livelli.length) {
+          sess.livello_corrente = sess.livelli.length - 1;
+          sess.stato = 'concluso';
+        }
+        if (advanced > 0) saveLega({ ...lega, sessioneAttiva: sess });
+      },
+
+      /* ── Torneo live — giocatori ── */
+      torneoAggiungiGiocatore: (legaId, nome) => {
+        const { db, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return 'Sessione non trovata';
+        const sess = lega.sessioneAttiva;
+        const gameLvl = sess.livelli
+          .slice(0, sess.livello_corrente + 1)
+          .filter(l => l.tipo === 'gioco').length;
+        if (sess.stato !== 'pre' && gameLvl > sess.late_reg.fino_a_livello) {
+          toast('Late reg chiusa — non puoi aggiungere altri giocatori');
+          return null;
+        }
+        const err = get().addGiocatoreSessione(legaId, nome);
+        if (err) return err;
+        // Rilegge la lega aggiornata per assegnare il posto
+        const legaUpd = get().db.leghe.find(l => l.id === legaId);
+        if (!legaUpd?.sessioneAttiva) return null;
+        const sessUpd = legaUpd.sessioneAttiva;
+        const last = sessUpd.giocatori[sessUpd.giocatori.length - 1];
+        if (last && !last.seat) {
+          const used = new Set(
+            sessUpd.giocatori
+              .filter(g => g.seat)
+              .map(g => `T${g.seat!.tavolo}P${g.seat!.posto}`),
+          );
+          let numT = sessUpd.num_tavoli || Math.ceil(sessUpd.giocatori.length / 9);
+          let assigned = false;
+          outer: for (let t = 1; t <= numT + 1; t++) {
+            for (let p = 1; p <= 9; p++) {
+              if (!used.has(`T${t}P${p}`)) {
+                const giocatori = sessUpd.giocatori.map((g, i) =>
+                  i === sessUpd.giocatori.length - 1
+                    ? { ...g, seat: { tavolo: t, posto: p } }
+                    : g,
+                );
+                numT = Math.max(numT, t);
+                get().saveLega({
+                  ...legaUpd,
+                  sessioneAttiva: { ...sessUpd, giocatori, num_tavoli: numT },
+                });
+                assigned = true;
+                break outer;
+              }
+            }
+          }
+          if (!assigned) {
+            get().saveLega(legaUpd); // save without seat if no spot found
+          }
+        }
+        return null;
+      },
+
+      torneoAddRebuy: (legaId, idNome, pagata) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.entrato) return;
+        const gameLvl = sess.livelli
+          .slice(0, sess.livello_corrente + 1)
+          .filter(l => l.tipo === 'gioco').length;
+        if (sess.stato !== 'pre' && gameLvl > sess.late_reg.fino_a_livello) {
+          toast('Late reg chiusa'); return;
+        }
+        const giocatori = sess.giocatori.map(x => {
+          if (x.id_nome !== idNome) return x;
+          const rebuys = [...(x.rebuys ?? []), { importo: sess.buy_in, pagata }];
+          return x.eliminato
+            ? { ...x, rebuys, eliminato: false, elim_ts_ms: null, posizione_finale: null }
+            : { ...x, rebuys };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast('✓ Rebuy aggiunto');
+      },
+
+      torneoAddOn: (legaId, idNome, pagato) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        if (!sess.add_on?.abilitato) { toast('Add-on non disponibile'); return; }
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.entrato || g.eliminato) return;
+        if (g.add_on_fatto) { toast('Add-on già preso'); return; }
+        const giocatori = sess.giocatori.map(x =>
+          x.id_nome === idNome
+            ? { ...x, add_on_fatto: true, add_on_pagato: pagato }
+            : x,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast('✓ Add-on');
+      },
+
+      torneoRevive: (legaId, idNome) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome && g.eliminato
+            ? { ...g, eliminato: false, elim_ts_ms: null, posizione_finale: null }
+            : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast('Reintegrato');
+      },
+
+      torneoToggleAddOnPag: (legaId, idNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, add_on_pagato: !g.add_on_pagato } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      torneoToggleRebuyPag: (legaId, idNome, idx) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g => {
+          if (g.id_nome !== idNome) return g;
+          const rebuys = (g.rebuys ?? []).map((r, i) =>
+            i === idx ? { ...r, pagata: !r.pagata } : r,
+          );
+          return { ...g, rebuys };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      torneoElimina: (legaId, idNome) => {
+        const { db, saveLega, toast, setPendingPrizeNome } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = { ...lega.sessioneAttiva };
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.entrato || g.eliminato) return;
+
+        // Calcola posizione PRIMA di aggiornare i giocatori
+        const viviPrima = sess.giocatori.filter(x => x.entrato && !x.eliminato).length;
+        const posizione = viviPrima; // dopo eliminazione: viviPrima-1 + 1 = viviPrima
+
+        // Aggiorna premi se necessario
+        if (!sess.premi?.length || !sess.premi_consolidati) {
+          const monte = calcolaMontepremi(sess);
+          sess.premi = calcolaPremi(monte, sess.giocatori.filter(x => x.entrato).length);
+        }
+
+        sess.giocatori = sess.giocatori.map(x =>
+          x.id_nome === idNome
+            ? { ...x, eliminato: true, elim_ts_ms: Date.now(), posizione_finale: posizione }
+            : x,
+        );
+
+        const viviDopo = sess.giocatori.filter(x => x.entrato && !x.eliminato).length;
+
+        // Caso "ultimo rimasto = vincitore"
+        if (viviDopo === 1) {
+          const winner = sess.giocatori.find(x => x.entrato && !x.eliminato);
+          if (winner) {
+            sess.giocatori = sess.giocatori.map(x =>
+              x.id_nome === winner.id_nome ? { ...x, posizione_finale: 1 } : x,
+            );
+            sess.stato = 'concluso';
+            consolidaPremiSeNecessario(sess);
+            saveLega({ ...lega, sessioneAttiva: sess });
+            const winnerNome = lega.nomi.find(n => n.id === winner.id_nome)?.nome ?? '?';
+            toast(`🏆 Vince ${winnerNome}!`);
+            const premioWin = sess.premi[0]?.importo ?? 0;
+            if (premioWin > 0) setPendingPrizeNome(winner.id_nome);
+            return;
+          }
+        }
+
+        saveLega({ ...lega, sessioneAttiva: sess });
+        const premio = sess.premi[posizione - 1]?.importo ?? 0;
+        if (premio > 0) {
+          setPendingPrizeNome(idNome);
+        } else {
+          toast(`Eliminato — posizione ${posizione}`);
+        }
+      },
+
+      confirmaPremio: (legaId, pagato) => {
+        const { db, saveLega, pendingPrizeNome, setPendingPrizeNome, toast } = get();
+        setPendingPrizeNome(null);
+        if (pendingPrizeNome == null) return;
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === pendingPrizeNome ? { ...g, prize_pagato: !!pagato } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast(pagato ? '✓ Premio segnato come pagato' : '⏱ Premio segnato come da pagare');
       },
 
       /* ── Migrations ── */
