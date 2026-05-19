@@ -53,6 +53,8 @@ export interface GiocatoreSessione {
   id_nome: number;
   entrato: boolean;
   buy_in_pagato: boolean;
+  entrata: number;          // cash: stake d'ingresso scelto dal giocatore
+  entrata_pagata: boolean;  // cash: l'entrata è stata versata?
   extra_amt: number;
   extra_pagato: boolean;
   ricariche: Ricarica[];  // cash: ricariche, torneo: rebuys

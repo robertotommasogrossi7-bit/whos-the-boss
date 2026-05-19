@@ -79,11 +79,13 @@ export function suggerisciTorneo(num_giocatori: number, durata_ore: number): Tor
 }
 
 /* ── Giocatore sessione "vuoto" ── */
-export function nuovoGiocatoreSessione(id_nome: number): GiocatoreSessione {
+export function nuovoGiocatoreSessione(id_nome: number, buyIn: number): GiocatoreSessione {
   return {
     id_nome,
     entrato:          false,
     buy_in_pagato:    false,
+    entrata:          buyIn,
+    entrata_pagata:   false,
     extra_amt:        0,
     extra_pagato:     true,
     ricariche:        [],

@@ -614,7 +614,7 @@ export const useStore = create<PokerStore>()(
           existing = { id: _nid++, nome: n };
           nomi = [...nomi, existing];
         }
-        const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
+        const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id, sess.buy_in)];
         saveLega({ ...lega, nomi, _nid, sessioneAttiva: { ...sess, giocatori } });
         toast(`✓ ${n} aggiunto alla serata`);
         return null;

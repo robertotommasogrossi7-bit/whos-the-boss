@@ -16,6 +16,8 @@ export function migrateSessione(s: Sessione | undefined): void {
     if (!g.ricariche)          g.ricariche = [];
     if (!g.rebuys)             g.rebuys = [];
     if (g.buy_in_pagato === undefined) g.buy_in_pagato = !!g.entrato;
+    if (g.entrata === undefined)        g.entrata = s.buy_in;
+    if (g.entrata_pagata === undefined) g.entrata_pagata = !!g.buy_in_pagato;
     if (g.extra_amt === undefined)     g.extra_amt = 0;
     if (g.extra_pagato === undefined)  g.extra_pagato = true;
     if (g.soldi_ricevuti === undefined) g.soldi_ricevuti = 0;

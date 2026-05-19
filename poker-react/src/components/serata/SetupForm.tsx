@@ -48,7 +48,7 @@ export default function SetupForm() {
 
     const giocatori = lega!.nomi
       .filter(n => setupPartIds.has(n.id))
-      .map(n => nuovoGiocatoreSessione(n.id));
+      .map(n => nuovoGiocatoreSessione(n.id, buyIn));
 
     const sess = creaSessione(
       data, oraInizio, oraFine, buyIn,
