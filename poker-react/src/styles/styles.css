@@ -715,6 +715,43 @@ tr:nth-child(even) td { background: #fafafa; }
 .settle-totalbar .stt-item { text-align: center; }
 .settle-totalbar .stt-lbl { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
 .settle-totalbar .stt-val { font-size: 16px; font-weight: 900; margin-top: 2px; }
+.settle-totalbar .stt-val--bad { color: var(--red); }
+
+/* ─── SETTLEMENT CASH — warning, check bilanciamento, trasferimenti ─── */
+.settle-warning {
+  background: #fff5e6; color: #b56a00; border: 1.5px solid #f0c270;
+  border-radius: 12px; padding: 10px 13px; margin-bottom: 12px;
+  font-size: 13px; font-weight: 700; line-height: 1.45;
+}
+
+.settle-check {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);
+  font-size: 12px; font-weight: 800;
+}
+.settle-check.ok  { color: var(--green); }
+.settle-check.bad { color: var(--red); }
+
+.trasf-row {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--white); border-radius: 10px;
+  padding: 8px 10px; margin-bottom: 7px; box-shadow: var(--shadow);
+}
+.trasf-sel {
+  flex: 1; min-width: 0; padding: 6px 7px; font-size: 13px; font-weight: 600;
+  border: 1.5px solid var(--border); border-radius: 7px; background: #fff;
+}
+.trasf-arrow { font-size: 13px; color: var(--muted); font-weight: 800; }
+.trasf-eur   { font-size: 13px; color: var(--muted); }
+.trasf-amt {
+  width: 72px; padding: 6px 8px; font-size: 13px; text-align: right;
+  border: 1.5px solid var(--border); border-radius: 7px;
+}
+.trasf-del {
+  width: 30px; height: 30px; flex-shrink: 0; border: none; cursor: pointer;
+  border-radius: 8px; background: #fde8e8; color: var(--red);
+  font-size: 13px; font-weight: 900;
+}
+.trasf-del:active { transform: scale(.92); }
 
 /* ─── STORICO — TABELLA RANKING ─── */
 .ranking-tbl tr.rank-1 td { background: #fff5d1 !important; }

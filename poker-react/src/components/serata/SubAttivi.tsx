@@ -8,12 +8,11 @@ import { useComputeLive } from '../../hooks/useComputeLive';
 ══════════════════════════════════════════════════════ */
 export default function SubAttivi() {
   const lega                 = useStore(selectCurrentLega);
-  const toggleBuyInPagato    = useStore(s => s.toggleBuyInPagato);
-  const toggleExtraPagato    = useStore(s => s.toggleExtraPagato);
+  const setEntrata           = useStore(s => s.setEntrata);
+  const toggleEntrataPagata  = useStore(s => s.toggleEntrataPagata);
   const toggleRicaricaPagata = useStore(s => s.toggleRicaricaPagata);
   const aggiungiRicarica     = useStore(s => s.aggiungiRicarica);
   const modificaRicarica     = useStore(s => s.modificaRicarica);
-  const setSoldiRicevuti     = useStore(s => s.setSoldiRicevuti);
   const aggiornaFiches       = useStore(s => s.aggiornaFiches);
   const toast                = useStore(s => s.toast);
 
@@ -60,8 +59,7 @@ export default function SubAttivi() {
     if (!c) return;
     if (c.mancante <= 0) { toast('✓ Tutto versato!'); return; }
     let det = `${getNome(lega!, idNome)} deve ancora versare €${euro(c.mancante)}\n\nDettaglio:`;
-    if (!c.buy_in_pagato) det += `\n• Buy-in: €${euro(sess.buy_in)}`;
-    if (c.extra_amt > 0 && !c.extra_pagato) det += `\n• Extra ingresso: €${euro(c.extra_amt)}`;
+    if (!c.entrata_pagata) det += `\n• Entrata: €${euro(c.entrata)}`;
     c.ricariche.forEach((r, i) => {
       if (!r.pagata) det += `\n• Ricarica ${i + 1}: €${euro(r.importo)}`;
     });
@@ -74,7 +72,7 @@ export default function SubAttivi() {
         const isWinner  = c.id_nome === leaderId;
         const nettoCls  = c.netto > 0 ? 'pos' : c.netto < 0 ? 'neg' : 'neu';
         const nettoLbl  = c.netto > 0 ? 'Riceve' : c.netto < 0 ? 'Deve dare' : '—';
-        const nome      = getNome(lega!, c.id_nome);
+        const nome      = getNome(lega, c.id_nome);
 
         return (
           <div
@@ -90,29 +88,30 @@ export default function SubAttivi() {
             </div>
 
             <div className="lc-body">
-              {/* Buy-in */}
+              {/* Entrata: importo libero + toggle versata */}
               <div className="status-line">
-                <span className="sl-label">Buy-in €{euro(sess.buy_in)}</span>
-                <button
-                  className={`pay-toggle ${c.buy_in_pagato ? 'paid' : 'unpaid'}`}
-                  onClick={() => toggleBuyInPagato(lega!.id, c.id_nome)}
-                >
-                  {c.buy_in_pagato ? '✓ Pagato' : '✕ Non pagato'}
-                </button>
-              </div>
-
-              {/* Extra */}
-              {c.extra_amt > 0 && (
-                <div className="status-line">
-                  <span className="sl-label">Extra ingresso €{euro(c.extra_amt)}</span>
+                <span className="sl-label">Entrata (€)</span>
+                <div className="sl-actions">
+                  <input
+                    type="number"
+                    placeholder={String(sess.buy_in)}
+                    step="0.50"
+                    min="0"
+                    inputMode="decimal"
+                    value={c.entrata || ''}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value.replace(',', '.')) || 0;
+                      setEntrata(lega!.id, c.id_nome, v);
+                    }}
+                  />
                   <button
-                    className={`pay-toggle ${c.extra_pagato ? 'paid' : 'unpaid'}`}
-                    onClick={() => toggleExtraPagato(lega!.id, c.id_nome)}
+                    className={`pay-toggle ${c.entrata_pagata ? 'paid' : 'unpaid'}`}
+                    onClick={() => toggleEntrataPagata(lega!.id, c.id_nome)}
                   >
-                    {c.extra_pagato ? '✓ Pagato' : '✕ Non pagato'}
+                    {c.entrata_pagata ? '✓ Versata' : '✕ Non versata'}
                   </button>
                 </div>
-              )}
+              </div>
 
               {/* Ricariche */}
               {c.ricariche.length > 0 && (
@@ -146,25 +145,8 @@ export default function SubAttivi() {
                 +€ Aggiungi ricarica
               </button>
 
-              {/* Soldi ricevuti */}
-              <div className="lc-row lc-row--mt">
-                <span className="lr-label">Soldi ricevuti in mano</span>
-                <input
-                  type="number"
-                  value={c.soldi_ricevuti || ''}
-                  placeholder="0"
-                  step="0.50"
-                  min="0"
-                  inputMode="decimal"
-                  onInput={e => {
-                    const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
-                    setSoldiRicevuti(lega!.id, c.id_nome, v);
-                  }}
-                />
-              </div>
-
               {/* Fiches finali */}
-              <div className="lc-row">
+              <div className="lc-row lc-row--mt">
                 <span className="lr-label">Fiches finali (€)</span>
                 <input
                   type="number"

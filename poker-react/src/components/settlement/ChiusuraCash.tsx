@@ -1,31 +1,49 @@
 import { useStore } from '../../store/useStore';
-import type { SettlementState } from '../../types';
-import { euro } from '../../utils/format';
+import { round2, type Trasferimento } from '../../utils/settlement';
+import { euro, euroSigned } from '../../utils/format';
 
 /* ══════════════════════════════════════════════════════
-   CHIUSURA CASH — contenuto settlement cash game
-   Derivato da renderSettlementHtml() in session-cash.js
+   CHIUSURA CASH — trasferimenti finali del cash game
+   Implementa SETTLEMENT_SPEC §8 (override manuale) e §9 (check).
 ══════════════════════════════════════════════════════ */
 
 interface Props { legaId: number; }
 
 export default function ChiusuraCash({ legaId }: Props) {
-  const settlement     = useStore(s => s.settlement) as SettlementState;
-  const lega           = useStore(s => s.db.leghe.find(l => l.id === legaId));
-  const setAllocazione = useStore(s => s.setAllocazione);
+  const settlement           = useStore(s => s.settlement);
+  const lega                 = useStore(s => s.db.leghe.find(l => l.id === legaId));
+  const setTrasferimentiCash = useStore(s => s.setTrasferimentiCash);
 
-  if (!lega || !settlement) return null;
+  if (!lega || !settlement || settlement.isTorneo) return null;
 
+  const { giocatori, trasferimenti, sbilancio } = settlement;
   const nomeDi = (id: number) => lega.nomi.find(n => n.id === id)?.nome ?? '?';
 
-  const winnerAllocato = (winnerId: number) =>
-    Math.round(
-      Object.values(settlement.allocazioni)
-        .flatMap(a => a)
-        .filter(a => a.to === winnerId)
-        .reduce((acc, a) => acc + a.amount, 0)
-      * 100
-    ) / 100;
+  /* Posizione risultante di un giocatore dai trasferimenti attuali (§9) */
+  const risultanteDi = (id: number) => {
+    let r = 0;
+    trasferimenti.forEach(t => {
+      if (t.to === id)   r += t.importo;
+      if (t.from === id) r -= t.importo;
+    });
+    return round2(r);
+  };
+
+  const aggiorna = (next: Trasferimento[]) => setTrasferimentiCash(legaId, next);
+
+  const setRiga = (i: number, patch: Partial<Trasferimento>) =>
+    aggiorna(trasferimenti.map((t, idx) => (idx === i ? { ...t, ...patch } : t)));
+
+  const eliminaRiga = (i: number) =>
+    aggiorna(trasferimenti.filter((_, idx) => idx !== i));
+
+  const aggiungiRiga = () => {
+    const from = giocatori[0]?.id_nome ?? 0;
+    const to   = giocatori[1]?.id_nome ?? from;
+    aggiorna([...trasferimenti, { from, to, importo: 0 }]);
+  };
+
+  const sbilanciato = Math.abs(sbilancio) >= 0.01;
 
   return (
     <div>
@@ -33,101 +51,101 @@ export default function ChiusuraCash({ legaId }: Props) {
       <div className="settle-totalbar">
         <div className="stt-item">
           <div className="stt-lbl">Giocatori</div>
-          <div className="stt-val">{settlement.entrati.length}</div>
+          <div className="stt-val">{giocatori.length}</div>
         </div>
         <div className="stt-item">
-          <div className="stt-lbl">Da pagare</div>
-          <div className="stt-val">{settlement.losers.length}</div>
+          <div className="stt-lbl">Trasferimenti</div>
+          <div className="stt-val">{trasferimenti.length}</div>
         </div>
         <div className="stt-item">
-          <div className="stt-lbl">Da ricevere</div>
-          <div className="stt-val">{settlement.winners.length}</div>
+          <div className="stt-lbl">Sbilancio</div>
+          <div className={`stt-val${sbilanciato ? ' stt-val--bad' : ''}`}>€{euro(sbilancio)}</div>
         </div>
       </div>
 
-      {/* ── Da pagare (debitori) ── */}
-      {settlement.losers.length > 0 && (
-        <>
-          <div className="settle-section-title">Da pagare</div>
-          {settlement.losers.map(loser => {
-            const allocs   = settlement.allocazioni[loser.id_nome] ?? [];
-            const allocato = Math.round(allocs.reduce((a, x) => a + x.amount, 0) * 100) / 100;
-            const residuo  = Math.round((loser.mancante - allocato) * 100) / 100;
-            return (
-              <div key={loser.id_nome} className="settle-card">
-                <div className="settle-head">
-                  <span className="settle-name">{nomeDi(loser.id_nome)}</span>
-                  <span className="settle-amount neg">−€{euro(loser.mancante)}</span>
-                </div>
-                <div className="settle-allocations">
-                  {settlement.winners.map(w => {
-                    const alloc = allocs.find(a => a.to === w.id_nome);
-                    return (
-                      <div key={w.id_nome} className="settle-alloc-row">
-                        <span className="alloc-name">→ {nomeDi(w.id_nome)}</span>
-                        <span className="alloc-eur">€</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={alloc?.amount ?? 0}
-                          onChange={e =>
-                            setAllocazione(legaId, loser.id_nome, w.id_nome, Number(e.target.value))
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                  <div className={`settle-remaining ${Math.abs(residuo) < 0.01 ? 'ok' : 'bad'}`}>
-                    {Math.abs(residuo) < 0.01
-                      ? '✓ Bilanciato'
-                      : residuo > 0
-                        ? `Residuo: −€${euro(residuo)}`
-                        : `Eccesso: +€${euro(Math.abs(residuo))}`
-                    }
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </>
+      {sbilanciato && (
+        <div className="settle-warning">
+          ⚠ Le fiche non quadrano: somma dei netti {euroSigned(sbilancio)}. Controlla
+          il conteggio delle fiche, oppure procedi comunque.
+        </div>
       )}
 
-      {/* ── Da ricevere (creditori) ── */}
-      {settlement.winners.length > 0 && (
-        <>
-          <div className="settle-section-title">Da ricevere</div>
-          {settlement.winners.map(w => {
-            const allocato = winnerAllocato(w.id_nome);
-            return (
-              <div key={w.id_nome} className="settle-card winner-card">
-                <div className="settle-head">
-                  <span className="settle-name">{nomeDi(w.id_nome)}</span>
-                  <span className="settle-amount pos">+€{euro(w.netto)}</span>
-                </div>
-                <div className="settle-info-txt">
-                  Riceve: €{euro(allocato)} / €{euro(w.netto)}
-                </div>
-              </div>
-            );
-          })}
-        </>
-      )}
-
-      {/* ── In pari ── */}
-      {settlement.neutri.length > 0 && (
-        <>
-          <div className="settle-section-title">In pari</div>
-          {settlement.neutri.map(n => (
-            <div key={n.id_nome} className="settle-card settle-card--neutro">
-              <div className="settle-head">
-                <span className="settle-name">{nomeDi(n.id_nome)}</span>
-                <span className="settle-amount">—</span>
-              </div>
+      {/* ── Risultato dei giocatori (netto + check §9) ── */}
+      <div className="settle-section-title">Risultato giocatori</div>
+      {giocatori.map(g => {
+        const ris = risultanteDi(g.id_nome);
+        const ok  = Math.abs(ris - g.netto) < 0.01;
+        const cls = g.netto > 0.005 ? 'pos' : g.netto < -0.005 ? 'neg' : '';
+        return (
+          <div key={g.id_nome} className="settle-card">
+            <div className="settle-head">
+              <span className="settle-name">{nomeDi(g.id_nome)}</span>
+              <span className={`settle-amount ${cls}`}>{euroSigned(g.netto)}</span>
             </div>
-          ))}
-        </>
+            <div className={`settle-check ${ok ? 'ok' : 'bad'}`}>
+              {ok
+                ? '✓ Trasferimenti bilanciati'
+                : `⚠ Dai trasferimenti risulta ${euroSigned(ris)} (atteso ${euroSigned(g.netto)})`}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* ── Trasferimenti — modificabili, aggiungibili, eliminabili (§8) ── */}
+      <div className="settle-section-title">Trasferimenti — chi dà contanti a chi</div>
+      {trasferimenti.length === 0 && (
+        <div className="settle-info-txt">
+          Nessun trasferimento: nessuno deve passare contante.
+        </div>
       )}
+      {trasferimenti.map((t, i) => (
+        <div key={i} className="trasf-row">
+          <select
+            className="trasf-sel"
+            value={t.from}
+            onChange={e => setRiga(i, { from: Number(e.target.value) })}
+          >
+            {giocatori.map(g => (
+              <option key={g.id_nome} value={g.id_nome}>{nomeDi(g.id_nome)}</option>
+            ))}
+          </select>
+          <span className="trasf-arrow">→</span>
+          <select
+            className="trasf-sel"
+            value={t.to}
+            onChange={e => setRiga(i, { to: Number(e.target.value) })}
+          >
+            {giocatori.map(g => (
+              <option key={g.id_nome} value={g.id_nome}>{nomeDi(g.id_nome)}</option>
+            ))}
+          </select>
+          <span className="trasf-eur">€</span>
+          <input
+            className="trasf-amt"
+            type="number"
+            min="0"
+            step="0.5"
+            inputMode="decimal"
+            value={t.importo || ''}
+            onChange={e =>
+              setRiga(i, {
+                importo: round2(Math.max(0, parseFloat(e.target.value.replace(',', '.')) || 0)),
+              })
+            }
+          />
+          <button
+            className="trasf-del"
+            onClick={() => eliminaRiga(i)}
+            title="Elimina trasferimento"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+
+      <button className="btn btn-outline btn-sm btn--full-mt" onClick={aggiungiRiga}>
+        + Aggiungi trasferimento
+      </button>
     </div>
   );
 }

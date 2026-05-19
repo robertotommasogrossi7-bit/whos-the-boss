@@ -1,27 +1,49 @@
-import type { Sessione, Partita } from '../types';
+import type { Sessione, Partita, Ricarica } from '../types';
+
+/* Forma "legacy" di un giocatore di sessione: contiene i campi del
+   vecchio modello (extra_amt/extra_pagato/soldi_ricevuti) che la
+   migrazione converte e rimuove. */
+interface GiocatoreLegacy {
+  ricariche?: Ricarica[] | number[];
+  rebuys?: Ricarica[];
+  entrato?: boolean;
+  buy_in_pagato?: boolean;
+  entrata?: number;
+  entrata_pagata?: boolean;
+  fiches_finali?: number;
+  extra_amt?: number;
+  extra_pagato?: boolean;
+  soldi_ricevuti?: number;
+}
 
 export function migrateSessione(s: Sessione | undefined): void {
   if (!s?.giocatori) return;
-  s.giocatori.forEach(g => {
+  s.giocatori.forEach(raw => {
+    const g = raw as unknown as GiocatoreLegacy;
+
     // Retrocompatibilità: ricariche erano array di numeri
     if (
-      g.ricariche?.length &&
-      typeof (g.ricariche as unknown[])[0] === 'number'
+      Array.isArray(g.ricariche) && g.ricariche.length &&
+      typeof g.ricariche[0] === 'number'
     ) {
-      g.ricariche = (g.ricariche as unknown as number[]).map(v => ({
-        importo: v,
-        pagata: true,
-      }));
+      g.ricariche = (g.ricariche as number[]).map(v => ({ importo: v, pagata: true }));
     }
-    if (!g.ricariche)          g.ricariche = [];
-    if (!g.rebuys)             g.rebuys = [];
+    if (!g.ricariche) g.ricariche = [];
+    if (!g.rebuys)    g.rebuys = [];
     if (g.buy_in_pagato === undefined) g.buy_in_pagato = !!g.entrato;
+    if (g.fiches_finali === undefined) g.fiches_finali = 0;
+
+    // §3 — ingresso libero: entrata = buy_in di sessione, entrata_pagata = buy_in_pagato
     if (g.entrata === undefined)        g.entrata = s.buy_in;
     if (g.entrata_pagata === undefined) g.entrata_pagata = !!g.buy_in_pagato;
-    if (g.extra_amt === undefined)     g.extra_amt = 0;
-    if (g.extra_pagato === undefined)  g.extra_pagato = true;
-    if (g.soldi_ricevuti === undefined) g.soldi_ricevuti = 0;
-    if (g.fiches_finali === undefined)  g.fiches_finali = 0;
+
+    // §3 — un extra_amt > 0 del vecchio modello diventa una ricarica
+    if (typeof g.extra_amt === 'number' && g.extra_amt > 0) {
+      (g.ricariche as Ricarica[]).push({ importo: g.extra_amt, pagata: !!g.extra_pagato });
+    }
+    delete g.extra_amt;
+    delete g.extra_pagato;
+    delete g.soldi_ricevuti;
   });
 }
 

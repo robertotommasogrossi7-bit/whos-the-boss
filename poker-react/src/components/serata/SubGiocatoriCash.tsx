@@ -1,5 +1,4 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro } from '../../utils/format';
 import { getNome } from '../../utils/format';
 
 /* ══════════════════════════════════════════════════════
@@ -9,9 +8,8 @@ import { getNome } from '../../utils/format';
 export default function SubGiocatoriCash() {
   const lega                     = useStore(selectCurrentLega);
   const toggleEntrato            = useStore(s => s.toggleEntrato);
-  const toggleBuyInPagato        = useStore(s => s.toggleBuyInPagato);
-  const setExtraAmt              = useStore(s => s.setExtraAmt);
-  const toggleExtraPagato        = useStore(s => s.toggleExtraPagato);
+  const setEntrata               = useStore(s => s.setEntrata);
+  const toggleEntrataPagata      = useStore(s => s.toggleEntrataPagata);
   const addGiocatoreSessione     = useStore(s => s.addGiocatoreSessione);
   const rimuoviGiocatoreSessione = useStore(s => s.rimuoviGiocatoreSessione);
 
@@ -71,49 +69,34 @@ export default function SubGiocatoriCash() {
 
             <div className="lc-body">
               {entrato ? (
-                <>
-                  {/* Buy-in */}
-                  <div className="status-line">
-                    <span className="sl-label">Buy-in €{euro(sess.buy_in)} versato?</span>
+                /* Entrata: importo libero (default = buy-in di sessione) + toggle versata */
+                <div className="status-line">
+                  <span className="sl-label">Entrata (€)</span>
+                  <div className="sl-actions">
+                    <input
+                      type="number"
+                      placeholder={String(sess.buy_in)}
+                      step="0.50"
+                      min="0"
+                      inputMode="decimal"
+                      value={g.entrata || ''}
+                      onChange={e => {
+                        const v = parseFloat(e.target.value.replace(',', '.')) || 0;
+                        setEntrata(lega!.id, g.id_nome, v);
+                      }}
+                    />
                     <button
-                      className={`pay-toggle ${g.buy_in_pagato ? 'paid' : 'unpaid'}`}
-                      onClick={() => toggleBuyInPagato(lega!.id, g.id_nome)}
+                      className={`pay-toggle ${g.entrata_pagata ? 'paid' : 'unpaid'}`}
+                      onClick={() => toggleEntrataPagata(lega!.id, g.id_nome)}
                     >
-                      {g.buy_in_pagato ? '✓ Pagato' : '✕ Non pagato'}
+                      {g.entrata_pagata ? '✓ Versata' : '✕ Non versata'}
                     </button>
                   </div>
-
-                  {/* Extra ingresso */}
-                  <div className="status-line">
-                    <span className="sl-label">Entrato con extra?</span>
-                    <div className="sl-actions">
-                      <input
-                        type="number"
-                        placeholder="€ extra"
-                        step="0.50"
-                        min="0"
-                        inputMode="decimal"
-                        value={g.extra_amt || ''}
-                        onChange={e => {
-                          const v = parseFloat(e.target.value.replace(',', '.')) || 0;
-                          setExtraAmt(lega!.id, g.id_nome, v);
-                        }}
-                      />
-                      {g.extra_amt > 0 && (
-                        <button
-                          className={`pay-toggle ${g.extra_pagato ? 'paid' : 'unpaid'}`}
-                          onClick={() => toggleExtraPagato(lega!.id, g.id_nome)}
-                        >
-                          {g.extra_pagato ? '✓' : '✕'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </>
+                </div>
               ) : (
                 <>
                   <p className="help-note help-note--bt">
-                    Segna come entrato per registrare buy-in, ricariche, soldi ricevuti e fiches.
+                    Segna come entrato per registrare entrata, ricariche e fiches.
                   </p>
                   <button
                     className="btn btn-gray btn-sm"

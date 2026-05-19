@@ -4,9 +4,10 @@ import type {
   Db, Lega, Sessione, SettlementState, SettlementEntrato, SettlementAlloc,
   User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
 } from '../types';
-import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
+import { calcolaSettlementCash, round2, type Trasferimento } from '../utils/settlement';
+import { euroSigned } from '../utils/format';
 import {
   calcolaMontepremi,
   calcolaPremi,
@@ -119,12 +120,11 @@ interface StoreActions {
   // Cash live — giocatori
   toggleEntrato:             (legaId: number, idNome: number) => void;
   toggleBuyInPagato:         (legaId: number, idNome: number) => void;
-  setExtraAmt:               (legaId: number, idNome: number, val: number) => void;
-  toggleExtraPagato:         (legaId: number, idNome: number) => void;
+  setEntrata:                (legaId: number, idNome: number, val: number) => void;
+  toggleEntrataPagata:       (legaId: number, idNome: number) => void;
   aggiungiRicarica:          (legaId: number, idNome: number, importo: number, pagata: boolean) => void;
   modificaRicarica:          (legaId: number, idNome: number, idx: number, importo: number) => void;
   toggleRicaricaPagata:      (legaId: number, idNome: number, idx: number) => void;
-  setSoldiRicevuti:          (legaId: number, idNome: number, val: number) => void;
   aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
   addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
   rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
@@ -149,10 +149,11 @@ interface StoreActions {
   confirmaPremio:            (legaId: number, pagato: boolean) => void;
 
   // Settlement — chiusura serata
-  apriChiusura:       (legaId: number) => boolean;
-  apriChiusuraTorneo: (legaId: number) => boolean;
-  setAllocazione:     (legaId: number, loserId: number, winnerId: number, amount: number) => void;
-  confermaChiusura:   (legaId: number, oraFine: string) => void;
+  apriChiusura:         (legaId: number) => boolean;
+  apriChiusuraTorneo:   (legaId: number) => boolean;
+  setAllocazione:       (legaId: number, loserId: number, winnerId: number, amount: number) => void;
+  setTrasferimentiCash: (legaId: number, trasferimenti: Trasferimento[]) => void;
+  confermaChiusura:     (legaId: number, oraFine: string) => void;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -509,26 +510,26 @@ export const useStore = create<PokerStore>()(
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
 
-      setExtraAmt: (legaId, idNome, val) => {
+      setEntrata: (legaId, idNome, val) => {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome
-            ? { ...g, extra_amt: val, extra_pagato: val === 0 ? true : g.extra_pagato }
-            : g,
+          g.id_nome === idNome ? { ...g, entrata: Math.max(0, val) } : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
 
-      toggleExtraPagato: (legaId, idNome) => {
-        const { db, saveLega } = get();
+      toggleEntrataPagata: (legaId, idNome) => {
+        const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
-        const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, extra_pagato: !g.extra_pagato } : g,
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.entrato) { toast('Prima segna il giocatore come entrato'); return; }
+        const giocatori = sess.giocatori.map(x =>
+          x.id_nome === idNome ? { ...x, entrata_pagata: !x.entrata_pagata } : x,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
@@ -573,17 +574,6 @@ export const useStore = create<PokerStore>()(
           );
           return { ...g, ricariche };
         });
-        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
-      },
-
-      setSoldiRicevuti: (legaId, idNome, val) => {
-        const { db, saveLega } = get();
-        const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return;
-        const sess = lega.sessioneAttiva;
-        const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, soldi_ricevuti: val } : g,
-        );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
 
@@ -954,54 +944,30 @@ export const useStore = create<PokerStore>()(
         if (!lega?.sessioneAttiva) return false;
         const sess = lega.sessioneAttiva;
 
-        const { arr } = computeLive(sess);
-        const entrati = arr.filter(c => c.entrato);
+        const entrati = sess.giocatori.filter(g => g.entrato);
         if (entrati.length < 2) {
           toast('Almeno 2 giocatori devono essere entrati');
           return false;
         }
 
-        const losers  = entrati.filter(c => c.mancante > 0.005).sort((a, b) => b.mancante - a.mancante);
-        const winners = entrati.filter(c => c.netto > 0.005).sort((a, b) => b.netto - a.netto);
-        const neutri  = entrati.filter(c => c.mancante <= 0.005 && c.netto <= 0.005);
-
-        /* Auto-allocazione greedy */
-        const winnersRem: Record<number, number> = {};
-        winners.forEach(w => { winnersRem[w.id_nome] = w.netto; });
-        const allocazioni: Record<number, SettlementAlloc[]> = {};
-        losers.forEach(l => {
-          allocazioni[l.id_nome] = [];
-          let rem = l.mancante;
-          for (const w of winners) {
-            if (rem <= 0.005) break;
-            const avail = winnersRem[w.id_nome] ?? 0;
-            if (avail <= 0.005) continue;
-            const amt = Math.round(Math.min(rem, avail) * 100) / 100;
-            allocazioni[l.id_nome]!.push({ to: w.id_nome, amount: amt });
-            rem              -= amt;
-            winnersRem[w.id_nome] = (winnersRem[w.id_nome] ?? 0) - amt;
-          }
-        });
-
-        const toEnt = (c: typeof entrati[0]): SettlementEntrato => ({
-          id_nome: c.id_nome, mancante: c.mancante, netto: c.netto,
-          ricaricheTot: c.ricaricheTot, buy_in_pagato: c.buy_in_pagato,
-          extra_amt: c.extra_amt, extra_pagato: c.extra_pagato,
-          ricariche: c.ricariche, fiches: c.fiches, ricevuti: c.ricevuti,
-          contributo_dovuto: 0, contributo_pagato: 0, contributo_residuo: 0,
-          premio_dovuto: 0, premio_residuo: 0, posizione_finale: null,
-          add_on_fatto: false, add_on_pagato: false, prize_pagato: false,
-        });
+        /* Calcolo puro §7: grandezze §4 + trasferimenti suggeriti */
+        const { giocatori, trasferimenti, sbilancio } = calcolaSettlementCash(
+          entrati.map(g => ({
+            id_nome:        g.id_nome,
+            entrata:        g.entrata,
+            entrata_pagata: g.entrata_pagata,
+            ricariche:      g.ricariche,
+            fiche:          g.fiches_finali || 0,
+          })),
+        );
 
         setSettlement({
+          isTorneo:  false,
           legaId,
-          isTorneo: false,
-          sessione: JSON.parse(JSON.stringify(sess)) as Sessione,
-          entrati: entrati.map(toEnt),
-          losers:  losers.map(toEnt),
-          winners: winners.map(toEnt),
-          neutri:  neutri.map(toEnt),
-          allocazioni,
+          sessione:  JSON.parse(JSON.stringify(sess)) as Sessione,
+          giocatori,
+          trasferimenti,
+          sbilancio,
         });
         return true;
       },
@@ -1063,7 +1029,7 @@ export const useStore = create<PokerStore>()(
             extra_amt: addOnAmt,
             extra_pagato: !!g.add_on_pagato,
             ricariche: g.rebuys ?? [],
-            fiches: premio_dovuto, ricevuti: 0,
+            fiches: premio_dovuto,
             contributo_dovuto, contributo_pagato, contributo_residuo,
             premio_dovuto, premio_residuo,
             posizione_finale: g.posizione_finale ?? null,
@@ -1103,7 +1069,7 @@ export const useStore = create<PokerStore>()(
 
       setAllocazione: (legaId, loserId, winnerId, amount) => {
         const { settlement, setSettlement } = get();
-        if (!settlement || settlement.legaId !== legaId) return;
+        if (!settlement || !settlement.isTorneo || settlement.legaId !== legaId) return;
         const v = Math.round(Math.max(0, amount) * 100) / 100;
         const allocs = settlement.allocazioni[loserId] ?? [];
         const idx    = allocs.findIndex(a => a.to === winnerId);
@@ -1121,62 +1087,127 @@ export const useStore = create<PokerStore>()(
         });
       },
 
+      setTrasferimentiCash: (legaId, trasferimenti) => {
+        const { settlement, setSettlement } = get();
+        if (!settlement || settlement.isTorneo || settlement.legaId !== legaId) return;
+        setSettlement({ ...settlement, trasferimenti });
+      },
+
       confermaChiusura: (legaId, oraFine) => {
         const { db, saveLega, settlement, setSettlement, toast } = get();
         if (!settlement) return;
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
 
-        /* Validazione bilanci */
-        let warning = '';
-        settlement.losers.forEach(l => {
-          const allocs = settlement.allocazioni[l.id_nome] ?? [];
-          const tot    = allocs.reduce((a, x) => a + x.amount, 0);
-          const debito = settlement.isTorneo ? l.contributo_residuo : l.mancante;
-          if (Math.abs(debito - tot) > 0.01) {
-            const nome = lega.nomi.find(n => n.id === l.id_nome)?.nome ?? '?';
-            warning += `• ${nome}: allocati €${tot.toFixed(2).replace('.', ',')} su €${debito.toFixed(2).replace('.', ',')}\n`;
-          }
-        });
-        if (warning && !confirm(`Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?`)) return;
-
         const sa = { ...settlement.sessione, ora_fine: oraFine || settlement.sessione.ora_fine };
+        const nomeDi = (id: number) => lega.nomi.find(n => n.id === id)?.nome ?? '?';
 
-        /* Costruisci GiocatorePartita[] */
-        const giocatori: GiocatorePartita[] = settlement.entrati.map(c => {
-          const isDebtor = settlement.isTorneo ? c.contributo_residuo > 0.005 : c.mancante > 0.005;
-          const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
-            ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
-            : [];
-          const pagamenti_ricevuti: PagamentoRicevuto[] = c.netto > 0.005
-            ? settlement.losers.flatMap(l =>
-                (settlement.allocazioni[l.id_nome] ?? [])
-                  .filter(a => a.to === c.id_nome)
-                  .map(a => ({ from: l.id_nome, amount: a.amount }))
-              )
-            : [];
-          return {
-            id_nome:             c.id_nome,
-            entrate:             sa.buy_in,
-            ricarica_fatta:      c.ricaricheTot,
-            extra:               c.extra_amt,
-            soldi_ricevuti:      c.ricevuti,
-            fiches_finali:       c.fiches,
-            netto_finale:        c.netto,
-            premio:              c.premio_dovuto,
-            vincitore:           false,
-            buy_in_pagato:       c.buy_in_pagato,
-            extra_pagato:        c.extra_pagato,
-            ricariche:           c.ricariche,
-            pagamenti_effettuati,
-            pagamenti_ricevuti,
-            posizione_finale:    c.posizione_finale,
-            add_on_fatto:        c.add_on_fatto,
-            add_on_pagato:       c.add_on_pagato,
-          };
-        });
+        let giocatori: GiocatorePartita[];
+        const settlements: Settlement[] = [];
 
-        /* Determina vincitore */
+        if (settlement.isTorneo) {
+          /* ── TORNEO — modello contributi/premi separato (§11) ── */
+          let warning = '';
+          settlement.losers.forEach(l => {
+            const allocs = settlement.allocazioni[l.id_nome] ?? [];
+            const tot    = allocs.reduce((a, x) => a + x.amount, 0);
+            if (Math.abs(l.contributo_residuo - tot) > 0.01) {
+              warning += `• ${nomeDi(l.id_nome)}: allocati €${tot.toFixed(2).replace('.', ',')} su €${l.contributo_residuo.toFixed(2).replace('.', ',')}\n`;
+            }
+          });
+          if (warning && !confirm(`Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?`)) return;
+
+          giocatori = settlement.entrati.map((c): GiocatorePartita => {
+            const isDebtor = c.contributo_residuo > 0.005;
+            const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
+              ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
+              : [];
+            const pagamenti_ricevuti: PagamentoRicevuto[] = c.netto > 0.005
+              ? settlement.losers.flatMap(l =>
+                  (settlement.allocazioni[l.id_nome] ?? [])
+                    .filter(a => a.to === c.id_nome)
+                    .map(a => ({ from: l.id_nome, amount: a.amount })),
+                )
+              : [];
+            return {
+              id_nome:          c.id_nome,
+              entrate:          sa.buy_in,
+              ricarica_fatta:   c.ricaricheTot,
+              extra:            c.extra_amt,
+              fiches_finali:    c.fiches,
+              netto_finale:     c.netto,
+              premio:           c.premio_dovuto,
+              vincitore:        false,
+              buy_in_pagato:    c.buy_in_pagato,
+              extra_pagato:     c.extra_pagato,
+              ricariche:        c.ricariche,
+              pagamenti_effettuati,
+              pagamenti_ricevuti,
+              posizione_finale: c.posizione_finale,
+              add_on_fatto:     c.add_on_fatto,
+              add_on_pagato:    c.add_on_pagato,
+            };
+          });
+          settlement.losers.forEach(l => {
+            (settlement.allocazioni[l.id_nome] ?? []).forEach(a => {
+              if (a.amount > 0.005) {
+                settlements.push({ from: l.id_nome, to: a.to, amount: round2(a.amount), pagato: false });
+              }
+            });
+          });
+        } else {
+          /* ── CASH — trasferimenti finali §7; check §9 non bloccante ── */
+          const recv: Record<number, number> = {};
+          const sent: Record<number, number> = {};
+          settlement.trasferimenti.forEach(t => {
+            sent[t.from] = (sent[t.from] ?? 0) + t.importo;
+            recv[t.to]   = (recv[t.to]   ?? 0) + t.importo;
+          });
+          let warning = '';
+          settlement.giocatori.forEach(g => {
+            const risultante = round2((recv[g.id_nome] ?? 0) - (sent[g.id_nome] ?? 0));
+            if (Math.abs(risultante - g.netto) > 0.01) {
+              warning += `• ${nomeDi(g.id_nome)}: i trasferimenti danno ${euroSigned(risultante)} invece di ${euroSigned(g.netto)}\n`;
+            }
+          });
+          if (Math.abs(settlement.sbilancio) > 0.01) {
+            warning += `\nFiche non quadrate: somma netti ${euroSigned(settlement.sbilancio)}.\n`;
+          }
+          if (warning && !confirm(`Verifica chiusura:\n\n${warning}\nSalvare comunque?`)) return;
+
+          giocatori = settlement.giocatori.map((c): GiocatorePartita => {
+            const src = settlement.sessione.giocatori.find(g => g.id_nome === c.id_nome);
+            return {
+              id_nome:          c.id_nome,
+              entrate:          c.entrata,
+              ricarica_fatta:   c.ricaricheTot,
+              extra:            0,
+              fiches_finali:    c.fiche,
+              netto_finale:     c.netto,
+              premio:           0,
+              vincitore:        false,
+              buy_in_pagato:    src?.entrata_pagata ?? false,
+              extra_pagato:     false,
+              ricariche:        src?.ricariche ?? [],
+              pagamenti_effettuati: settlement.trasferimenti
+                .filter(t => t.from === c.id_nome)
+                .map(t => ({ to: t.to, amount: t.importo })),
+              pagamenti_ricevuti: settlement.trasferimenti
+                .filter(t => t.to === c.id_nome)
+                .map(t => ({ from: t.from, amount: t.importo })),
+              posizione_finale: null,
+              add_on_fatto:     false,
+              add_on_pagato:    false,
+            };
+          });
+          settlement.trasferimenti.forEach(t => {
+            if (t.importo > 0.005) {
+              settlements.push({ from: t.from, to: t.to, amount: round2(t.importo), pagato: false });
+            }
+          });
+        }
+
+        /* Vincitore: 1° posto (torneo) o netto massimo positivo (cash) */
         const hasPosizioni = giocatori.some(g => g.posizione_finale !== null);
         if (hasPosizioni) {
           giocatori.forEach(g => { if (g.posizione_finale === 1) g.vincitore = true; });
@@ -1184,20 +1215,6 @@ export const useStore = create<PokerStore>()(
           const maxN = Math.max(...giocatori.map(g => g.netto_finale));
           if (maxN > 0) giocatori.forEach(g => { if (g.netto_finale === maxN) g.vincitore = true; });
         }
-
-        /* Settlements flat (per storico debiti) */
-        const settlements: Settlement[] = [];
-        settlement.losers.forEach(l => {
-          (settlement.allocazioni[l.id_nome] ?? []).forEach(a => {
-            if (a.amount > 0.005) {
-              settlements.push({
-                from: l.id_nome, to: a.to,
-                amount: Math.round(a.amount * 100) / 100,
-                pagato: false,
-              });
-            }
-          });
-        });
 
         /* Costruisci Partita */
         const partita: Partita = {

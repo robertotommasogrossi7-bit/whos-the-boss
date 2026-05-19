@@ -3,6 +3,8 @@
    Derivati da POKER_MAP.md — mantenere sincronizzati.
 ══════════════════════════════════════════════════════ */
 
+import type { GiocatoreCashCalc, Trasferimento } from '../utils/settlement';
+
 export interface User {
   username: string;
   email?: string;
@@ -52,16 +54,13 @@ export interface Seat {
 export interface GiocatoreSessione {
   id_nome: number;
   entrato: boolean;
-  buy_in_pagato: boolean;
+  buy_in_pagato: boolean;   // torneo
   entrata: number;          // cash: stake d'ingresso scelto dal giocatore
   entrata_pagata: boolean;  // cash: l'entrata è stata versata?
-  extra_amt: number;
-  extra_pagato: boolean;
-  ricariche: Ricarica[];  // cash: ricariche, torneo: rebuys
+  ricariche: Ricarica[];    // cash: ricariche, torneo: rebuys
   rebuys: Ricarica[];
-  soldi_ricevuti: number; // cash
-  fiches_finali: number;  // cash
-  seat: Seat | null;      // torneo
+  fiches_finali: number;    // cash
+  seat: Seat | null;        // torneo
   add_on_fatto: boolean;
   add_on_pagato: boolean;
   eliminato: boolean;
@@ -118,8 +117,7 @@ export interface GiocatorePartita {
   id_nome: number;
   entrate: number;
   ricarica_fatta: number;
-  extra: number;
-  soldi_ricevuti: number;
+  extra: number;          // torneo: importo add-on (0 per il cash)
   fiches_finali: number;
   netto_finale: number;
   premio: number;
@@ -175,20 +173,17 @@ export interface SettlementAlloc {
   amount: number;
 }
 
-/** Snapshot di un giocatore nel settlement (cash e torneo condiviso) */
+/** Snapshot di un giocatore nel settlement TORNEO (modello §11, separato dal cash). */
 export interface SettlementEntrato {
   id_nome:            number;
-  // ── Cash ──
-  mancante:           number;   // debito da versare (0 se torneo)
-  netto:              number;   // netto calcolato
+  mancante:           number;
+  netto:              number;
   ricaricheTot:       number;
   buy_in_pagato:      boolean;
-  extra_amt:          number;
+  extra_amt:          number;   // torneo: importo add-on
   extra_pagato:       boolean;
-  ricariche:          Ricarica[]; // cash: ricariche, torneo: rebuys
+  ricariche:          Ricarica[]; // torneo: rebuys
   fiches:             number;
-  ricevuti:           number;
-  // ── Torneo ──
   contributo_dovuto:  number;
   contributo_pagato:  number;
   contributo_residuo: number;
@@ -200,14 +195,27 @@ export interface SettlementEntrato {
   prize_pagato:       boolean;
 }
 
-/** Stato completo del settlement aperto (rimpiazza il vecchio _settlement vanilla) */
-export interface SettlementState {
+/** Settlement CASH: trasferimenti finali di contante (§7-§8). */
+export interface SettlementStateCash {
+  isTorneo:      false;
+  legaId:        number;
+  sessione:      Sessione;              // snapshot deep copy
+  giocatori:     GiocatoreCashCalc[];   // grandezze §4 dei giocatori entrati
+  trasferimenti: Trasferimento[];       // suggeriti da §7, modificabili a mano §8
+  sbilancio:     number;                // somma netti: ≠ 0 = fiche contate male §9
+}
+
+/** Settlement TORNEO: modello contributi/premi separato (§11). */
+export interface SettlementStateTorneo {
+  isTorneo:    true;
   legaId:      number;
-  isTorneo:    boolean;
-  sessione:    Sessione;                          // snapshot deep copy
+  sessione:    Sessione;
   entrati:     SettlementEntrato[];
   losers:      SettlementEntrato[];
   winners:     SettlementEntrato[];
   neutri:      SettlementEntrato[];
   allocazioni: Record<number, SettlementAlloc[]>; // { [loserId]: allocs }
 }
+
+/** Stato del settlement aperto: discriminato su `isTorneo`. */
+export type SettlementState = SettlementStateCash | SettlementStateTorneo;

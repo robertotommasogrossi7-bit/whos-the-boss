@@ -1,19 +1,18 @@
 import { useMemo } from 'react';
 import type { GiocatoreSessione, Sessione } from '../types';
+import { calcolaGrandezze } from '../utils/settlement';
 
 /* ══════════════════════════════════════════════════════
-   COMPUTE LIVE — cash game calcolatrice
+   COMPUTE LIVE — cash game: grandezze §4 per ogni giocatore
    Derivato da computeLive() in session-cash.js
 ══════════════════════════════════════════════════════ */
 
 export interface LiveGiocatore extends GiocatoreSessione {
-  ricaricheTot:   number;
-  versato:        number;   // totale dovuto (buy-in + extra + ricariche)
-  versato_pagato: number;   // solo la parte già pagata
-  mancante:       number;   // versato - versato_pagato
-  fiches:         number;   // alias di fiches_finali
-  ricevuti:       number;   // alias di soldi_ricevuti
-  netto:          number;   // fiches + ricevuti - versato
+  ricaricheTot: number;
+  dovuto:   number;   // entrata + somma(ricariche)
+  versato:  number;   // quanto ha già messo nella Cassa
+  mancante: number;   // dovuto − versato
+  netto:    number;   // fiche − dovuto
 }
 
 export interface LiveResult {
@@ -21,23 +20,28 @@ export interface LiveResult {
   leaderId: number | null;
 }
 
-/** Pure function — calcola netto/mancante per ogni giocatore cash. */
+/** Pure function — calcola le grandezze §4 di ogni giocatore cash. */
 export function computeLive(sess: Sessione | undefined): LiveResult {
   if (!sess) return { arr: [], leaderId: null };
   const arr: LiveGiocatore[] = sess.giocatori.map(g => {
-    const ricaricheTot    = g.ricariche.reduce((a, r) => a + r.importo, 0);
-    const ricarichePagate = g.ricariche.reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
-    const buyInDovuto     = g.entrato ? sess.buy_in : 0;
-    const buyInPagatoAmt  = (g.entrato && g.buy_in_pagato) ? sess.buy_in : 0;
-    const extraDovuto     = g.entrato ? (g.extra_amt || 0) : 0;
-    const extraPagatoAmt  = (g.entrato && g.extra_amt > 0 && g.extra_pagato) ? g.extra_amt : 0;
-    const versato         = buyInDovuto + extraDovuto + ricaricheTot;
-    const versato_pagato  = buyInPagatoAmt + extraPagatoAmt + ricarichePagate;
-    const mancante        = Math.max(0, versato - versato_pagato);
-    const fiches          = g.fiches_finali || 0;
-    const ricevuti        = g.soldi_ricevuti || 0;
-    const netto           = g.entrato ? (fiches + ricevuti - versato) : 0;
-    return { ...g, ricaricheTot, versato, versato_pagato, mancante, fiches, ricevuti, netto };
+    if (!g.entrato) {
+      return { ...g, ricaricheTot: 0, dovuto: 0, versato: 0, mancante: 0, netto: 0 };
+    }
+    const gr = calcolaGrandezze({
+      id_nome:        g.id_nome,
+      entrata:        g.entrata,
+      entrata_pagata: g.entrata_pagata,
+      ricariche:      g.ricariche,
+      fiche:          g.fiches_finali || 0,
+    });
+    return {
+      ...g,
+      ricaricheTot: gr.ricaricheTot,
+      dovuto:       gr.dovuto,
+      versato:      gr.versato,
+      mancante:     gr.mancante,
+      netto:        gr.netto,
+    };
   });
 
   let leaderId: number | null = null;

@@ -1,5 +1,4 @@
 import { useStore } from '../../store/useStore';
-import type { SettlementState } from '../../types';
 import { euro } from '../../utils/format';
 
 /* ══════════════════════════════════════════════════════
@@ -10,11 +9,11 @@ import { euro } from '../../utils/format';
 interface Props { legaId: number; }
 
 export default function ChiusuraTorneo({ legaId }: Props) {
-  const settlement     = useStore(s => s.settlement) as SettlementState;
+  const settlement     = useStore(s => s.settlement);
   const lega           = useStore(s => s.db.leghe.find(l => l.id === legaId));
   const setAllocazione = useStore(s => s.setAllocazione);
 
-  if (!lega || !settlement) return null;
+  if (!lega || !settlement || !settlement.isTorneo) return null;
 
   const nomeDi = (id: number) => lega.nomi.find(n => n.id === id)?.nome ?? '?';
 
