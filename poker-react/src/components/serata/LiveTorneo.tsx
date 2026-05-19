@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
 import { useTimer } from '../../hooks/useTimer';
@@ -12,7 +11,6 @@ import PrizeModal           from './PrizeModal';
    Derivato da renderLiveTorneoHtml() in session-tournament.js
 ══════════════════════════════════════════════════════ */
 export default function LiveTorneo() {
-  const navigate              = useNavigate();
   const lega                  = useStore(selectCurrentLega);
   const liveSubTab            = useStore(s => s.liveSubTab);
   const setLiveSubTab         = useStore(s => s.setLiveSubTab);
@@ -92,11 +90,7 @@ export default function LiveTorneo() {
       <div className="session-end-bar">
         <button
           className="btn btn-green btn-block"
-          onClick={() => {
-            if (apriChiusuraTorneo(lega.id)) {
-              navigate(`/app/${lega.id}/chiusura`);
-            }
-          }}
+          onClick={() => apriChiusuraTorneo(lega.id)}
         >
           ✓ Chiudi serata
         </button>

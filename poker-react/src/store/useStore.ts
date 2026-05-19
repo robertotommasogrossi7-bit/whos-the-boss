@@ -31,7 +31,7 @@ interface UiState {
   nlFoto: string;
 
   // Serata hub / setup
-  serataView: 'hub' | 'live' | 'setup';
+  serataView: 'hub' | 'live' | 'setup' | 'chiusura';
   setupPartIds: Set<number>;
   setupModalita: 'cash' | 'torneo';
 
@@ -1015,6 +1015,7 @@ export const useStore = create<PokerStore>()(
           neutri:  neutri.map(toEnt),
           allocazioni,
         });
+        set({ serataView: 'chiusura' });
         return true;
       },
 
@@ -1110,6 +1111,7 @@ export const useStore = create<PokerStore>()(
         });
 
         setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arr, losers, winners, neutri, allocazioni });
+        set({ serataView: 'chiusura' });
         return true;
       },
 
@@ -1235,7 +1237,7 @@ export const useStore = create<PokerStore>()(
         });
 
         setSettlement(null);
-        set({ serataView: 'hub' });
+        set({ serataView: 'hub', overlayOpen: false });
         toast('✓ Serata salvata!');
       },
 
