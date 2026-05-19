@@ -1251,3 +1251,50 @@ input[type="time"]:focus { outline: none; border-color: var(--green); }
 
 /* body bloccato quando overlay aperto */
 body.overlay-open { overflow: hidden; }
+
+/* ─── FAB PARTITE ATTIVE (basso sinistra) ─── */
+.fab-partite {
+  position: fixed; bottom: 82px; left: 16px; z-index: 350;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff; border: none;
+  font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.28);
+}
+.fab-partite:active { transform: scale(.94); }
+
+.fab-partite-panel {
+  position: fixed; bottom: 155px; left: 12px; z-index: 360;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  min-width: 240px; max-width: calc(100vw - 24px);
+  overflow: hidden;
+}
+.fab-partite-panel-title {
+  padding: 10px 16px 8px;
+  font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.fab-partite-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: none; background: none; cursor: pointer;
+  width: 100%; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.fab-partite-item:last-child { border-bottom: none; }
+.fab-partite-item:active { background: var(--green-light); }
+.fab-partite-ico  { font-size: 22px; flex-shrink: 0; }
+.fab-partite-info { flex: 1; min-width: 0; }
+.fab-partite-row1 {
+  font-size: 14px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fab-partite-row2 { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fab-partite-stato { color: var(--green); }
+.fab-partite-arrow { font-size: 20px; color: var(--muted); flex-shrink: 0; }

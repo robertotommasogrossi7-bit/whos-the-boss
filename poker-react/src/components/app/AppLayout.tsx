@@ -3,6 +3,7 @@ import { useParams, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import BottomNav from './BottomNav';
 import FabDebiti from '../common/FabDebiti';
+import FabPartiteAttive from '../common/FabPartiteAttive';
 import PartitaOverlay from './PartitaOverlay';
 
 export default function AppLayout() {
@@ -52,6 +53,7 @@ export default function AppLayout() {
       {/* Bottom nav e FAB nascosti quando l'overlay copre tutto */}
       {!overlayOpen && <BottomNav legaId={idNum} />}
       {!overlayOpen && <FabDebiti legaId={idNum} />}
+      {!overlayOpen && <FabPartiteAttive legaId={idNum} />}
 
       <PartitaOverlay />
     </>
