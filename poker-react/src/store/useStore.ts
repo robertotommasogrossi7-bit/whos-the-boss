@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
-import type { Db, Lega, Sessione, SettlementState, User } from '../types';
+import type {
+  Db, Lega, Sessione, SettlementState, SettlementEntrato, SettlementAlloc,
+  User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
+} from '../types';
+import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import {
@@ -143,6 +147,12 @@ interface StoreActions {
   torneoToggleRebuyPag:      (legaId: number, idNome: number, idx: number) => void;
   torneoElimina:             (legaId: number, idNome: number) => void;
   confirmaPremio:            (legaId: number, pagato: boolean) => void;
+
+  // Settlement — chiusura serata
+  apriChiusura:       (legaId: number) => boolean;
+  apriChiusuraTorneo: (legaId: number) => boolean;
+  setAllocazione:     (legaId: number, loserId: number, winnerId: number, amount: number) => void;
+  confermaChiusura:   (legaId: number, oraFine: string) => void;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -932,6 +942,289 @@ export const useStore = create<PokerStore>()(
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
         toast(pagato ? '✓ Premio segnato come pagato' : '⏱ Premio segnato come da pagare');
+      },
+
+      /* ══════════════════════════════════════════════════════
+         SETTLEMENT — CHIUSURA SERATA
+      ══════════════════════════════════════════════════════ */
+
+      apriChiusura: (legaId) => {
+        const { db, toast, setSettlement } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return false;
+        const sess = lega.sessioneAttiva;
+
+        const { arr } = computeLive(sess);
+        const entrati = arr.filter(c => c.entrato);
+        if (entrati.length < 2) {
+          toast('Almeno 2 giocatori devono essere entrati');
+          return false;
+        }
+
+        const losers  = entrati.filter(c => c.mancante > 0.005).sort((a, b) => b.mancante - a.mancante);
+        const winners = entrati.filter(c => c.netto > 0.005).sort((a, b) => b.netto - a.netto);
+        const neutri  = entrati.filter(c => c.mancante <= 0.005 && c.netto <= 0.005);
+
+        /* Auto-allocazione greedy */
+        const winnersRem: Record<number, number> = {};
+        winners.forEach(w => { winnersRem[w.id_nome] = w.netto; });
+        const allocazioni: Record<number, SettlementAlloc[]> = {};
+        losers.forEach(l => {
+          allocazioni[l.id_nome] = [];
+          let rem = l.mancante;
+          for (const w of winners) {
+            if (rem <= 0.005) break;
+            const avail = winnersRem[w.id_nome] ?? 0;
+            if (avail <= 0.005) continue;
+            const amt = Math.round(Math.min(rem, avail) * 100) / 100;
+            allocazioni[l.id_nome]!.push({ to: w.id_nome, amount: amt });
+            rem              -= amt;
+            winnersRem[w.id_nome] = (winnersRem[w.id_nome] ?? 0) - amt;
+          }
+        });
+
+        const toEnt = (c: typeof entrati[0]): SettlementEntrato => ({
+          id_nome: c.id_nome, mancante: c.mancante, netto: c.netto,
+          ricaricheTot: c.ricaricheTot, buy_in_pagato: c.buy_in_pagato,
+          extra_amt: c.extra_amt, extra_pagato: c.extra_pagato,
+          ricariche: c.ricariche, fiches: c.fiches, ricevuti: c.ricevuti,
+          contributo_dovuto: 0, contributo_pagato: 0, contributo_residuo: 0,
+          premio_dovuto: 0, premio_residuo: 0, posizione_finale: null,
+          add_on_fatto: false, add_on_pagato: false, prize_pagato: false,
+        });
+
+        setSettlement({
+          legaId,
+          isTorneo: false,
+          sessione: JSON.parse(JSON.stringify(sess)) as Sessione,
+          entrati: entrati.map(toEnt),
+          losers:  losers.map(toEnt),
+          winners: winners.map(toEnt),
+          neutri:  neutri.map(toEnt),
+          allocazioni,
+        });
+        return true;
+      },
+
+      apriChiusuraTorneo: (legaId) => {
+        const { db, saveLega, toast, setSettlement } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return false;
+
+        /* Lavoriamo su una copia mutabile della sessione */
+        const sess = JSON.parse(JSON.stringify(lega.sessioneAttiva)) as Sessione;
+        const entrati = sess.giocatori.filter(g => g.entrato);
+        if (entrati.length < 2) {
+          toast('Almeno 2 giocatori devono essere entrati');
+          return false;
+        }
+
+        /* Forza consolidamento premi */
+        if (!sess.premi_consolidati) {
+          sess.premi = calcolaPremi(calcolaMontepremi(sess), entrati.length);
+          sess.premi_consolidati = true;
+        }
+
+        /* Assegna posizioni ai vivi */
+        const vivi = entrati.filter(g => !g.eliminato);
+        if (vivi.length > 1) {
+          const n = lega.nomi.find(nm => nm.id === vivi[0]?.id_nome)?.nome ?? '?';
+          if (!confirm(
+            `Ci sono ancora ${vivi.length} giocatori in gioco.\n\nProcedendo, ${n} verrà assegnato al 1° posto, gli altri a seguire. Vuoi continuare?\n(Puoi prima eliminare i giocatori per scegliere l'ordine corretto).`
+          )) return false;
+          vivi.forEach((g, i) => { if (!g.posizione_finale) g.posizione_finale = i + 1; });
+        } else if (vivi.length === 1 && vivi[0] && !vivi[0].posizione_finale) {
+          vivi[0].posizione_finale = 1;
+        }
+        let nextPos = entrati.length;
+        entrati.forEach(g => { if (!g.posizione_finale) g.posizione_finale = nextPos--; });
+
+        /* Salva posizioni aggiornate */
+        saveLega({ ...lega, sessioneAttiva: sess });
+
+        /* Costruisci entrati per settlement */
+        const arr: SettlementEntrato[] = entrati.map(g => {
+          const ricarTot  = (g.rebuys ?? []).reduce((a, r) => a + r.importo, 0);
+          const ricarPaid = (g.rebuys ?? []).reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
+          const addOnAmt  = (g.add_on_fatto && sess.add_on) ? sess.add_on.prezzo : 0;
+          const addOnPaid = (g.add_on_fatto && g.add_on_pagato) ? (sess.add_on?.prezzo ?? 0) : 0;
+          const contributo_dovuto  = sess.buy_in + ricarTot + addOnAmt;
+          const contributo_pagato  = (g.buy_in_pagato ? sess.buy_in : 0) + ricarPaid + addOnPaid;
+          const contributo_residuo = Math.max(0, Math.round((contributo_dovuto - contributo_pagato) * 100) / 100);
+          const premio_dovuto  = (sess.premi ?? []).find(p => p.posizione === g.posizione_finale)?.importo ?? 0;
+          const premio_residuo = (!g.prize_pagato && premio_dovuto > 0)
+            ? Math.round(premio_dovuto * 100) / 100 : 0;
+          return {
+            id_nome: g.id_nome,
+            mancante: contributo_residuo,
+            netto: Math.round((premio_dovuto - contributo_dovuto) * 100) / 100,
+            ricaricheTot: ricarTot,
+            buy_in_pagato: !!g.buy_in_pagato,
+            extra_amt: addOnAmt,
+            extra_pagato: !!g.add_on_pagato,
+            ricariche: g.rebuys ?? [],
+            fiches: premio_dovuto, ricevuti: 0,
+            contributo_dovuto, contributo_pagato, contributo_residuo,
+            premio_dovuto, premio_residuo,
+            posizione_finale: g.posizione_finale ?? null,
+            add_on_fatto: !!g.add_on_fatto,
+            add_on_pagato: !!g.add_on_pagato,
+            prize_pagato: !!g.prize_pagato,
+          };
+        });
+
+        const losers  = [...arr].filter(p => p.contributo_residuo > 0.005)
+                                .sort((a, b) => b.contributo_residuo - a.contributo_residuo);
+        const winners = [...arr].filter(p => p.premio_residuo > 0.005)
+                                .sort((a, b) => b.premio_residuo - a.premio_residuo);
+        const neutri  = arr.filter(p => p.contributo_residuo <= 0.005 && p.premio_residuo <= 0.005);
+
+        /* Auto-allocazione greedy */
+        const winnersRem: Record<number, number> = {};
+        winners.forEach(w => { winnersRem[w.id_nome] = w.premio_residuo; });
+        const allocazioni: Record<number, SettlementAlloc[]> = {};
+        losers.forEach(l => {
+          allocazioni[l.id_nome] = [];
+          let rem = l.contributo_residuo;
+          for (const w of winners) {
+            if (rem <= 0.005) break;
+            const avail = winnersRem[w.id_nome] ?? 0;
+            if (avail <= 0.005) continue;
+            const amt = Math.round(Math.min(rem, avail) * 100) / 100;
+            allocazioni[l.id_nome]!.push({ to: w.id_nome, amount: amt });
+            rem -= amt;
+            winnersRem[w.id_nome] = (winnersRem[w.id_nome] ?? 0) - amt;
+          }
+        });
+
+        setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arr, losers, winners, neutri, allocazioni });
+        return true;
+      },
+
+      setAllocazione: (legaId, loserId, winnerId, amount) => {
+        const { settlement, setSettlement } = get();
+        if (!settlement || settlement.legaId !== legaId) return;
+        const v = Math.round(Math.max(0, amount) * 100) / 100;
+        const allocs = settlement.allocazioni[loserId] ?? [];
+        const idx    = allocs.findIndex(a => a.to === winnerId);
+        let newAllocs: SettlementAlloc[];
+        if (v <= 0) {
+          newAllocs = allocs.filter(a => a.to !== winnerId);
+        } else if (idx >= 0) {
+          newAllocs = allocs.map((a, i) => i === idx ? { ...a, amount: v } : a);
+        } else {
+          newAllocs = [...allocs, { to: winnerId, amount: v }];
+        }
+        setSettlement({
+          ...settlement,
+          allocazioni: { ...settlement.allocazioni, [loserId]: newAllocs },
+        });
+      },
+
+      confermaChiusura: (legaId, oraFine) => {
+        const { db, saveLega, settlement, setSettlement, toast } = get();
+        if (!settlement) return;
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+
+        /* Validazione bilanci */
+        let warning = '';
+        settlement.losers.forEach(l => {
+          const allocs = settlement.allocazioni[l.id_nome] ?? [];
+          const tot    = allocs.reduce((a, x) => a + x.amount, 0);
+          const debito = settlement.isTorneo ? l.contributo_residuo : l.mancante;
+          if (Math.abs(debito - tot) > 0.01) {
+            const nome = lega.nomi.find(n => n.id === l.id_nome)?.nome ?? '?';
+            warning += `• ${nome}: allocati €${tot.toFixed(2).replace('.', ',')} su €${debito.toFixed(2).replace('.', ',')}\n`;
+          }
+        });
+        if (warning && !confirm(`Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?`)) return;
+
+        const sa = { ...settlement.sessione, ora_fine: oraFine || settlement.sessione.ora_fine };
+
+        /* Costruisci GiocatorePartita[] */
+        const giocatori: GiocatorePartita[] = settlement.entrati.map(c => {
+          const isDebtor = settlement.isTorneo ? c.contributo_residuo > 0.005 : c.mancante > 0.005;
+          const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
+            ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
+            : [];
+          const pagamenti_ricevuti: PagamentoRicevuto[] = c.netto > 0.005
+            ? settlement.losers.flatMap(l =>
+                (settlement.allocazioni[l.id_nome] ?? [])
+                  .filter(a => a.to === c.id_nome)
+                  .map(a => ({ from: l.id_nome, amount: a.amount }))
+              )
+            : [];
+          return {
+            id_nome:             c.id_nome,
+            entrate:             sa.buy_in,
+            ricarica_fatta:      c.ricaricheTot,
+            extra:               c.extra_amt,
+            soldi_ricevuti:      c.ricevuti,
+            fiches_finali:       c.fiches,
+            netto_finale:        c.netto,
+            premio:              c.premio_dovuto,
+            vincitore:           false,
+            buy_in_pagato:       c.buy_in_pagato,
+            extra_pagato:        c.extra_pagato,
+            ricariche:           c.ricariche,
+            pagamenti_effettuati,
+            pagamenti_ricevuti,
+            posizione_finale:    c.posizione_finale,
+            add_on_fatto:        c.add_on_fatto,
+            add_on_pagato:       c.add_on_pagato,
+          };
+        });
+
+        /* Determina vincitore */
+        const hasPosizioni = giocatori.some(g => g.posizione_finale !== null);
+        if (hasPosizioni) {
+          giocatori.forEach(g => { if (g.posizione_finale === 1) g.vincitore = true; });
+        } else {
+          const maxN = Math.max(...giocatori.map(g => g.netto_finale));
+          if (maxN > 0) giocatori.forEach(g => { if (g.netto_finale === maxN) g.vincitore = true; });
+        }
+
+        /* Settlements flat (per storico debiti) */
+        const settlements: Settlement[] = [];
+        settlement.losers.forEach(l => {
+          (settlement.allocazioni[l.id_nome] ?? []).forEach(a => {
+            if (a.amount > 0.005) {
+              settlements.push({
+                from: l.id_nome, to: a.to,
+                amount: Math.round(a.amount * 100) / 100,
+                pagato: false,
+              });
+            }
+          });
+        });
+
+        /* Costruisci Partita */
+        const partita: Partita = {
+          id:         lega._pid,
+          data:       sa.data,
+          ora_inizio: sa.ora_inizio,
+          ora_fine:   sa.ora_fine,
+          modalita:   sa.modalita,
+          buy_in:     sa.buy_in,
+          giocatori,
+          settlements,
+        };
+
+        /* Aggiorna lega */
+        const serate_bg  = [...(lega.serate_bg ?? [])];
+        const nuovaAttiva = serate_bg.shift();
+        saveLega({
+          ...lega,
+          partite:        [...lega.partite, partita],
+          _pid:           lega._pid + 1,
+          sessioneAttiva: nuovaAttiva,
+          serate_bg,
+        });
+
+        setSettlement(null);
+        set({ serataView: 'hub' });
+        toast('✓ Serata salvata!');
       },
 
       /* ── Migrations ── */
