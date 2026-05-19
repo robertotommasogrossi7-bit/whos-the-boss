@@ -16,7 +16,6 @@ export default function LiveTorneo() {
   const lega                  = useStore(selectCurrentLega);
   const liveSubTab            = useStore(s => s.liveSubTab);
   const setLiveSubTab         = useStore(s => s.setLiveSubTab);
-  const setSerataView         = useStore(s => s.setSerataView);
   const annullaSessione       = useStore(s => s.annullaSessione);
   const avanzaLivelloAuto     = useStore(s => s.avanzaLivelloAuto);
   const recoveryTorneo        = useStore(s => s.recoveryTorneo);
@@ -52,14 +51,6 @@ export default function LiveTorneo() {
 
   return (
     <div className="tab-content">
-      {/* Back button */}
-      <button
-        className="btn btn-gray btn-sm btn-back-serata"
-        onClick={() => setSerataView('hub')}
-      >
-        ‹ Tutte le serate
-      </button>
-
       {/* Header sommario */}
       <div className="live-summary">
         <div className="ls-row1">

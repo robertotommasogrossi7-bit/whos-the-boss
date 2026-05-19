@@ -350,9 +350,9 @@ export const useStore = create<PokerStore>()(
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
-        // Sessione già attiva: basta cambiare la vista
+        // Sessione già attiva: basta cambiare la vista e aprire l'overlay
         if (bgIdx === -1) {
-          set({ serataView: 'live' });
+          set({ serataView: 'live', overlayOpen: true });
           return;
         }
         const serate_bg = [...(lega.serate_bg ?? [])];
@@ -365,7 +365,7 @@ export const useStore = create<PokerStore>()(
             : [s],
         );
         saveLega({ ...lega, sessioneAttiva: bg, serate_bg: nuoveBg });
-        set({ serataView: 'live' });
+        set({ serataView: 'live', overlayOpen: true });
       },
 
       annullaSessione: (legaId) => {
@@ -376,7 +376,7 @@ export const useStore = create<PokerStore>()(
         const serate_bg = [...(lega.serate_bg ?? [])];
         const nuovaAttiva = serate_bg.shift();
         saveLega({ ...lega, sessioneAttiva: nuovaAttiva, serate_bg });
-        set({ serataView: 'hub', setupPartIds: new Set<number>() });
+        set({ serataView: 'hub', overlayOpen: false, setupPartIds: new Set<number>() });
         get().toast('Serata annullata');
       },
 
