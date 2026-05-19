@@ -41,6 +41,9 @@ interface UiState {
   // Torneo
   pendingPrizeNome: number | null;
 
+  // Overlay partita a tutto schermo
+  overlayOpen: boolean;
+
   // Settlement / chiusura
   settlement: SettlementState | null;
 
@@ -68,6 +71,10 @@ interface StoreActions {
   login: (username: string, password: string) => string | null;
   register: (username: string, email: string, password: string) => string | null;
   logout: () => void;
+
+  // Overlay
+  openOverlay:  () => void;
+  closeOverlay: () => void;
 
   // Serata view
   setSerataView: (v: UiState['serataView']) => void;
@@ -229,6 +236,7 @@ export const useStore = create<PokerStore>()(
       /* ── Stato UI (NON persistito) ── */
       utente: readUtente(),
       nlFoto: '',
+      overlayOpen: false,
       serataView: 'hub',
       setupPartIds: new Set<number>(),
       setupModalita: 'cash',
@@ -289,6 +297,10 @@ export const useStore = create<PokerStore>()(
         sessionStorage.removeItem(USER_KEY);
         set({ utente: null });
       },
+
+      /* ── Overlay ── */
+      openOverlay:  () => set({ overlayOpen: true }),
+      closeOverlay: () => set({ overlayOpen: false }),
 
       /* ── Serata view ── */
       setSerataView: (v) => set({ serataView: v }),

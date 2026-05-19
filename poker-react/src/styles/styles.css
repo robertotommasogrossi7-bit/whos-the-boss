@@ -1215,3 +1215,39 @@ input[type="time"] {
   transition: border-color .15s;
 }
 input[type="time"]:focus { outline: none; border-color: var(--green); }
+
+/* ─── PARTITA OVERLAY ─── */
+.partita-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.overlay-topbar {
+  background: var(--green-dark);
+  color: var(--white);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.20);
+}
+.overlay-minimize {
+  background: rgba(255,255,255,.18); border: none;
+  color: var(--white); font-size: 14px; font-weight: 600;
+  padding: 6px 14px; border-radius: 20px;
+  cursor: pointer; flex-shrink: 0;
+}
+.overlay-minimize:active { background: rgba(255,255,255,.30); }
+.overlay-title {
+  font-size: 15px; font-weight: 700;
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  /* padding-bottom per contenuto scrollabile */
+  padding-bottom: 24px;
+}
+
+/* body bloccato quando overlay aperto */
+body.overlay-open { overflow: hidden; }
