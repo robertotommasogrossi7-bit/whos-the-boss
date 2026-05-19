@@ -9,7 +9,8 @@ export default function AppLayout() {
   const { legaId } = useParams<{ legaId: string }>();
   const navigate = useNavigate();
   const setCurrentLega = useStore(s => s.setCurrentLega);
-  const leghe = useStore(s => s.db.leghe);
+  const leghe      = useStore(s => s.db.leghe);
+  const overlayOpen = useStore(s => s.overlayOpen);
 
   const idNum = Number(legaId);
   const lega = leghe.find(l => l.id === idNum) ?? null;
@@ -22,6 +23,16 @@ export default function AppLayout() {
     document.body.classList.add('in-app');
     return () => document.body.classList.remove('in-app');
   }, []);
+
+  /* Blocca lo scroll del body quando l'overlay è aperto */
+  useEffect(() => {
+    if (overlayOpen) {
+      document.body.classList.add('overlay-open');
+    } else {
+      document.body.classList.remove('overlay-open');
+    }
+    return () => document.body.classList.remove('overlay-open');
+  }, [overlayOpen]);
 
   if (!lega) return <Navigate to="/circoli" replace />;
 
@@ -38,8 +49,10 @@ export default function AppLayout() {
 
       <Outlet />
 
-      <BottomNav legaId={idNum} />
-      <FabDebiti legaId={idNum} />
+      {/* Bottom nav e FAB nascosti quando l'overlay copre tutto */}
+      {!overlayOpen && <BottomNav legaId={idNum} />}
+      {!overlayOpen && <FabDebiti legaId={idNum} />}
+
       <PartitaOverlay />
     </>
   );
