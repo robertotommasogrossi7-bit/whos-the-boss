@@ -7,6 +7,7 @@ export default function SerataHub() {
   const setSetupModalita  = useStore(s => s.setSetupModalita);
   const clearSetupPartIds = useStore(s => s.clearSetupPartIds);
   const apriSerataAttiva  = useStore(s => s.apriSerataAttiva);
+  const openOverlay       = useStore(s => s.openOverlay);
 
   if (!lega) return null;
 
@@ -19,6 +20,7 @@ export default function SerataHub() {
     clearSetupPartIds();
     setSetupModalita('cash');
     setSerataView('setup');
+    openOverlay();
   }
 
   return (

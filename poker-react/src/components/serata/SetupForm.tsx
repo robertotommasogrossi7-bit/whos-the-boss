@@ -10,10 +10,10 @@ export default function SetupForm() {
   const lega              = useStore(selectCurrentLega);
   const setupModalita     = useStore(s => s.setupModalita);
   const setupPartIds      = useStore(s => s.setupPartIds);
-  const setSerataView     = useStore(s => s.setSerataView);
   const setSetupModalita  = useStore(s => s.setSetupModalita);
   const toggleSetupPartId = useStore(s => s.toggleSetupPartId);
   const avviaSessione     = useStore(s => s.avviaSessione);
+  const closeOverlay      = useStore(s => s.closeOverlay);
   const toast             = useStore(s => s.toast);
 
   /* Form state locale */
@@ -61,10 +61,10 @@ export default function SetupForm() {
 
   return (
     <div className="tab-content">
-      {/* Bottone indietro */}
+      {/* Bottone indietro: minimizza l'overlay */}
       <button
         className="btn btn-gray btn-sm btn-back-serata"
-        onClick={() => setSerataView('hub')}
+        onClick={closeOverlay}
       >
         ‹ Indietro
       </button>

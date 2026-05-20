@@ -53,10 +53,11 @@ export default function App() {
           <Route path="serata"       element={<TabSerata />} />
           <Route path="storico"      element={<TabStorico />} />
           <Route path="classifica"   element={<TabClassifica />} />
+          {/* chiusura ora dentro l'overlay — redirect di sicurezza */}
+          <Route path="chiusura" element={<Navigate to="serata" replace />} />
         </Route>
 
-        <Route path="/debiti"   element={<RequireAuth><DebitiScreen /></RequireAuth>} />
-        <Route path="/chiusura" element={<RequireAuth><div className="screen-body">Chiusura — Fase 6</div></RequireAuth>} />
+        <Route path="/debiti" element={<RequireAuth><DebitiScreen /></RequireAuth>} />
 
         {/* Catch-all: redirect in base all'auth */}
         <Route path="*" element={<AutoRedirect />} />

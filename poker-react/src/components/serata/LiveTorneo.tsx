@@ -11,13 +11,13 @@ import PrizeModal           from './PrizeModal';
    Derivato da renderLiveTorneoHtml() in session-tournament.js
 ══════════════════════════════════════════════════════ */
 export default function LiveTorneo() {
-  const lega            = useStore(selectCurrentLega);
-  const liveSubTab      = useStore(s => s.liveSubTab);
-  const setLiveSubTab   = useStore(s => s.setLiveSubTab);
-  const setSerataView   = useStore(s => s.setSerataView);
-  const annullaSessione = useStore(s => s.annullaSessione);
-  const avanzaLivelloAuto = useStore(s => s.avanzaLivelloAuto);
-  const recoveryTorneo    = useStore(s => s.recoveryTorneo);
+  const lega                  = useStore(selectCurrentLega);
+  const liveSubTab            = useStore(s => s.liveSubTab);
+  const setLiveSubTab         = useStore(s => s.setLiveSubTab);
+  const annullaSessione       = useStore(s => s.annullaSessione);
+  const avanzaLivelloAuto     = useStore(s => s.avanzaLivelloAuto);
+  const recoveryTorneo        = useStore(s => s.recoveryTorneo);
+  const apriChiusuraTorneo    = useStore(s => s.apriChiusuraTorneo);
 
   const sess = lega?.sessioneAttiva;
 
@@ -49,14 +49,6 @@ export default function LiveTorneo() {
 
   return (
     <div className="tab-content">
-      {/* Back button */}
-      <button
-        className="btn btn-gray btn-sm btn-back-serata"
-        onClick={() => setSerataView('hub')}
-      >
-        ‹ Tutte le serate
-      </button>
-
       {/* Header sommario */}
       <div className="live-summary">
         <div className="ls-row1">
@@ -98,7 +90,7 @@ export default function LiveTorneo() {
       <div className="session-end-bar">
         <button
           className="btn btn-green btn-block"
-          onClick={() => { window.alert('Chiusura serata — disponibile nella Fase 6'); }}
+          onClick={() => apriChiusuraTorneo(lega.id)}
         >
           ✓ Chiudi serata
         </button>

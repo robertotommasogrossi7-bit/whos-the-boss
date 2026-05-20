@@ -167,26 +167,45 @@ export interface Db {
 
 /* ─── SETTLEMENT UI (chiusura serata) ─── */
 
-export interface AllocazioneSettlement {
-  idNome: number;
+/** Singolo pagamento: da loser → to winner */
+export interface SettlementAlloc {
+  to:     number;   // idNome del vincitore/creditore
   amount: number;
 }
 
-export interface SettlementLoser {
-  idNome: number;
-  mancante: number;
-  allocazioni: AllocazioneSettlement[];
+/** Snapshot di un giocatore nel settlement (cash e torneo condiviso) */
+export interface SettlementEntrato {
+  id_nome:            number;
+  // ── Cash ──
+  mancante:           number;   // debito da versare (0 se torneo)
+  netto:              number;   // netto calcolato
+  ricaricheTot:       number;
+  buy_in_pagato:      boolean;
+  extra_amt:          number;
+  extra_pagato:       boolean;
+  ricariche:          Ricarica[]; // cash: ricariche, torneo: rebuys
+  fiches:             number;
+  ricevuti:           number;
+  // ── Torneo ──
+  contributo_dovuto:  number;
+  contributo_pagato:  number;
+  contributo_residuo: number;
+  premio_dovuto:      number;
+  premio_residuo:     number;
+  posizione_finale:   number | null;
+  add_on_fatto:       boolean;
+  add_on_pagato:      boolean;
+  prize_pagato:       boolean;
 }
 
-export interface SettlementWinner {
-  idNome: number;
-  credito: number;
-  allocazioni: AllocazioneSettlement[];
-}
-
+/** Stato completo del settlement aperto (rimpiazza il vecchio _settlement vanilla) */
 export interface SettlementState {
-  isTorneo: boolean;
-  losers: SettlementLoser[];
-  winners: SettlementWinner[];
-  neutri: number[];
+  legaId:      number;
+  isTorneo:    boolean;
+  sessione:    Sessione;                          // snapshot deep copy
+  entrati:     SettlementEntrato[];
+  losers:      SettlementEntrato[];
+  winners:     SettlementEntrato[];
+  neutri:      SettlementEntrato[];
+  allocazioni: Record<number, SettlementAlloc[]>; // { [loserId]: allocs }
 }

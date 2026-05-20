@@ -1181,3 +1181,120 @@ tr:nth-child(even) td { background: #fafafa; }
 .prize-modal-amt    { font-size: 36px; font-weight: 900; color: var(--green); margin: 6px 0 12px; }
 .prize-modal-btns   { display: flex; gap: 10px; width: 100%; }
 .prize-modal-btns .btn { flex: 1; }
+
+/* ─── SETTLEMENT CHIUSURA (fase 6) ─── */
+/* Titolo pagina chiusura (più grande di settle-section-title) */
+.settle-page-title {
+  font-size: 17px; font-weight: 900;
+  margin: 4px 0 14px;
+}
+/* Carta neutra (senza colore border-left) */
+.settle-card--neutro { border-left-color: #ddd; }
+/* Testo info secondario sotto l'intestazione della card */
+.settle-info-txt { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* Riga classifica finale (torneo) */
+.settle-rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.settle-rank-row:last-child { border-bottom: none; }
+.settle-rank-pos { width: 24px; font-weight: 900; font-size: 15px; text-align: center; }
+.settle-rank-nome { flex: 1; font-weight: 600; }
+/* Bottone con margine sopra */
+.btn--mt16 { margin-top: 16px; }
+.btn--mt8  { margin-top: 8px; }
+/* Separatore h20 */
+.spacer-20 { height: 20px; }
+/* input[type="time"] stilizzato come gli altri input */
+input[type="time"] {
+  display: block; width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 15px; color: var(--text); background: var(--white);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color .15s;
+}
+input[type="time"]:focus { outline: none; border-color: var(--green); }
+
+/* ─── PARTITA OVERLAY ─── */
+.partita-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.overlay-topbar {
+  background: var(--green-dark);
+  color: var(--white);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.20);
+}
+.overlay-minimize {
+  background: rgba(255,255,255,.18); border: none;
+  color: var(--white); font-size: 14px; font-weight: 600;
+  padding: 6px 14px; border-radius: 20px;
+  cursor: pointer; flex-shrink: 0;
+}
+.overlay-minimize:active { background: rgba(255,255,255,.30); }
+.overlay-title {
+  font-size: 15px; font-weight: 700;
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  /* padding-bottom per contenuto scrollabile */
+  padding-bottom: 24px;
+}
+
+/* body bloccato quando overlay aperto */
+body.overlay-open { overflow: hidden; }
+
+/* ─── FAB PARTITE ATTIVE (basso sinistra) ─── */
+.fab-partite {
+  position: fixed; bottom: 82px; left: 16px; z-index: 350;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: #fff; border: none;
+  font-size: 26px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.28);
+}
+.fab-partite:active { transform: scale(.94); }
+
+.fab-partite-panel {
+  position: fixed; bottom: 155px; left: 12px; z-index: 360;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  min-width: 240px; max-width: calc(100vw - 24px);
+  overflow: hidden;
+}
+.fab-partite-panel-title {
+  padding: 10px 16px 8px;
+  font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.fab-partite-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: none; background: none; cursor: pointer;
+  width: 100%; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.fab-partite-item:last-child { border-bottom: none; }
+.fab-partite-item:active { background: var(--green-light); }
+.fab-partite-ico  { font-size: 22px; flex-shrink: 0; }
+.fab-partite-info { flex: 1; min-width: 0; }
+.fab-partite-row1 {
+  font-size: 14px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fab-partite-row2 { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fab-partite-stato { color: var(--green); }
+.fab-partite-arrow { font-size: 20px; color: var(--muted); flex-shrink: 0; }

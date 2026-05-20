@@ -8,11 +8,11 @@ import SubAttivi        from './SubAttivi';
    Derivato da renderLiveHtml() + renderLiveTorneoHtml() in session-cash.js
 ══════════════════════════════════════════════════════ */
 export default function LiveCash() {
-  const lega          = useStore(selectCurrentLega);
-  const liveSubTab    = useStore(s => s.liveSubTab);
-  const setLiveSubTab = useStore(s => s.setLiveSubTab);
-  const setSerataView = useStore(s => s.setSerataView);
+  const lega            = useStore(selectCurrentLega);
+  const liveSubTab      = useStore(s => s.liveSubTab);
+  const setLiveSubTab   = useStore(s => s.setLiveSubTab);
   const annullaSessione = useStore(s => s.annullaSessione);
+  const apriChiusura    = useStore(s => s.apriChiusura);
 
   if (!lega?.sessioneAttiva) return null;
   const sess = lega.sessioneAttiva;
@@ -30,14 +30,6 @@ export default function LiveCash() {
 
   return (
     <div className="tab-content">
-      {/* Back button */}
-      <button
-        className="btn btn-gray btn-sm btn-back-serata"
-        onClick={() => setSerataView('hub')}
-      >
-        ‹ Tutte le serate
-      </button>
-
       {/* Header sommario */}
       <div className="live-summary">
         <div className="ls-row1">
@@ -70,7 +62,7 @@ export default function LiveCash() {
       <div className="session-end-bar">
         <button
           className="btn btn-green btn-block"
-          onClick={() => { /* TODO fase 6: chiusura */ window.alert('Chiusura serata — disponibile nella Fase 6'); }}
+          onClick={() => apriChiusura(lega.id)}
         >
           ✓ Chiudi serata
         </button>
