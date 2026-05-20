@@ -1,333 +1,242 @@
-# POKER TRACKER — Mappa del progetto
-> File di riferimento per sessioni future. Aggiornare dopo ogni modifica significativa.
-> Entry point: `index.html` — CSS in `css/styles.css`, JS modulare in `js/*.js`
+# POKER TRACKER — Mappa del codice (React)
+
+> Mappa di navigazione della versione React in `poker-react/`. Aggiornare
+> dopo modifiche significative. **Sorgente di verità per i tipi è
+> `poker-react/src/types/index.ts`** — qui ne riassumo solo lo schema.
 
 ---
 
 ## Stack
-- HTML + CSS vanilla + JS vanilla (no framework, no bundler)
-- Persistenza: `localStorage` chiave `pokerTracker_v2`
-- Nessun backend
 
----
+- **Build**: Vite 6
+- **UI**: React 19 + TypeScript 5.8 (strict)
+- **State**: Zustand 5 (middleware `persist` su `localStorage`)
+- **Routing**: React Router 7
+- **Stile**: CSS plain (Tailwind pianificato, non ancora)
+- **Test**: Vitest
+- **Persistenza**: `localStorage` chiave `pokerTracker_v2` (compat col formato
+  della vecchia versione vanilla — vedi `vanillaCompatStorage`)
 
-## Struttura file
-
+Comandi (in `poker-react/`):
 ```
-poker/
-├── index.html                  ← solo HTML + <link> CSS + <script> tags
-├── css/
-│   └── styles.css              ← tutti gli stili
-├── js/
-│   ├── config.js               ← costanti + TUTTE le var globali di stato
-│   ├── auth.js                 ← login, register, getUser/setUser, DOMContentLoaded init
-│   ├── data.js                 ← dbGet/dbSave, saveLega, currentLega, migrations
-│   ├── calc.js                 ← utils (esc, fmtData, euro, getNome…) + calcoli torneo
-│   ├── ui.js                   ← toast, goScreen, navTo, refreshActiveAppTab
-│   ├── leghe.js                ← goCircoli, renderListaLeghe, goApp, creaLega
-│   ├── giocatori.js            ← aggiungiGiocatore, renderGiocatori, eliminaGiocatore
-│   ├── session-hub.js          ← renderPartitaForm (dispatcher), renderSerataHub, apriSerataAttiva, annullaSessione
-│   ├── session-setup.js        ← renderSetupHtml, renderTorneoConfig, avviaSessione
-│   ├── session-cash.js         ← computeLive, renderLiveHtml, renderSubGiocatori/Attivi, toggle*
-│   ├── session-tournament.js   ← timer, livelli, renderLiveTorneoHtml, renderSubOrologio/GiocatoriTorneo
-│   ├── session-premi.js        ← renderSubPremi, torneoElimina, showPrizeModal, confirmaPremio
-│   ├── settlement.js           ← apriChiusura(Torneo), renderChiusura(Torneo), confermaChiusura
-│   ├── storico.js              ← renderStorico, toggleStoricoCard, toggleSettlementPaid, eliminaPartita
-│   ├── classifica.js           ← renderClassifica
-│   └── debiti.js               ← apriDebiti, chiudiDebiti, aggiornaFabDebiti, renderDebiti, saldaDebito
-└── poker_tracker.html          ← (legacy gutted) file originale con marker comments
-```
-
-### Ordine `<script>` in index.html
-```
-config → auth → data → calc → ui → leghe → giocatori →
-session-hub → session-setup → session-cash → session-tournament →
-session-premi → settlement → storico → classifica → debiti
-```
-Tutti i file usano `'use strict';`. Le variabili `let`/`const` top-level sono globali condivise tra tutti gli `<script>` classici.
-
----
-
-## Struttura localStorage (`pokerTracker_v2`)
-```js
-{
-  leghe: [ ...Lega ],
-  _lid: number,
-  _currentLegaId: number
-}
-```
-
-### Lega
-```js
-{
-  id: number,
-  nome: string,
-  foto: string,              // dataURL
-  nomi: [ {id, nome} ],      // rubrica giocatori
-  partite: [ ...Partita ],
-  sessioneAttiva: Sessione | undefined,  // serata "attiva" nel tab
-  serate_bg: [ ...Sessione ],            // sessioni in background (hub multi-serata)
-  _nid: number,              // auto-increment id giocatore
-  _pid: number               // auto-increment id partita
-}
-```
-
-### Sessione (partita in corso)
-```js
-{
-  data, ora_inizio, ora_fine: string,
-  modalita: 'cash' | 'torneo',
-  buy_in: number,
-  // TORNEO
-  fiche_iniziali, num_giocatori_target, num_tavoli, durata_ore: number,
-  livelli: [ {tipo:'gioco'|'pausa', sb, bb, ante, durata} ],
-  late_reg: { fino_a_livello },
-  add_on: { abilitato, fiche, prezzo },
-  premi: [ {posizione, percentuale, importo} ],   // su monte TEORICO
-  premi_consolidati: boolean,
-  stato: 'pre'|'attivo'|'pausa'|'concluso',
-  livello_corrente, inizio_livello_ms, trascorso_ms: number,
-  // GIOCATORI
-  giocatori: [ ...GiocatoreSessione ]
-}
-```
-
-### GiocatoreSessione
-```js
-{
-  id_nome: number,
-  entrato, buy_in_pagato: boolean,
-  extra_amt: number, extra_pagato: boolean,
-  ricariche: [ {importo, pagata} ],      // cash
-  rebuys: [ {importo, pagata} ],         // torneo
-  soldi_ricevuti, fiches_finali: number, // cash
-  seat: { tavolo, posto } | null,        // torneo
-  add_on_fatto, add_on_pagato: boolean,  // torneo
-  eliminato: boolean,
-  posizione_finale: number | null,
-  elim_ts_ms: number | null,
-  prize_pagato: boolean                  // torneo: premio già consegnato
-}
-```
-
-### Partita (salvata)
-```js
-{
-  id, buy_in: number,
-  data, ora_inizio, ora_fine, modalita: string,
-  giocatori: [ ...GiocatorePartita ],
-  settlements: [ {from, to, amount, pagato} ]
-}
-```
-
-### GiocatorePartita
-```js
-{
-  id_nome, entrate, ricarica_fatta, extra, soldi_ricevuti,
-  fiches_finali, netto_finale, premio: number,
-  vincitore, buy_in_pagato, extra_pagato: boolean,
-  ricariche: [ {importo, pagata} ],
-  pagamenti_effettuati: [ {to, amount} ],
-  pagamenti_ricevuti:   [ {from, amount} ],
-  posizione_finale: number | null,
-  add_on_fatto, add_on_pagato: boolean
-}
+npm run dev     # server dev, porta 5173
+npm run lint    # ESLint flat config
+npm test        # Vitest
+npx tsc -b      # build TS
 ```
 
 ---
 
-## Schermate (screens)
-| ID | Funzione apertura | File |
-|---|---|---|
-| `screen-login` | (default) / `goLogin()` | auth.js |
-| `screen-circoli` | `goCircoli()` | leghe.js |
-| `screen-nuova-lega` | `goNuovaLega()` | leghe.js |
-| `screen-lista-leghe` | `goListaLeghe()` | leghe.js |
-| `screen-app` | `goApp(legaId)` | leghe.js |
-| `screen-debiti` | `apriDebiti()` | debiti.js |
-| `screen-chiusura` | `apriChiusura()` / `apriChiusuraTorneo()` | settlement.js |
+## Entry point e routing
 
-### Bottom nav (screen-app) — `navTo(page, btn)` in ui.js
-- Tab 0 `partecipanti`: `renderGiocatori()` (giocatori.js)
-- Tab 1 `partita`: `renderPartitaForm()` (session-hub.js, dispatcher hub/live/setup)
-- Tab 2 `storico`: `renderStorico()` (storico.js)
-- Tab 3 `classifica`: `renderClassifica()` (classifica.js)
+`src/main.tsx` monta `<App />`. `src/App.tsx` dichiara le route:
 
----
+| Route                           | Componente            | Note |
+|---------------------------------|-----------------------|------|
+| `/login`                        | `LoginScreen`         | auth |
+| `/circoli`                      | `CircoliHome`         | richiede auth |
+| `/nuova-lega`                   | `NuovaLega`           |  |
+| `/leghe`                        | `ListaLeghe`          |  |
+| `/app/:legaId`                  | `AppLayout` (annida)  | layout principale |
+| `/app/:legaId/serata`           | `TabSerata`           | tab serata |
+| `/app/:legaId/partecipanti`     | `TabPartecipanti`     | tab partecipanti |
+| `/app/:legaId/storico`          | `TabStorico`          | tab storico |
+| `/app/:legaId/classifica`       | `TabClassifica`       | tab classifica |
+| `/debiti`                       | `DebitiScreen`        | debiti aperti |
 
-## Funzioni chiave — TORNEO
-
-| Funzione | File | Scopo |
-|---|---|---|
-| `calcolaPremi(monte, n)` | calc.js | Array premi per posizione |
-| `calcolaMontepremi(sess)` | calc.js | Monte TEORICO (pagati + non pagati) |
-| `calcolaMontepremiIncassato(sess)` | calc.js | Solo contributi pagati |
-| `calcolaPremiPagati(sess)` | calc.js | Somma premi `prize_pagato=true` |
-| `renderLiveTorneoHtml(lega)` | session-tournament.js | Render torneo live (3 sub-tab) |
-| `renderSubOrologio(s)` | session-tournament.js | Sub-tab timer + livelli |
-| `renderSubGiocatoriTorneo(lega)` | session-tournament.js | Sub-tab player con azioni |
-| `renderSubPremi(lega)` | session-premi.js | Sub-tab struttura premi |
-| `torneoElimina(idNome)` | session-premi.js | Elimina + assegna pos + modal premio |
-| `showPrizeModal(idNome, pos, importo)` | session-premi.js | Modal "In the money!" |
-| `confirmaPremio(pagato)` | session-premi.js | Conferma modal: setta `prize_pagato` |
-| `consolidaPremiSeNecessario(s)` | session-tournament.js | Chiude late reg + monte |
-| `apriChiusuraTorneo()` | settlement.js | Prepara `_settlement` torneo |
-| `renderChiusuraTorneo()` | settlement.js | Render chiusura torneo |
-
-### Logica chiusura torneo (`apriChiusuraTorneo`)
-- `losers`: `contributo_residuo > 0` (non hanno pagato tutto)
-- `winners`: `premio_residuo > 0` (premio non ancora consegnato)
-- Auto-allocazione greedy: debiti losers → crediti winners
-- `_settlement.isTorneo = true`
+`AppLayout` contiene la `BottomNav` + l'`<Outlet />` per i tab e
+l'`<PartitaOverlay />` a tutto schermo. La `FabPartiteAttive` (badge
+basso-sx) è renderizzata fuori dall'overlay.
 
 ---
 
-## Funzioni chiave — SERATA HUB (multi-sessione)
+## Struttura cartelle
 
-| Funzione | File | Scopo |
-|---|---|---|
-| `renderPartitaForm()` | session-hub.js | Dispatcher su `_serataView`: hub / live / setup |
-| `renderSerataHub(lega)` | session-hub.js | Card per ogni sessione + "Nuova serata" |
-| `apriSerataAttiva(bgIdx)` | session-hub.js | Swap bg[idx] ↔ sessioneAttiva |
-| `vaiSetupSerata()` | session-hub.js | Va al form di nuova serata |
-| `annullaSessione()` | session-hub.js | Annulla la sessione attiva |
-| `avviaSessione()` | session-setup.js | Crea nuova sessione (sposta attuale in bg) |
-
-### Logica swap sessioni
-- `_serataView = 'hub' | 'live' | 'setup'` controlla il dispatcher
-- `apriSerataAttiva(bgIdx)`: swap bg[bgIdx] ↔ sessioneAttiva, poi `_serataView='live'`
-- Dopo chiusura/annullo: promuove automaticamente `serate_bg[0]` a sessioneAttiva
-
----
-
-## Funzioni chiave — CASH
-
-| Funzione | File | Scopo |
-|---|---|---|
-| `computeLive(lega)` | session-cash.js | Calcola `{arr, leaderId}` (netto, mancante, …) |
-| `renderLiveHtml(lega)` | session-cash.js | Render cash live (dispatch torneo → tournament.js) |
-| `apriChiusura()` | settlement.js | Prepara `_settlement` cash |
-| `renderChiusura()` | settlement.js | Dispatcher: `isTorneo` → tornei, else cash |
-| `confermaChiusura()` | settlement.js | Salva partita, svuota sessioneAttiva |
-
-### Modello settlement cash
-- `losers` = `mancante > 0.005` (NON hanno pagato tutto in cassa)
-- `winners` = `netto > 0.005`
-- Chi ha pagato tutto ma perso chip → perdita assorbita dal piatto fisico (non debitore)
-
----
-
-## Funzioni chiave — STORICO / DEBITI / CLASSIFICA
-
-| Funzione | File | Scopo |
-|---|---|---|
-| `renderStorico()` | storico.js | Lista partite con filtro date + accordion |
-| `toggleStoricoCard(id)` | storico.js | Apri/chiudi card; stato in `_storicoOpen` |
-| `toggleSettlementPaid(pid, idx)` | storico.js | Toggle pagato singolo settlement |
-| `eliminaPartita(id)` | storico.js | Elimina partita dal db |
-| `renderClassifica()` | classifica.js | Ranking netto con filtro date + medaglie |
-| `migratePartita(p)` | data.js | Retrocompatibilità: deriva settlements |
-| `migrateSessione(s)` | data.js | Retrocompatibilità: deriva ricariche v2 |
-| `apriDebiti()` | debiti.js | Screen debiti pendenti |
-| `chiudiDebiti()` | debiti.js | Torna all'app + refresh |
-| `aggiornaFabDebiti()` | debiti.js | Badge FAB con conteggio |
-| `saldaDebito(pid, idx)` | debiti.js | Marca singolo settlement pagato |
-| `saldaTuttiDi(debtorId)` | debiti.js | Marca tutti i debiti di un giocatore |
-
----
-
-## Funzioni UI generali
-
-| Funzione | File | Scopo |
-|---|---|---|
-| `goScreen(id)` | ui.js | Naviga tra schermate top-level |
-| `navTo(page, btn)` / `navToById(page)` | ui.js | Naviga tra tab di screen-app |
-| `refreshActiveAppTab()` | ui.js | Re-render tab attivo |
-| `toast(msg)` | ui.js | Notifica in basso |
-| `currentLega()` | data.js | Lega attiva da `_currentLegaId` |
-| `saveLega(lega)` | data.js | Persiste lega su localStorage |
-| `getNome(lega, id)` | calc.js | Nome stringa da id_nome |
-| `euro(n)` / `euroSigned(n)` | calc.js | Format numero come "25,00" / "+25,00" |
-| `fmtData(s)` | calc.js | "YYYY-MM-DD" → "DD/MM/YYYY" |
-| `esc(s)` | calc.js | Escape HTML |
-
----
-
-## Variabili globali (TUTTE in `config.js`)
-```js
-// Costanti
-const USER_KEY  = 'pokerTrackerUser_v2';
-const STORE_KEY = 'pokerTracker_v2';
-
-// UI generale
-let _toastTmr      = null;
-let _formRendered  = false;  // guard: evita reset form a ogni re-render
-
-// Nuova lega
-let _nlFoto = '';
-
-// Serata hub / setup
-let _serataView    = 'hub';        // 'hub' | 'live' | 'setup'
-let _setupPartIds  = new Set();
-let _setupModalita = 'cash';
-let _setupTorneo   = null;
-
-// Live session
-let _liveSubTab = 'giocatori';     // 'orologio' | 'giocatori' | 'attivi' | 'premi'
-
-// Torneo
-let _timerInterval    = null;
-let _pendingPrizeNome = null;
-
-// Settlement
-let _settlement = null;
-
-// Storico
-let _storicoFrom = '';
-let _storicoTo   = '';
-let _storicoOpen = new Set();
-
-// Classifica
-let _classificaFrom = '';
-let _classificaTo   = '';
+```
+poker-react/src/
+├── main.tsx                    ← bootstrap React
+├── App.tsx                     ← routing
+├── types/index.ts              ← TUTTI i tipi dominio
+├── store/useStore.ts           ← Zustand store + persist adapter vanilla-compat
+├── hooks/
+│   ├── useCurrentLega.ts       ← selector lega corrente
+│   ├── useComputeLive.ts       ← calcola dovuto/mancante/netto cash (puro + memo)
+│   └── useTimer.ts             ← driver timer torneo
+├── utils/
+│   ├── format.ts               ← esc, fmtData, euro, oggi, getNome
+│   ├── calc.ts                 ← calcoli torneo (montepremi, premi, consolida)
+│   ├── settlement.ts           ← calcolaSettlement (puro, §8 SETTLEMENT_SPEC) — su branch v2
+│   ├── settlement.test.ts      ← test §14 (9 base + 3 buy-in misti dopo fase entrata) — su branch v2
+│   ├── torneo.ts               ← suggerisciTorneo, creaSessione, nuovoGiocatoreSessione, posti
+│   └── migrations.ts           ← migrateSessione, migratePartita
+└── components/
+    ├── auth/LoginScreen.tsx
+    ├── leghe/                  ← CircoliHome, NuovaLega, ListaLeghe
+    ├── app/                    ← AppLayout, BottomNav, PartitaOverlay
+    ├── common/                 ← Toast, FabDebiti, FabPartiteAttive
+    ├── giocatori/              ← TabPartecipanti
+    ├── serata/                 ← tutto il flusso partita (setup + live + sub-tab)
+    ├── settlement/             ← ChiusuraCash, ChiusuraTorneo, ChiusuraScreen
+    ├── storico/                ← TabStorico
+    ├── classifica/             ← TabClassifica
+    └── debiti/                 ← DebitiScreen
 ```
 
-> Tutte le variabili sono accessibili globalmente tra i file (script classici condividono scope top-level).
+Risorse fuori da React (root del repo): `index.html` + `css/` + `js/`
+sono la **vecchia versione vanilla** mantenuta solo come storia.
+`_legacy/poker_tracker.html` è il monolitico originale archiviato.
 
 ---
 
-## Struttura blind levels (torneo)
-- Generati da `suggerisciTorneo(num_giocatori, durata_ore)` in session-setup.js
-- Stack iniziale ~100 BB
-- Progressione ~1.5× con antes da livello 6+
-- Pausa ogni 4 livelli
-- Late reg ≈ 30% del torneo
-- Helper: `roundChipVal(v)` arrotonda a valori chip "puliti"
+## Tipi dominio (`src/types/index.ts`)
+
+Schema (riepilogo — vedi file per i campi esatti):
+
+- **`User`**, **`NomeGiocatore`** — base.
+- **`Sessione`** — partita in corso. Campi chiave:
+  - meta: `data`, `ora_inizio`, `ora_fine`, `modalita: 'cash' | 'torneo'`, `buy_in`
+  - stato: `stato: 'pre' | 'attivo' | 'pausa' | 'concluso'` (oggi usato dal solo torneo, ma settato a `'pre'` anche per cash da `creaSessione`)
+  - torneo: `fiche_iniziali`, `num_giocatori_target`, `num_tavoli`, `durata_ore`, `livelli`, `late_reg`, `add_on`, `premi`, `premi_consolidati`, `livello_corrente`, `inizio_livello_ms`, `trascorso_ms`
+  - giocatori: `giocatori: GiocatoreSessione[]`
+- **`GiocatoreSessione`** — per giocatore in sessione attiva. Campi:
+  - `id_nome`, `entrato`, `buy_in_pagato`
+  - cash nuovo modello (su branch v2): `versato: number` (libero); **post-fase entrata**: `entrata: number` (default = `Sessione.buy_in`, libero)
+  - `extra_amt`, `extra_pagato`
+  - `ricariche: Ricarica[]` (cash; `pagata` opzionale dopo v2), `rebuys: Ricarica[]` (torneo)
+  - `soldi_ricevuti` (legacy cash), `fiches_finali` (cash)
+  - torneo: `seat`, `add_on_fatto`, `add_on_pagato`, `eliminato`, `posizione_finale`, `elim_ts_ms`, `prize_pagato`
+- **`Partita`** (storico), **`GiocatorePartita`** (per giocatore in
+  partita salvata), **`Settlement`** (`{from, to, amount, pagato}`).
+- **`Lega`** — contiene `nomi`, `partite`, `sessioneAttiva`, `serate_bg[]`.
+- **`Db`** — `{ leghe, _lid, _currentLegaId }` (persisted in localStorage).
+- **Settlement UI**: `SettlementState`, `SettlementEntrato`, `SettlementAlloc`,
+  più (branch v2): `CashSettlementResult`, `GiocatoreCalcolato`, `Trasferimento`.
 
 ---
 
-## Storia / cronologia significativa
+## Store Zustand (`src/store/useStore.ts`)
 
-### maggio 2026 — split modulare (questa sessione)
-- File monolitico `poker_tracker.html` (~4500 righe) suddiviso in:
-  - `index.html` (HTML structure only)
-  - `css/styles.css`
-  - 16 file JS in `js/` con responsabilità separate
-- Tutte le var globali centralizzate in `config.js`
-- `'use strict'` in ogni file JS
-- Ordine `<script>` rispetta le dipendenze
-- Nessuna logica modificata: tutte le funzioni mantengono nome, parametri e comportamento originali
-- File legacy `poker_tracker.html` mantenuto con commenti marker `// → js/nome.js` per audit
+Singleton store: tutto lo stato UI + il `db` persistito.
 
-### Ultime modifiche pre-split
-- `calcolaMontepremi` include contributi NON pagati (calcolo premi equo)
-- `prize_pagato` su GiocatoreSessione + modal premio in-tournament
-- `renderSubPremi`: barra Incassato / Pagato / Da incassare
-- `apriChiusuraTorneo` + `renderChiusuraTorneo`: modello separato da cash
-- `confermaChiusura`: torneo usa `contributo_residuo` per validazione
-- FAB debiti globale con badge contatore
-- Settlement cash fix: `losers = mancante > 0` (non `netto < 0`)
-- Serata hub multi-sessione: `serate_bg[]`, `apriSerataAttiva`, `_serataView`
-- Storico accordion: `toggleStoricoCard`, `_storicoOpen` (Set)
-- Filtri date su storico e classifica
-- `_formRendered` guard contro reset modalità setup
+### UI state (non persistito tutto: `utente` da sessionStorage)
+- `utente`, `nlFoto`
+- `serataView: 'hub' | 'live' | 'setup' | 'chiusura'`
+- `setupModalita`, `setupPartIds` (Set di id selezionati)
+- `liveSubTab: 'orologio' | 'giocatori' | 'attivi' | 'premi'`
+- `overlayOpen` (PartitaOverlay)
+- `settlement: SettlementState | null`
+- `storicoFrom/To`, `storicoOpen` (Set), `classificaFrom/To`
+- `pendingPrizeNome` (modal premio torneo)
+- `toastMsg`, `toastVisible`
+
+### Persistenza
+- `persist` middleware, key `pokerTracker_v2`
+- `vanillaCompatStorage`: legge sia formato Zustand `{state: {db: ...}}` sia il
+  formato vanilla `{leghe, _lid, _currentLegaId}` legacy.
+- `partialize`: persiste solo `db` (UI state ricostruito a ogni avvio).
+
+### Azioni (gruppi)
+
+- **DB**: `saveLega`, `setCurrentLega`, `addLega`.
+- **Auth**: `login`, `register`, `logout` (sessionStorage).
+- **Overlay**: `openOverlay`, `closeOverlay`.
+- **Serata view**: `setSerataView`.
+- **Setup**: `setSetupModalita`, `toggleSetupPartId`, `clearSetupPartIds`, `setNlFoto`.
+- **Serata hub**: `apriSerataAttiva(legaId, bgIdx)` (swap bg ↔ attiva), `annullaSessione`, `avviaSessione(legaId, sess)`.
+- **Cash live**: `toggleEntrato`, `toggleBuyInPagato`, `setExtraAmt`,
+  `toggleExtraPagato`, `aggiungiRicarica`, `modificaRicarica`,
+  `toggleRicaricaPagata`, `setSoldiRicevuti`, `aggiornaFiches`,
+  `addGiocatoreSessione`, `rimuoviGiocatoreSessione`.
+  - **Su branch v2**: `setVersato(legaId, idNome, val)`.
+  - **Post-fase entrata**: `setEntrata(legaId, idNome, val)`.
+- **Torneo live timer**: `avviaTorneo`, `pausaTorneo`, `riprendiTorneo`,
+  `avanzaLivelloAuto`, `avanzaLivelloManuale`, `stopTorneo`, `recoveryTorneo`.
+- **Torneo live giocatori**: `torneoAggiungiGiocatore`, `torneoAddRebuy`,
+  `torneoAddOn`, `torneoRevive`, `torneoToggleAddOnPag`, `torneoToggleRebuyPag`,
+  `torneoElimina`, `confirmaPremio`.
+- **Settlement / chiusura**: `apriChiusura`, `apriChiusuraTorneo`,
+  `setAllocazione`, `confermaChiusura`.
+  - **Su branch v2**: `setTrasferimento`, `addTrasferimento`,
+    `removeTrasferimento`, `saldaTuttiDebiti`.
+- **Debiti**: `toggleSettlementPaid`, `saldaDebito`, `saldaTuttiDi`.
+- **Storico**: `eliminaPartita`, `setStoricoFrom`, `setStoricoTo`, `toggleStoricoOpen`.
+- **Classifica**: `setClassificaFrom`, `setClassificaTo`.
+- **Migrazioni**: `runMigrations` (chiamata in `App.tsx` all'avvio).
+- **Toast**: `toast(msg)`.
+
+---
+
+## Componenti per area
+
+### `app/`
+- `AppLayout.tsx` — layout della screen-app: hosts `BottomNav`,
+  `<Outlet />` per i tab, `PartitaOverlay`, `FabPartiteAttive`, `FabDebiti`.
+- `BottomNav.tsx` — 4 tab.
+- `PartitaOverlay.tsx` — overlay a tutto schermo per la partita.
+  Dispatch su `serataView`: `setup` → `<SetupForm/>`, `live` →
+  `<LiveView/>`, `chiusura` → `<ChiusuraScreen/>`. Mostrato solo se
+  `overlayOpen === true`.
+
+### `serata/`
+- `TabSerata.tsx` — tab principale, mostra `SerataHub` + bottone "Nuova
+  partita" (apre overlay con `serataView='setup'`).
+- `SerataHub.tsx` — card per ogni sessione esistente.
+- `SetupForm.tsx` — form di setup serata (data, ora, modalità, buy-in,
+  partecipanti, config torneo).
+- `ConfigCash.tsx`, `ConfigTorneo.tsx` — sub-form modalità.
+- `LiveView.tsx` — dispatcher su `modalita` → `LiveCash` o `LiveTorneo`.
+- `LiveCash.tsx` — live view cash (sub-tab giocatori).
+- `LiveTorneo.tsx` — live view torneo (sub-tab orologio/giocatori/attivi/premi).
+- `SubGiocatoriCash.tsx`, `SubGiocatoriTorneo.tsx`, `SubAttivi.tsx`,
+  `SubOrologio.tsx`, `SubPremi.tsx` — sub-tab.
+- `PrizeModal.tsx` — modal "In the money" su eliminazione torneo.
+
+### `settlement/`
+- `ChiusuraScreen.tsx` — dispatcher cash/torneo.
+- `ChiusuraCash.tsx` — chiusura cash (su branch v2: Cassa + Trasferimenti).
+- `ChiusuraTorneo.tsx` — chiusura torneo (vecchio modello, invariato).
+
+### `common/`
+- `Toast.tsx` — notifica in basso.
+- `FabDebiti.tsx` — FAB con badge debiti pendenti.
+- `FabPartiteAttive.tsx` — FAB basso-sx con elenco partite in corso.
+
+### Altri
+- `auth/LoginScreen.tsx`, `leghe/*`, `giocatori/TabPartecipanti.tsx`,
+  `storico/TabStorico.tsx`, `classifica/TabClassifica.tsx`,
+  `debiti/DebitiScreen.tsx` — auto-esplicativi.
+
+---
+
+## Hook chiave
+
+- **`useCurrentLega()`** — selector `db.leghe.find(l => l.id === db._currentLegaId)`.
+- **`useComputeLive(sess)`** / `computeLive(sess)` — pure function per cash.
+  Ritorna `{ arr: LiveGiocatore[], leaderId }`. Calcola `dovuto`, `mancante`, `netto`.
+  - Modello v2: `dovuto = sess.buy_in + ricariche`, `versato = g.versato`.
+  - Post-fase entrata: `dovuto = (g.entrata ?? sess.buy_in) + ricariche`.
+- **`useTimer()`** — driver del timer torneo (auto-advance livelli).
+
+---
+
+## Utility chiave
+
+- **`format.ts`**: `oggi()`, `fmtData(s)`, `euro(n)`, `euroSigned(n)`, `esc(s)`, `getNome(lega, id)`, `numVal(el)`.
+- **`calc.ts`**: `calcolaPremi`, `calcolaMontepremi`, `calcolaMontepremiIncassato`, `calcolaPremiPagati`, `consolidaPremiSeNecessario` (torneo).
+- **`torneo.ts`**: `suggerisciTorneo`, `creaSessione`, `nuovoGiocatoreSessione`, `assegnaPostiCasuali`, `roundChipVal`.
+- **`migrations.ts`**: `migrateSessione`, `migratePartita`. Idempotenti, chiamate all'avvio.
+- **`settlement.ts`** (branch v2): `calcolaSettlement(players)` — funzione pura, §8 SETTLEMENT_SPEC. Coperta da `settlement.test.ts`.
+
+---
+
+## Cose da NON toccare senza spec
+
+- **Settlement torneo** (modello `contributo_residuo` / `premio_residuo`) — fuori scope di SETTLEMENT_SPEC.
+- **`vanillaCompatStorage`** in `useStore.ts` — adapter retrocompat col formato vanilla. Romperlo significa perdere i dati degli utenti esistenti.
+- **`calcolaSettlement`** (post-v2) — funzione pura coperta dai 9+ test §14. Cambi richiedono modifica anche di SETTLEMENT_SPEC.
+
+---
+
+## Roadmap
+
+Vedi `CONTESTO.md` per il piano in corso (step A/B/C/D).

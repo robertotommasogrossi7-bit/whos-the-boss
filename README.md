@@ -2,7 +2,7 @@
 
 > Web app per organizzare e tracciare serate di poker (cash & torneo) con gli amici. Settlement automatico dei debiti, classifica per lega, timer torneo completo con struttura blind, late reg, add-on e premi.
 
-**Status:** 🚧 In active development — currently migrating from vanilla JS to React (Phase 1 of 6 complete).
+**Status:** 🚧 In active development — React migration mostly complete (Phases 1–6 + overlay + settlement v2 in review). The React app in `poker-react/` is the production target; the vanilla version at the repo root is kept for history.
 
 ---
 
@@ -40,17 +40,19 @@ The monolith was split into:
 
 Script load order respects a strict dependency chain (config → auth → data → calc → ui → features), every file declares `'use strict'`, and onclick handlers in the markup map cleanly to top-level functions. A cross-file audit verified zero duplicate declarations, zero dangling references, zero orphan onclick handlers.
 
-### Stage 3 — React migration (in progress)
+### Stage 3 — React migration (production target)
 
-Now being migrated to a typed component-based stack while preserving the exact UX:
+Migrated to a typed component-based stack while preserving the exact UX:
 - **Vite + React 19 + TypeScript** (strict mode)
 - **Zustand** with `persist` middleware on the same `localStorage` key as the vanilla version → existing users' data migrates transparently via a custom storage adapter that detects vanilla format and converts it on the fly
 - Component structure that mirrors the JS module structure
 
-The migration is divided into 6 phases, each on its own branch (`react-fase-1` through `react-fase-6`). Each phase has 10–12 micro-steps with one commit each, so the history shows the work clearly.
+The migration was divided into 6 phases (`react-fase-1` … `react-fase-6`), then a "restructure overlay" phase that moved the live partita into a full-screen overlay. Currently the `settlement-cash-v2` branch (new cash settlement model — see `SETTLEMENT_SPEC.md`) is under review for merge into `main`.
 
 ### What's next (Stage 4+)
 
+- Settlement v2 merge + `entrata`-per-player extension (see `ENTRATA_V2_PROMPT.md`)
+- "Serata programmata" feature: schedule a game with start time + FAB-sx badge with quick actions (see `SERATA_PROGRAMMATA_SPEC.md`)
 - Tailwind CSS migration (mechanical find/replace, prepared by avoiding inline styles)
 - Supabase backend for multi-user / multi-device sync
 - React Native (Expo) port for iOS + Android, sharing most of the codebase
@@ -74,10 +76,7 @@ Zero runtime dependencies beyond the four above. No date-fns, no lodash, no UI k
 
 ## Getting started
 
-### Vanilla version (legacy, fully working)
-Just open `index.html` in any modern browser. No build step.
-
-### React version (work in progress)
+### React version (production)
 ```bash
 cd poker-react
 npm install
@@ -87,29 +86,37 @@ Then open http://localhost:5173.
 
 The React app automatically reads existing data from the vanilla app's `localStorage` (same origin), so no manual migration is needed when running in production on the same domain.
 
+### Vanilla version (legacy, historical reference)
+Just open `index.html` in any modern browser. No build step. Kept as a stable snapshot of Stage 2 of the architecture journey.
+
 ---
 
 ## Project structure
 
 ```
 poker/
-├── index.html               ← vanilla entry point
-├── css/styles.css           ← vanilla styles (~1100 lines)
-├── js/                      ← 16 modular vanilla JS files
-├── poker-react/             ← React migration (Vite + TS)
+├── poker-react/             ← React app (Vite + TS) — production target
 │   ├── src/
 │   │   ├── types/           ← TS interfaces (Lega, Sessione, …)
 │   │   ├── store/           ← Zustand store + vanilla-compat adapter
-│   │   ├── utils/           ← calc, format, migrations
-│   │   ├── components/      ← per-domain folders
-│   │   └── styles/          ← copied from vanilla
+│   │   ├── hooks/           ← useCurrentLega, useComputeLive, useTimer
+│   │   ├── utils/           ← calc, format, migrations, torneo, settlement
+│   │   └── components/      ← per-domain folders (auth, leghe, serata, …)
 │   └── package.json
-├── _legacy/                 ← original 4500-line monolith
-├── POKER_MAP.md             ← canonical project map (data shapes, functions, screens)
-└── REACT_MIGRATION_PROMPT.md ← migration plan: 6 phases, 60+ micro-steps
+├── index.html               ← legacy vanilla entry point (Stage 2)
+├── css/styles.css           ← legacy vanilla styles
+├── js/                      ← legacy 16 modular vanilla JS files
+├── _legacy/                 ← original 4500-line monolith (Stage 1)
+├── CONTESTO.md              ← project state + roadmap (read this first)
+├── POKER_MAP.md             ← code map for the React app
+├── SETTLEMENT_SPEC.md       ← contract for cash settlement (with example-tests)
+├── ENTRATA_V2_PROMPT.md     ← prompt for extending settlement-cash-v2
+├── SERATA_PROGRAMMATA_SPEC.md ← spec for scheduled-night feature
+├── SERATA_PROGRAMMATA_PROMPT.md ← prompt for the implementation phase
+└── REACT_MIGRATION_PROMPT.md ← historical migration plan (6 phases)
 ```
 
-`POKER_MAP.md` is worth a look — it's a compact reference of the data schema, key functions per file, and recent significant changes. It exists primarily so AI assistants (and future me) can navigate the codebase efficiently.
+`CONTESTO.md` is the canonical onboarding file for new sessions; `POKER_MAP.md` is the navigation reference for the React codebase. Both exist primarily so AI assistants (and future me) can pick up work without re-reading half the repo.
 
 ---
 
