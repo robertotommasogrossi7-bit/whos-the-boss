@@ -127,6 +127,7 @@ interface StoreActions {
 
   // Cash live — giocatori
   toggleEntrato:             (legaId: number, idNome: number) => void;
+  setEntrata:                (legaId: number, idNome: number, val: number) => void;
   setVersato:                (legaId: number, idNome: number, val: number) => void;
   toggleBuyInPagato:         (legaId: number, idNome: number) => void;
   setExtraAmt:               (legaId: number, idNome: number, val: number) => void;
@@ -511,6 +512,18 @@ export const useStore = create<PokerStore>()(
         const sess = lega.sessioneAttiva;
         const giocatori = sess.giocatori.map(g =>
           g.id_nome === idNome ? { ...g, entrato: !g.entrato } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      setEntrata: (legaId, idNome, val) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const v = Math.max(0, Math.round(val * 100) / 100);
+        const giocatori = sess.giocatori.map(g =>
+          g.id_nome === idNome ? { ...g, entrata: v } : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },

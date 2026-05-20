@@ -10,6 +10,7 @@ import { getNome } from '../../utils/format';
 export default function SubGiocatoriCash() {
   const lega                     = useStore(selectCurrentLega);
   const toggleEntrato            = useStore(s => s.toggleEntrato);
+  const setEntrata               = useStore(s => s.setEntrata);
   const setVersato               = useStore(s => s.setVersato);
   const addGiocatoreSessione     = useStore(s => s.addGiocatoreSessione);
   const rimuoviGiocatoreSessione = useStore(s => s.rimuoviGiocatoreSessione);
@@ -54,7 +55,8 @@ export default function SubGiocatoriCash() {
         const nome    = getNome(lega, g.id_nome);
         const entrato = g.entrato;
         const ricaricheTot = g.ricariche.reduce((a, r) => a + r.importo, 0);
-        const dovuto  = entrato ? sess.buy_in + ricaricheTot : 0;
+        const entrata = g.entrata ?? sess.buy_in;
+        const dovuto  = entrato ? entrata + ricaricheTot : 0;
 
         return (
           <div key={g.id_nome} className={`live-card${entrato ? ' in' : ''}`}>
@@ -73,6 +75,23 @@ export default function SubGiocatoriCash() {
             <div className="lc-body">
               {entrato ? (
                 <>
+                  {/* Entrata — buy-in effettivo del giocatore */}
+                  <div className="lc-row">
+                    <span className="lr-label">Entrata €</span>
+                    <input
+                      type="number"
+                      value={entrata || ''}
+                      placeholder={String(sess.buy_in)}
+                      step="0.50"
+                      min="0"
+                      inputMode="decimal"
+                      onInput={e => {
+                        const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
+                        setEntrata(lega!.id, g.id_nome, v);
+                      }}
+                    />
+                  </div>
+
                   {/* Dovuto breakdown */}
                   <div className="versato-dovuto-row">
                     <span className="vd-label">Dovuto</span>
@@ -81,7 +100,7 @@ export default function SubGiocatoriCash() {
                   {ricaricheTot > 0 && (
                     <div className="versato-dovuto-row versato-dovuto-row--sub">
                       <span className="vd-label">
-                        (Buy-in €{euro(sess.buy_in)} + ricariche €{euro(ricaricheTot)})
+                        (Entrata €{euro(entrata)} + ricariche €{euro(ricaricheTot)})
                       </span>
                     </div>
                   )}
