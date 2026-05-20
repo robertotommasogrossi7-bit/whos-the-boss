@@ -31,7 +31,7 @@ The first version was a single 4500-line HTML file: HTML + inline `<style>` + in
 
 But adding features got harder. Reading the file got harder. AI assistants started struggling with the token cost of reading it.
 
-### Stage 2 — Modular vanilla split (`index.html` + `js/*.js` + `css/styles.css`)
+### Stage 2 — Modular vanilla split (`_legacy/index.html` + `_legacy/js/*.js` + `_legacy/css/styles.css`)
 
 The monolith was split into:
 - 1 `index.html` (markup + onclick handlers only)
@@ -87,7 +87,7 @@ Then open http://localhost:5173.
 The React app automatically reads existing data from the vanilla app's `localStorage` (same origin), so no manual migration is needed when running in production on the same domain.
 
 ### Vanilla version (legacy, historical reference)
-Just open `index.html` in any modern browser. No build step. Kept as a stable snapshot of Stage 2 of the architecture journey.
+Just open `_legacy/index.html` in any modern browser. No build step. Kept as a stable snapshot of Stage 2 of the architecture journey.
 
 ---
 
@@ -103,10 +103,11 @@ poker/
 │   │   ├── utils/           ← calc, format, migrations, torneo, settlement
 │   │   └── components/      ← per-domain folders (auth, leghe, serata, …)
 │   └── package.json
-├── index.html               ← legacy vanilla entry point (Stage 2)
-├── css/styles.css           ← legacy vanilla styles
-├── js/                      ← legacy 16 modular vanilla JS files
-├── _legacy/                 ← original 4500-line monolith (Stage 1)
+├── _legacy/                 ← historical reference (Stage 1 monolith + Stage 2 vanilla split)
+│   ├── poker_tracker.html   ← original 4500-line monolith (Stage 1)
+│   ├── index.html           ← vanilla entry point (Stage 2)
+│   ├── css/styles.css       ← vanilla styles
+│   └── js/                  ← 16 modular vanilla JS files
 ├── CONTESTO.md              ← project state + roadmap (read this first)
 ├── POKER_MAP.md             ← code map for the React app
 ├── SETTLEMENT_SPEC.md       ← contract for cash settlement (with example-tests)
