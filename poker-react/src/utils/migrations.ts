@@ -31,6 +31,10 @@ export function migrateSessione(s: Sessione | undefined): void {
       const extraPagato = (g.extra_pagato && g.extra_amt > 0) ? g.extra_amt : 0;
       g.versato = Math.round((buyInPagato + ricarichePagate + extraPagato) * 100) / 100;
 
+      if ((g as { entrata?: number }).entrata === undefined) {
+        g.entrata = s.buy_in ?? 0;
+      }
+
       // extra_amt non pagato → diventa ricarica
       if (g.extra_amt > 0 && !g.extra_pagato) {
         g.ricariche = [...g.ricariche, { importo: g.extra_amt }];
@@ -40,6 +44,9 @@ export function migrateSessione(s: Sessione | undefined): void {
     }
     if ((g as { versato?: number }).versato === undefined) {
       g.versato = 0;
+    }
+    if ((g as { entrata?: number }).entrata === undefined) {
+      g.entrata = isCash ? (s.buy_in ?? 0) : 0;
     }
   });
 }
