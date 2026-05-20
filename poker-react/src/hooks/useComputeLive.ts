@@ -4,7 +4,7 @@ import type { GiocatoreSessione, Sessione } from '../types';
 /* ══════════════════════════════════════════════════════
    COMPUTE LIVE — cash game calcolatrice
    Nuovo modello §4 SETTLEMENT_SPEC:
-     dovuto  = sess.buy_in + sum(ricariche.importo)
+     dovuto  = g.entrata + sum(ricariche.importo)
      versato = g.versato (numero libero)
      mancante = max(0, dovuto - versato)
      netto   = fiche - dovuto
@@ -12,7 +12,7 @@ import type { GiocatoreSessione, Sessione } from '../types';
 
 export interface LiveGiocatore extends GiocatoreSessione {
   ricaricheTot: number;
-  dovuto:       number; // buy_in + ricariche
+  dovuto:       number; // entrata + ricariche
   mancante:     number; // max(0, dovuto - versato)
   fiches:       number; // alias fiches_finali
   ricevuti:     number; // alias soldi_ricevuti (legacy, non usato nel nuovo modello)
@@ -29,7 +29,8 @@ export function computeLive(sess: Sessione | undefined): LiveResult {
   if (!sess) return { arr: [], leaderId: null };
   const arr: LiveGiocatore[] = sess.giocatori.map(g => {
     const ricaricheTot = g.ricariche.reduce((a, r) => a + r.importo, 0);
-    const dovuto       = g.entrato ? Math.round((sess.buy_in + ricaricheTot) * 100) / 100 : 0;
+    const entrata      = g.entrata ?? sess.buy_in;
+    const dovuto       = g.entrato ? Math.round((entrata + ricaricheTot) * 100) / 100 : 0;
     const versato      = g.versato ?? 0;
     const mancante     = g.entrato ? Math.max(0, Math.round((dovuto - versato) * 100) / 100) : 0;
     const fiches       = g.fiches_finali || 0;
