@@ -79,10 +79,11 @@ export function suggerisciTorneo(num_giocatori: number, durata_ore: number): Tor
 }
 
 /* ── Giocatore sessione "vuoto" ── */
-export function nuovoGiocatoreSessione(id_nome: number): GiocatoreSessione {
+export function nuovoGiocatoreSessione(id_nome: number, buyInDefault?: number): GiocatoreSessione {
   return {
     id_nome,
     entrato:          false,
+    entrata:          buyInDefault ?? 0,
     versato:          0,
     buy_in_pagato:    false,
     extra_amt:        0,
@@ -148,6 +149,10 @@ export function creaSessione(
     trascorso_ms:         0,
     giocatori,
   };
+
+  if (modalita === 'cash') {
+    sess.giocatori.forEach(g => { g.entrata = g.entrata || buyIn; });
+  }
 
   if (modalita === 'torneo' && torneoConfig) {
     const numTavoli   = Math.ceil(torneoConfig.num_giocatori / 9);

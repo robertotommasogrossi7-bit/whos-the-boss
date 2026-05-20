@@ -53,6 +53,7 @@ export interface GiocatoreSessione {
   id_nome: number;
   entrato: boolean;
   // ── Campi cash (nuovo modello) ──
+  entrata: number;        // buy-in effettivo del giocatore (default = Sessione.buy_in)
   versato: number;        // quanto è realmente nel piatto (numero libero)
   // ── Campi torneo (e cash legacy) ──
   buy_in_pagato: boolean;
