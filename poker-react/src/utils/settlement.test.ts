@@ -140,4 +140,47 @@ describe('calcolaSettlement §14', () => {
     expect(transfers(res)[0]).toEqual({ from: 1, to: 3, importo: 25 });
   });
 
+  // §14 ES.10-12 — scenari buy-in misti (entrata ≠ sess.buy_in)
+  // calcolaSettlement riceve dovuto precalcolato, quindi i test passano
+  // dovuto derivato da entrata + ricariche
+
+  it('ES.10 — Mario entra con 10 (buy-in serata 25): dovuto 10, netto da fiche', () => {
+    // Mario: entrata 10, versato 10, fiche 5  → dovuto=10, netto=-5
+    // Luca:  entrata 25, versato 25, fiche 30 → dovuto=25, netto=+5
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 10, versato: 10, fiche: 5  },
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 30 },
+    ]);
+    expect(netto(res, 1)).toBe(r(-5));
+    expect(netto(res, 2)).toBe(r(5));
+    expect(transfers(res)).toHaveLength(0);
+  });
+
+  it('ES.11 — Mario entra 10 e non versa: mancante 10 elide fiche 10', () => {
+    // Mario: entrata 10, versato 0, fiche 10 → dovuto=10, mancante=10
+    // auto-compensazione: cancelled=min(10,10)=10 → mancanteP=0
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 10, versato: 0,  fiche: 10 },
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 25 },
+    ]);
+    expect(netto(res, 1)).toBe(r(0));
+    expect(netto(res, 2)).toBe(r(0));
+    const mario = res.giocatori.find(g => g.id_nome === 1)!;
+    expect(mario.mancanteP).toBe(0);
+    expect(transfers(res)).toHaveLength(0);
+  });
+
+  it('ES.12 — Mario entra 10 senza versare e fiche 0: trasferimento verso il vincitore', () => {
+    // Mario: entrata 10, versato 0, fiche 0 → mancanteP=10
+    // Luca:  entrata 25, versato 25, fiche 35 → bisogno=10
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 10, versato: 0,  fiche: 0  },
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 35 },
+    ]);
+    expect(netto(res, 1)).toBe(r(-10));
+    expect(netto(res, 2)).toBe(r(10));
+    expect(transfers(res)).toHaveLength(1);
+    expect(transfers(res)[0]).toEqual({ from: 1, to: 2, importo: 10 });
+  });
+
 });
