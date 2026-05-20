@@ -25,7 +25,13 @@ React Router 7 + Vitest. ESLint flat config.
 Su `main`: Fasi React 1-5 + Fase A (overlay partita) + Fase B (settlement cash nuovo modello).
 TSC + lint + Vitest tutti verdi al momento dell'ultimo merge.
 
-In sospeso: branch `settlement-cash-v2` mergeato? **Da verificare** con `git log --oneline -3`.
+**In sospeso**: branch `settlement-cash-v2` (Fase B settlement cash nuovo modello).
+Implementazione conclusa, TSC + lint + 9/9 test Vitest verdi. Review interna fatta
+nella chat precedente. **Da fare in chat di review nuova**: rileggere
+SETTLEMENT_SPEC.md + diff `main...settlement-cash-v2`, test manuale browser
+(porta 5173) — il caso "sa" (§7 spec) è il check chiave — poi `git merge --no-ff`.
+L'utente ha già notato alcuni errori dal test browser e li elencherà nella chat
+di review.
 
 ## Workflow del progetto
 - Branch per ogni fase (es. `settlement-cash-v2`)
