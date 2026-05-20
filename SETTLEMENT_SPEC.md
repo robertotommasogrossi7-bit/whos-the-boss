@@ -2,215 +2,240 @@
 
 > Specifica della logica di chiusura del cash game. Questo documento è il
 > **contratto**: l'implementazione deve seguirlo alla lettera, con gli esempi
-> del §12 come test automatici. Il torneo ha un modello suo, separato (§11).
+> del §14 come test automatici. Il torneo ha un modello suo (§13).
 
 ---
 
 ## 1. Scopo
 
-Sostituire il modello di settlement cash attuale, che ha un difetto reale:
-tratta "chi deve soldi" e "chi ha vinto" come liste separate, così un giocatore
-che **deve** soldi ma ha **vinto** fiche finisce in entrambe (paga e riceve allo
-stesso tempo). Il nuovo modello compensa prima il debito di ognuno col proprio
-risultato, poi distribuisce solo i residui.
+Due principi che guidano tutto:
+1. **Il debito di un giocatore si elide contro le SUE fiche** (auto-compensazione).
+2. **Soldi già nel piatto** (Cassa) e **contanti che cambiano mano** (Trasferimenti)
+   sono due cose distinte e vanno presentate in DUE schermate separate. La schermata
+   "Trasferimenti" mostra solo i contanti veri.
+
+Il modello attuale fallisce su entrambi: tratta debiti e vincite come liste separate
+(un giocatore può apparire sia tra chi paga sia tra chi riceve), e mette nei
+trasferimenti anche la ridistribuzione passiva dei soldi già nel piatto.
 
 ---
 
 ## 2. Decisioni prese (definitive)
 
-1. **Dati**: si sostituisce `extra_amt`/`extra_pagato` con `entrata` libera +
-   `entrata_pagata`. L'ingresso non è più fisso (§3).
+1. **Dati**: `versato` diventa un **numero libero** per giocatore (quanto ha
+   effettivamente messo nel piatto). Spariscono i sì/no per ogni contribuzione.
 2. **Algoritmo**: greedy "dal più grande al più grande", con auto-compensazione
-   (§7). Scelto perché prevedibile ("il perdente più grosso paga il vincitore
-   più grosso") e semplice da verificare. Non si fa la minimizzazione del numero
-   di transazioni: è un suggerimento comunque modificabile a mano, la
-   prevedibilità vale più dell'ottimalità.
-3. **Schermata**: la chiusura mostra direttamente i **trasferimenti finali**
-   (chi dà contanti a chi), ognuno modificabile. La "Cassa" (§6) resta modello
-   mentale che spiega il perché, non è una schermata a sé.
-4. **Quando**: si implementa come **fase dedicata**, con test automatici sugli
-   esempi del §12. Non a pezzi, non mischiato ad altro.
+   del debito contro le fiche (§8). Prevedibile, modificabile a mano.
+3. **Due schermate distinte alla chiusura**:
+   - **Il Piatto (Cassa)**: visibile. Totali + (a scomparsa) di chi sono i soldi.
+   - **I Trasferimenti**: SOLO i contanti che cambiano mano.
+4. **Implementazione**: fase dedicata, con test automatici sugli esempi del §14.
 
 ---
 
-## 3. Cambio al modello dati
+## 3. Modello dati
 
-L'ingresso non è più fisso: ogni giocatore entra con la cifra che vuole.
+Per ogni `GiocatoreSessione` (cash):
+- `entrata: number` — quanto si è seduto a giocare. Default = `Sessione.buy_in`,
+  ma libero (10, 25, 10000…). Correggibile dall'admin in ogni momento.
+- `ricariche: [{ importo: number }]` — solo gli importi (niente più `pagata`).
+- `versato: number` — **numero libero**, quanto è realmente nel piatto a suo nome.
+  Può essere minore di `dovuto` (non ha pagato tutto) o maggiore (ha versato di
+  più, es. non aveva da cambiare). L'admin lo modifica liberamente.
 
-`GiocatoreSessione` (cash):
-- **rimuovere** `extra_amt`, `extra_pagato`
-- **aggiungere** `entrata: number` — quanto il giocatore si è seduto a giocare.
-  Default = `Sessione.buy_in`, ma modificabile liberamente (10, 25, 10000…).
-  Resta correggibile dall'admin in qualsiasi momento.
-- **aggiungere** `entrata_pagata: boolean` — ha versato la sua entrata? (sì/no,
-  niente pagamenti parziali: per i casi strani c'è l'override manuale §8)
-- `ricariche: [{ importo, pagata }]` — invariato
+**Drop**: `entrata_pagata`, `ricariche[i].pagata`, `extra_amt`, `extra_pagato`.
 
-`Sessione.buy_in` resta, ma è solo il **valore predefinito** suggerito nel form.
+`Sessione.buy_in` resta come valore predefinito suggerito.
 
-**Migrazione dati vecchi**: `entrata = buy_in`, `entrata_pagata = buy_in_pagato`;
-se `extra_amt > 0` → diventa una ricarica `{ importo: extra_amt, pagata: extra_pagato }`.
+**Migrazione dati vecchi**:
+- `entrata = buy_in`
+- `ricariche = ricariche.map(r => ({ importo: r.importo }))`
+- `versato = (entrata_pagata ? entrata : 0) + sum(ricariche pagate) + (extra_pagato ? extra_amt : 0)`
+- `extra_amt > 0` non pagato → diventa una ricarica `{ importo: extra_amt }`
 
 ---
 
 ## 4. Definizioni (per ogni giocatore ENTRATO)
 
-| Termine    | Formula |
-|------------|---------|
-| `dovuto`   | `entrata + somma(ricariche.importo)` — tutto lo stake, pagato o no |
-| `versato`  | `(entrata_pagata ? entrata : 0) + somma(ricariche pagate)` — soldi messi nella Cassa |
-| `mancante` | `dovuto − versato` — quanto NON ha ancora versato (≥ 0) |
-| `fiche`    | fiche finali davanti al giocatore (inserite a mano dall'admin) |
-| `netto`    | `fiche − dovuto` — **il risultato vero del giocatore** |
+| Termine     | Formula |
+|-------------|---------|
+| `dovuto`    | `entrata + somma(ricariche.importo)` — lo stake totale |
+| `versato`   | numero libero, quanto è nel piatto a nome suo |
+| `mancante`  | `max(0, dovuto − versato)` — debito (≥ 0) |
+| `eccedenza` | `max(0, versato − dovuto)` — soldi versati in più, da restituire |
+| `fiche`     | fiche finali davanti al giocatore (admin a mano) |
+| `netto`     | `fiche − dovuto` — **il risultato vero del giocatore** |
 
-Solo i giocatori con `entrato = true` entrano nel settlement. Servono **≥ 2**
-giocatori entrati, altrimenti la chiusura è bloccata con avviso.
+Solo i giocatori `entrato = true` entrano nel settlement. Servono **≥ 2** entrati.
 
 ---
 
 ## 5. Principio fondamentale
 
-> **Ogni giocatore chiude alla cifra `netto`.** Vincitori: `netto > 0`.
-> Perdenti: `netto < 0`.
-
-Equivalente pratico: ogni giocatore **incassa `fiche`** e **versa `mancante`**.
-Infatti `fiche − versato − mancante = fiche − dovuto = netto`. Vale per **tutti**,
-anche per un vincitore con una ricarica non pagata.
-
-**`somma(netti)` dovrebbe fare 0** (le fiche totali = lo stake totale). Ma le
-`fiche` le conta l'admin a mano: se ha sbagliato il conteggio, `somma(netti) ≠ 0`.
-L'app **non lo dà per scontato**: lo segnala e lascia comunque procedere (§9).
+Ogni giocatore chiude alla cifra `netto`. **`somma(netti) dovrebbe fare 0`** (le
+fiche totali = stake totale). Ma le fiche le conta l'admin a mano: se sbaglia,
+non quadra. L'app non lo dà per scontato (§10).
 
 ---
 
-## 6. La Cassa (modello mentale)
+## 6. La Cassa — schermata visibile
 
-La Cassa è il piatto comune: contiene `somma(versato)`, **nominativa** (si sa di
-chi è ogni euro). Spiega il perché dell'algoritmo:
+La Cassa è il piatto comune. **Schermata propria** alla chiusura:
 
-- Priorità: ognuno **si tiene i propri soldi** già nella Cassa, fino a `fiche`.
-- Il `mancante` di ognuno è contante nuovo che deve arrivare ai vincitori.
-- Se tutti pagano tutto (`mancante = 0` per tutti) la Cassa si bilancia da sola
-  e i trasferimenti girano solo i soldi dei perdenti ai vincitori.
-- I debiti persona-a-persona nascono dal `mancante` non versato **e** dal
-  surplus che i perdenti lasciano in Cassa.
+- **Totale realmente nel piatto** = `somma(versato)`
+- **Totale che dovrebbe esserci** = `somma(dovuto)` (se tutti avessero versato il dovuto)
+- **Indicatore di quadratura** (verde se quadra, ⚠ con la differenza)
+- **Pulsante "Di chi sono i soldi"** → schermata a scomparsa: ogni giocatore col
+  proprio `versato`
+- **Eccedenze**: ogni giocatore con `versato > dovuto` si riprende `eccedenza`
+  dal piatto, automaticamente
+
+La Cassa è il modo in cui circolano passivamente i soldi GIÀ versati: i
+vincitori incassano da qui, con priorità ai propri soldi.
 
 ---
 
-## 7. Algoritmo automatico consigliato
+## 7. I Trasferimenti — solo contanti veri
 
-Per ogni giocatore entrato, calcola le grandezze del §4, poi:
+Schermata propria alla chiusura, titolata **"CHI DÀ CONTANTI A CHI"**: elenca
+**solo** i passaggi di contante che devono avvenire davvero.
 
-**Passo 1 — grandezze per giocatore**
-- `surplus = max(0, versato − fiche)` — soldi che lascia nella Cassa
-- `bisogno = max(0, fiche − versato)` — soldi che gli servono oltre ai suoi
-- `debito  = mancante` — contante che deve ancora tirare fuori
+Un giocatore compare nei trasferimenti **solo se**, dopo l'auto-compensazione
+del §8, ha ancora `mancante' > 0` (deve mettere contanti adesso).
 
-**Passo 2 — auto-compensazione (il debito si elide da solo)**
-Per ogni giocatore, il suo `debito` annulla **per primo il suo stesso `bisogno`**:
+**Caso "sa"** (esempio fondamentale): entrata €25 versata, ricarica €10 non
+versata, fiche €10 → `mancante = 10`, `fiche = 10` → si annullano →
+`mancante' = 0` → **sa non compare nei trasferimenti**. I suoi €25 nel piatto
+vanno passivamente ai vincitori (vista Cassa), ma sa non "dà" niente.
+
+---
+
+## 8. Algoritmo automatico
+
+Per ogni giocatore entrato:
+
+**Passo 1 — grandezze base**
+- `mancante = max(0, dovuto − versato)`
+- `versato_legitimo = min(versato, dovuto)` (esclude l'eccedenza, che è a parte)
+
+**Passo 2 — auto-compensazione (il debito si elide contro le tue fiche)**
 ```
-conguaglio = min(debito, bisogno)
-debito  -= conguaglio
-bisogno -= conguaglio
+cancelled = min(mancante, fiche)
+mancante' = mancante − cancelled
+fiche'    = fiche    − cancelled
 ```
-Dopo questo passo ogni giocatore è **o** una fonte **o** una destinazione, mai
-entrambe (dimostrabile: se `bisogno > 0` allora `surplus = 0` e `debito = 0`).
-Questo passo implementa la regola "chi vince si toglie il debito da solo".
 
-**Passo 3 — fonti e destinazioni**
-- `fonte(p)        = arrotonda2(surplus + debito)`
-- `destinazione(p) = arrotonda2(bisogno)`
+**Passo 3 — bisogni**
+- `bisogno(p) = max(0, fiche' − versato_legitimo)` — quanti contanti p deve
+  ricevere oltre ai suoi nel piatto
 
-**Passo 4 — abbinamento greedy**
-- Ordina le fonti per importo decrescente, le destinazioni per importo decrescente
-- Per ogni destinazione, preleva dalle fonti (dalla più grande) finché è soddisfatta
-- Ogni prelievo genera un trasferimento `{ from, to, importo }`, `importo` arrotondato a 2 decimali
-- Una fonte esaurita si scarta; si passa alla successiva
+**Passo 4 — abbinamento greedy (genera la lista trasferimenti)**
+Distribuisci `mancante'` ai bisogni:
+- Debitori = giocatori con `mancante' > 0`, ordinati decrescente
+- Creditori = giocatori con `bisogno > 0`, ordinati decrescente
+- Per ogni debitore, scala `mancante'` distribuendolo dai creditori più grandi
+- Ogni passaggio = un trasferimento `{ from, to, importo }`, arrotondato a 2 decimali
 
-Risultato: lista di trasferimenti minima e sensata. Chi ha già pagato non
-ripassa contante; i debiti si eliminano da soli.
+I `bisogni` non coperti dai trasferimenti vengono coperti **dal piatto**
+(vista Cassa, automatico).
 
-**Se le fiche non quadrano** (`somma fonti ≠ somma destinazioni`): l'abbinamento
-greedy lascia un residuo da una parte. È atteso — vedi §9.
+**Risultato**: lista trasferimenti totale = `somma(mancante')`. Se `mancante' = 0`
+per tutti, la lista è vuota (la Cassa si bilancia da sola).
 
 ---
 
-## 8. Override manuale (requisito esplicito)
+## 9. Override manuale (controllo totale)
 
-La schermata di chiusura dà **controllo totale**:
 - Ogni trasferimento suggerito è **modificabile** nell'importo
-- Si può **aggiungere** un trasferimento tra due persone qualsiasi, di qualsiasi importo
+- Si può **aggiungere** un trasferimento tra DUE PERSONE QUALSIASI, di QUALSIASI importo
 - Si può **eliminare** un trasferimento
-- Vista chiara di **chi deve a chi**: tutti i `from → to → importo`
+- Vista chiara di chi-deve-a-chi: tutti i `from → to → importo`
 
-L'automatico (§7) è solo un punto di partenza: l'utente lo può stravolgere.
+L'algoritmo è solo un punto di partenza.
 
 ---
 
-## 9. Check bilanciamento (non bloccante)
+## 10. Check bilanciamento (non bloccante)
 
-Per ogni giocatore l'app calcola la sua posizione risultante dai trasferimenti
-attuali e la confronta col suo `netto`:
-- ✓ verde se quadra (entro €0,01)
-- ⚠ con la differenza se non quadra
+Per ogni giocatore, l'app calcola la sua posizione risultante (trasferimenti +
+ciò che prende dal piatto) e la confronta col suo `netto`:
+- ✓ se quadra (entro €0,01)
+- ⚠ con la differenza altrimenti
 
-Mostra anche lo **sbilancio globale** (`somma netti`): se ≠ 0, le fiche sono
+Mostra anche lo **sbilancio globale** (`somma netti`): se ≠ 0 le fiche sono
 state contate male.
 
-Il check **non blocca mai**: si può sempre confermare e salvare, con un avviso
-riepilogativo. L'utente ha l'ultima parola.
+**Mai bloccante**: si può sempre salvare, con un avviso.
 
 ---
 
-## 10. Casi limite
+## 11. Casi limite
 
-- **< 2 giocatori entrati** → chiusura bloccata con avviso.
-- **Fiche non quadrano** (`somma netti ≠ 0`) → si segnala, si procede comunque.
-- **Arrotondamenti**: tutti gli importi a 2 decimali; i trasferimenti arrotondati
-  possono lasciare residui di €0,01, tollerati dai check.
-- **`entrata` enorme o strana** (es. 10000) → nessun trattamento speciale, il
-  modello è agnostico agli importi.
-- **Giocatore che pareggia senza aver pagato** (`debito = fiche`, `netto = 0`) →
-  si auto-compensa al Passo 2 ed esce dal settlement senza trasferimenti.
+- **< 2 giocatori entrati** → chiusura bloccata.
+- **Fiche non quadrano** (`somma netti ≠ 0`) → si segnala, si procede.
+- **Eccedenza** (`versato > dovuto`) → restituita dal piatto automaticamente.
+- **Pareggio con debito** (`mancante = fiche`) → si annulla in §8, il giocatore
+  esce dai trasferimenti.
+- **Arrotondamenti**: 2 decimali; tolleranza €0,01.
 
 ---
 
-## 11. Torneo — fuori scope
+## 12. Schermate (UI)
 
-Il torneo ha già un modello suo (`contributo_residuo` / `premio_residuo`) e qui
-**non si tocca**. Le regole ricarica torneo (rebuy solo durante la late reg, a
-quota fissa; add-on quando si vuole; tutto gestito da admin) sono già nell'app.
+Dentro l'overlay partita, alla CHIUSURA, due schermate separate (più i debiti aperti):
 
----
+1. **Cassa (Il Piatto)** — visibile (§6):
+   - Totale nel piatto + totale dovuto + indicatore di quadratura
+   - Pulsante "Di chi sono i soldi" → schermata a scomparsa col breakdown per giocatore
+2. **Trasferimenti** — visibile (§7):
+   - SOLO i passaggi di contante (`mancante'`)
+   - Modificabili, aggiungibili, rimovibili (§9)
+   - Check bilanciamento per giocatore (§10)
 
-## 12. Esempi lavorati = test obbligatori
-
-Buy-in default 25. Importi in €. Ogni riga va resa un test automatico.
-
-| # | Input | netto atteso | Trasferimenti attesi |
-|---|-------|-------------|---------------------|
-| 1 | A: entrata 25 pagata, fiche 40 · B: entrata 25 pagata, fiche 10 | A +15, B −15 | B→A €15 |
-| 2 | A: entrata 25 **non** pagata, fiche 10 · B: entrata 25 pagata, fiche 40 | A −15, B +15 | A→B €15 |
-| 3 | A: entrata 25 + ricarica 25, **entrambe non pagate**, fiche 110 · altri perdono 60 | A +60 | altri→A, totale €60 |
-| 4 | A: entrata 25 pagata + ricarica 20 **non** pagata, fiche 80 · altri perdono 35 | A +35 | altri→A, totale €35 |
-| 5 | A: entrata 10 pagata, fiche 0 · B: entrata 100 pagata, fiche 110 | A −10, B +10 | A→B €10 |
-| 6 | A: entrata 25 **non** pagata, fiche 25 (pareggia) · B,C in pari | A 0 | nessuno (A si auto-compensa ed esce) |
-
-**Dettaglio ES.3** (auto-compensazione): A ha `dovuto 50, versato 0, mancante 50,
-fiche 110`. `surplus 0, bisogno 110, debito 50`. Passo 2: `conguaglio = min(50,110)
-= 50` → `debito 0, bisogno 60`. A diventa destinazione pura da €60. Il debito di
-50 si è eliso contro le sue vincite. ✓
-
-**Dettaglio ES.4**: A ha `dovuto 45, versato 25, mancante 20, fiche 80`.
-`surplus 0, bisogno 55, debito 20`. Passo 2: `conguaglio 20` → `bisogno 35`.
-A riceve €35. Il vincitore ha comunque "pagato" il suo mancante via compensazione. ✓
+E nella schermata **Debiti aperti** (esistente, fuori dall'overlay):
+- Aggiungere un pulsante globale "**Salda tutti i debiti**" che salda i debiti
+  di TUTTI i debitori della lega (oggi c'è solo "Salda tutti di X" per singolo).
 
 ---
 
-## 13. Note implementative
+## 13. Torneo — fuori scope
 
-- Fase dedicata. Calcolo puro (fonti/destinazioni/greedy) in una funzione
-  testabile isolata, separata dalla UI.
-- Test automatici (Vitest) sulla tabella §12 — sono il collaudo del modello.
-- La funzione di calcolo non deve dipendere da React: input = lista giocatori
-  con le grandezze §4, output = lista trasferimenti.
+Il torneo ha già un suo modello (`contributo_residuo` / `premio_residuo`) e qui
+**non si tocca**.
+
+---
+
+## 14. Esempi lavorati = test obbligatori
+
+Importi in €. Ogni riga = un test Vitest sulla funzione pura.
+
+| # | Scenario | netto | Trasferimenti attesi |
+|---|----------|-------|---------------------|
+| 1 | A: entrata 25, versato 25, fiche 40 · B: entrata 25, versato 25, fiche 10 | A +15, B −15 | **nessuno** (il piatto: A prende 40, B prende 10) |
+| 2 | A: entrata 25, versato 0, fiche 10 · B: entrata 25, versato 25, fiche 40 | A −15, B +15 | A→B €15 (cancel A: 10 fiche annullano 10 di mancante, residuo 15) |
+| 3 | **sa**: entrata 25, versato 25, ricarica 10 (versato totale 25), fiche 10 · B: entrata 25, versato 25, fiche 50 | sa −25, B +25 | **nessuno** (sa: mancante 10 elide contro fiche 10) |
+| 4 | A: entrata 25 + ricarica 25, versato 0, fiche 110 · altri 3 giocatori: entrata 25 versata 25 fiche 5 ciascuno | A +60, altri −20 ciascuno | nessuno (A: mancante 50 elide contro fiche 110) |
+| 5 | A: entrata 25, versato 25 + ricarica 20 versato 0, fiche 80 · B fiche 0, C fiche 15 (entrambi entrata 25 versata 25) | A +35, B −25, C −10 | nessuno (A: mancante 20 elide contro fiche 80) |
+| 6 | A entrata 10 versata 10 fiche 0 · B entrata 100 versata 100 fiche 110 | A −10, B +10 | nessuno (B prende 110 dal piatto: 100 suoi + 10 di A) |
+| 7 | A entrata 25 versata 0 fiche 25 (pareggio) · B, C in pari | A 0, B 0, C 0 | nessuno (auto-compensazione totale per A) |
+| 8 | A entrata 25 versata **30** (overpay 5) fiche 40 · B entrata 25 versata 25 fiche 10 | A +15, B −15 | nessuno; A si riprende l'eccedenza 5 dal piatto |
+| 9 | A entrata 25 versata 0 fiche **0** · B entrata 25 versata 25 fiche 25 · C entrata 25 versata 25 fiche 50 | A −25, B 0, C +25 | **A→C €25** (A: mancante 25, fiche 0 → mancante' 25; C: bisogno 25) |
+
+**Detail ES.3** (il caso "sa"): `dovuto 35, versato 25, mancante 10, fiche 10`.
+Passo 2: `cancelled = min(10, 10) = 10`. `mancante' = 0, fiche' = 0`. sa esce
+da debitori e creditori. I suoi €25 versati restano nel piatto, B li incassa
+nel piatto. ✓
+
+**Detail ES.9** (trasferimento non banale): A non ha versato niente e non ha
+fiche → niente da elidere. `mancante' = 25` interamente. C ha vinto €25 (bisogno
+25). Trasferimento diretto A→C €25.
+
+---
+
+## 15. Note implementative
+
+- Fase dedicata, su branch suo.
+- Funzione **pura** (`calcolaSettlement`) separata dalla UI, testabile in isolamento.
+- Test automatici (Vitest) sulla tabella §14 — collaudo del modello.
+- Le schermate Cassa e Trasferimenti vivono dentro l'overlay partita (dalla Fase A).
+- Aggiunta pulsante globale "Salda tutti i debiti" nella schermata Debiti aperti.
