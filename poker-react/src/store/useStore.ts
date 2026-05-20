@@ -1229,7 +1229,7 @@ export const useStore = create<PokerStore>()(
               .map(t => ({ from: t.from, amount: t.importo }));
             return {
               id_nome:             gc.id_nome,
-              entrate:             sa.buy_in,
+              entrate:             sessG?.entrata ?? sa.buy_in,
               ricarica_fatta:      sessG ? sessG.ricariche.reduce((a, r) => a + r.importo, 0) : 0,
               extra:               0,
               soldi_ricevuti:      0,
