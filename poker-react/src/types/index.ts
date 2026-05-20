@@ -41,7 +41,7 @@ export interface Premio {
 
 export interface Ricarica {
   importo: number;
-  pagata: boolean;
+  pagata?: boolean; // opzionale: cash non usa più pagata, torneo (rebuys) sì
 }
 
 export interface Seat {
@@ -52,12 +52,15 @@ export interface Seat {
 export interface GiocatoreSessione {
   id_nome: number;
   entrato: boolean;
+  // ── Campi cash (nuovo modello) ──
+  versato: number;        // quanto è realmente nel piatto (numero libero)
+  // ── Campi torneo (e cash legacy) ──
   buy_in_pagato: boolean;
   extra_amt: number;
   extra_pagato: boolean;
-  ricariche: Ricarica[];  // cash: ricariche, torneo: rebuys
-  rebuys: Ricarica[];
-  soldi_ricevuti: number; // cash
+  ricariche: Ricarica[];  // cash: ricariche (importo only), torneo: rebuys
+  rebuys: Ricarica[];     // torneo: rebuy con pagata
+  soldi_ricevuti: number; // cash legacy
   fiches_finali: number;  // cash
   seat: Seat | null;      // torneo
   add_on_fatto: boolean;
@@ -173,6 +176,39 @@ export interface SettlementAlloc {
   amount: number;
 }
 
+/** Contante che cambia mano nel settlement cash (§7) */
+export interface Trasferimento {
+  from:    number;
+  to:      number;
+  importo: number;
+}
+
+/** Dati per-giocatore calcolati da calcolaSettlement */
+export interface GiocatoreCalcolato {
+  id_nome:          number;
+  dovuto:           number;
+  versato:          number;
+  mancante:         number;   // max(0, dovuto - versato)
+  mancanteP:        number;   // mancante' dopo auto-compensazione
+  fiche:            number;
+  ficheP:           number;   // fiche' dopo auto-compensazione
+  eccedenza:        number;   // max(0, versato - dovuto)
+  versatoLegittimo: number;   // min(versato, dovuto)
+  bisogno:          number;   // contanti extra da ricevere oltre al piatto
+  netto:            number;   // fiche - dovuto
+}
+
+/** Risultato di calcolaSettlement */
+export interface CashSettlementResult {
+  piatto: {
+    totaleVersato: number;
+    totaleDovuto:  number;
+    breakdown: Array<{ id_nome: number; versato: number; dovuto: number; eccedenza: number; }>;
+  };
+  trasferimenti: Trasferimento[];
+  giocatori:     GiocatoreCalcolato[];
+}
+
 /** Snapshot di un giocatore nel settlement (cash e torneo condiviso) */
 export interface SettlementEntrato {
   id_nome:            number;
@@ -207,5 +243,8 @@ export interface SettlementState {
   losers:      SettlementEntrato[];
   winners:     SettlementEntrato[];
   neutri:      SettlementEntrato[];
-  allocazioni: Record<number, SettlementAlloc[]>; // { [loserId]: allocs }
+  allocazioni: Record<number, SettlementAlloc[]>; // { [loserId]: allocs } — torneo
+  // Cash nuovo modello (§8)
+  cashResult?:            CashSettlementResult;
+  trasferimentiOverride?: Trasferimento[];         // override manuali utente
 }

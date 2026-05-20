@@ -83,6 +83,7 @@ export function nuovoGiocatoreSessione(id_nome: number): GiocatoreSessione {
   return {
     id_nome,
     entrato:          false,
+    versato:          0,
     buy_in_pagato:    false,
     extra_amt:        0,
     extra_pagato:     true,
