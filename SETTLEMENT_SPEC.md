@@ -37,7 +37,12 @@ trasferimenti anche la ridistribuzione passiva dei soldi già nel piatto.
 
 Per ogni `GiocatoreSessione` (cash):
 - `entrata: number` — quanto si è seduto a giocare. Default = `Sessione.buy_in`,
-  ma libero (10, 25, 10000…). Correggibile dall'admin in ogni momento.
+  ma libero (10, 25, 10000…). Correggibile dall'admin in ogni momento (anche
+  a serata in corso).
+  - **UI**: input numerico per ogni giocatore "entrato" nella sub-tab giocatori
+    cash. Visualizza il default ma è editabile.
+  - **Torneo**: non usa questo campo. Il torneo mantiene `Sessione.buy_in`
+    uniforme per il calcolo del monte premi e dei contributi.
 - `ricariche: [{ importo: number }]` — solo gli importi (niente più `pagata`).
 - `versato: number` — **numero libero**, quanto è realmente nel piatto a suo nome.
   Può essere minore di `dovuto` (non ha pagato tutto) o maggiore (ha versato di
@@ -47,11 +52,15 @@ Per ogni `GiocatoreSessione` (cash):
 
 `Sessione.buy_in` resta come valore predefinito suggerito.
 
-**Migrazione dati vecchi**:
-- `entrata = buy_in`
+**Migrazione dati vecchi** (cash legacy → nuovo modello):
+- `entrata = Sessione.buy_in` (default per chi non l'ha mai impostato)
 - `ricariche = ricariche.map(r => ({ importo: r.importo }))`
-- `versato = (entrata_pagata ? entrata : 0) + sum(ricariche pagate) + (extra_pagato ? extra_amt : 0)`
+- `versato = (buy_in_pagato ? Sessione.buy_in : 0) + sum(ricariche pagate) + (extra_pagato ? extra_amt : 0)`
 - `extra_amt > 0` non pagato → diventa una ricarica `{ importo: extra_amt }`
+
+**Migrazione intermedia** (v2 con `versato` ma senza `entrata`):
+- Se `g.entrata === undefined` → `g.entrata = Sessione.buy_in` (cash only).
+- Idempotente: chiamabile più volte senza effetti collaterali.
 
 ---
 
@@ -220,6 +229,15 @@ Importi in €. Ogni riga = un test Vitest sulla funzione pura.
 | 7 | A entrata 25 versata 0 fiche 25 (pareggio) · B, C in pari | A 0, B 0, C 0 | nessuno (auto-compensazione totale per A) |
 | 8 | A entrata 25 versata **30** (overpay 5) fiche 40 · B entrata 25 versata 25 fiche 10 | A +15, B −15 | nessuno; A si riprende l'eccedenza 5 dal piatto |
 | 9 | A entrata 25 versata 0 fiche **0** · B entrata 25 versata 25 fiche 25 · C entrata 25 versata 25 fiche 50 | A −25, B 0, C +25 | **A→C €25** (A: mancante 25, fiche 0 → mancante' 25; C: bisogno 25) |
+| 10 | **Buy-in misti, regolari**: A entrata 25 versata 25 fiche 30 · B entrata **10** versata 10 fiche 5 | A +5, B −5 | **nessuno** (A: bisogno 5, B: niente da dare; A prende 5 dal piatto, B 5 dal piatto) |
+| 11 | **Buy-in misti + debito**: A entrata 25 versata 0 fiche 5 · B entrata **10** versata 10 fiche 30 | A −20, B +20 | **A→B €20** (A: mancante 25, cancelled=5 → mancante' 20; B: bisogno 20) |
+| 12 | **Buy-in misti, B non versa**: A entrata 25 versata 25 fiche 35 · B entrata **10** versata 0 fiche 0 | A +10, B −10 | **B→A €10** (B: mancante 10, fiche 0 → mancante' 10; A: bisogno 10) |
+
+**Detail ES.10/11/12**: dimostrano che `dovuto = entrata + somma(ricariche)` con
+`entrata` per-giocatore (NON `Sessione.buy_in` per tutti). I 9 test base
+funzionano già perché `calcolaSettlement` accetta `dovuto` come input puro;
+questi 3 test in più verificano che la pipeline `useComputeLive` calcoli
+correttamente `dovuto` quando `g.entrata ≠ sess.buy_in`.
 
 **Detail ES.3** (il caso "sa"): `dovuto 35, versato 25, mancante 10, fiche 10`.
 Passo 2: `cancelled = min(10, 10) = 10`. `mancante' = 0, fiche' = 0`. sa esce
