@@ -11,11 +11,12 @@ interface DebitoItem {
 }
 
 export default function DebitiScreen() {
-  const navigate      = useNavigate();
-  const lega          = useStore(selectCurrentLega);
-  const saldaDebito   = useStore(s => s.saldaDebito);
-  const saldaTuttiDi  = useStore(s => s.saldaTuttiDi);
-  const toast         = useStore(s => s.toast);
+  const navigate         = useNavigate();
+  const lega             = useStore(selectCurrentLega);
+  const saldaDebito      = useStore(s => s.saldaDebito);
+  const saldaTuttiDi     = useStore(s => s.saldaTuttiDi);
+  const saldaTuttiDebiti = useStore(s => s.saldaTuttiDebiti);
+  const toast            = useStore(s => s.toast);
 
   function doSaldaDebito(partitaId: number, idx: number) {
     saldaDebito(lega!.id, partitaId, idx);
@@ -25,6 +26,12 @@ export default function DebitiScreen() {
   function doSaldaTutti(debtorId: number) {
     const n = saldaTuttiDi(lega!.id, debtorId);
     toast(`✓ ${n} pagament${n === 1 ? 'o' : 'i'} registrat${n === 1 ? 'o' : 'i'}`);
+  }
+
+  function doSaldaTuttiDebiti() {
+    if (!confirm('Saldare TUTTI i debiti aperti della lega? L\'operazione non è reversibile.')) return;
+    const n = saldaTuttiDebiti(lega!.id);
+    toast(`✓ ${n} debiti saldati`);
   }
 
   if (!lega) {
@@ -70,6 +77,18 @@ export default function DebitiScreen() {
       </header>
 
       <div className="screen-body">
+        {/* Pulsante globale "Salda tutti i debiti" */}
+        {debtorIds.length > 0 && (
+          <div className="debiti-salda-all-row">
+            <button
+              className="btn btn-green btn-block"
+              onClick={doSaldaTuttiDebiti}
+            >
+              ✓ Salda tutti i debiti della lega
+            </button>
+          </div>
+        )}
+
         {debtorIds.length === 0 ? (
           <div className="empty">
             <div className="eico">🎉</div>
