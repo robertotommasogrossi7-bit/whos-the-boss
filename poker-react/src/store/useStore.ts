@@ -8,6 +8,7 @@ import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { calcolaSettlement } from '../utils/settlement';
+import { calcolaSettlementTorneo } from '../utils/settlementTorneo';
 import type { Trasferimento } from '../types';
 import {
   calcolaMontepremi,
@@ -1107,31 +1108,11 @@ export const useStore = create<PokerStore>()(
           };
         });
 
-        const losers  = [...arr].filter(p => p.contributo_residuo > 0.005)
-                                .sort((a, b) => b.contributo_residuo - a.contributo_residuo);
-        const winners = [...arr].filter(p => p.premio_residuo > 0.005)
-                                .sort((a, b) => b.premio_residuo - a.premio_residuo);
-        const neutri  = arr.filter(p => p.contributo_residuo <= 0.005 && p.premio_residuo <= 0.005);
+        /* Auto-compensazione (contributo↔premio dello stesso giocatore) +
+           allocazione greedy — funzione pura testata in settlementTorneo.ts */
+        const { arr: arrComp, losers, winners, neutri, allocazioni } = calcolaSettlementTorneo(arr);
 
-        /* Auto-allocazione greedy */
-        const winnersRem: Record<number, number> = {};
-        winners.forEach(w => { winnersRem[w.id_nome] = w.premio_residuo; });
-        const allocazioni: Record<number, SettlementAlloc[]> = {};
-        losers.forEach(l => {
-          allocazioni[l.id_nome] = [];
-          let rem = l.contributo_residuo;
-          for (const w of winners) {
-            if (rem <= 0.005) break;
-            const avail = winnersRem[w.id_nome] ?? 0;
-            if (avail <= 0.005) continue;
-            const amt = Math.round(Math.min(rem, avail) * 100) / 100;
-            allocazioni[l.id_nome]!.push({ to: w.id_nome, amount: amt });
-            rem -= amt;
-            winnersRem[w.id_nome] = (winnersRem[w.id_nome] ?? 0) - amt;
-          }
-        });
-
-        setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arr, losers, winners, neutri, allocazioni });
+        setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arrComp, losers, winners, neutri, allocazioni });
         set({ serataView: 'chiusura' });
         return true;
       },
@@ -1334,7 +1315,7 @@ export const useStore = create<PokerStore>()(
         const settlements: Settlement[] = [];
         settlement.losers.forEach(l => {
           (settlement.allocazioni[l.id_nome] ?? []).forEach(a => {
-            if (a.amount > 0.005) {
+            if (a.amount > 0.005 && l.id_nome !== a.to) {
               settlements.push({ from: l.id_nome, to: a.to, amount: Math.round(a.amount * 100) / 100, pagato: false });
             }
           });
