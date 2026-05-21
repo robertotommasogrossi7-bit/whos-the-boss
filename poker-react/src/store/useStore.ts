@@ -7,6 +7,7 @@ import type {
 import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
+import { nowHHMM } from '../utils/format';
 import { calcolaSettlement } from '../utils/settlement';
 import { calcolaSettlementTorneo } from '../utils/settlementTorneo';
 import type { Trasferimento } from '../types';
@@ -37,6 +38,7 @@ interface UiState {
   serataView: 'hub' | 'live' | 'setup' | 'chiusura';
   setupPartIds: Set<number>;
   setupModalita: 'cash' | 'torneo';
+  setupEditing: boolean; // true = sto modificando una serata 'pre' esistente
 
   // Live session (sub-tab attivo)
   liveSubTab: 'orologio' | 'giocatori' | 'attivi' | 'premi';
@@ -92,6 +94,9 @@ interface StoreActions {
   apriSerataAttiva: (legaId: number, bgIdx: number) => void;
   annullaSessione: (legaId: number) => void;
   avviaSessione: (legaId: number, sess: Sessione) => void;
+  iniziaOra: (legaId: number) => void;
+  modificaSetup: (legaId: number) => void;
+  aggiornaSetupSerata: (legaId: number, sess: Sessione) => void;
 
   // Live sub-tab
   setLiveSubTab: (t: UiState['liveSubTab']) => void;
@@ -249,6 +254,7 @@ export const useStore = create<PokerStore>()(
       serataView: 'hub',
       setupPartIds: new Set<number>(),
       setupModalita: 'cash',
+      setupEditing: false,
       liveSubTab: 'giocatori',
       pendingPrizeNome: null,
       settlement: null,
@@ -402,6 +408,44 @@ export const useStore = create<PokerStore>()(
           setupPartIds: new Set<number>(),
         });
         get().toast('▶ Serata iniziata!');
+      },
+
+      iniziaOra: (legaId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const aggiornata: Sessione = {
+          ...sess,
+          stato: 'attivo',
+          ora_inizio: nowHHMM(),
+          ...(sess.modalita === 'torneo' ? { inizio_livello_ms: Date.now() } : {}),
+        };
+        saveLega({ ...lega, sessioneAttiva: aggiornata });
+        set({ serataView: 'live', liveSubTab: sess.modalita === 'torneo' ? 'orologio' : 'giocatori' });
+        get().toast('▶ Serata iniziata!');
+      },
+
+      modificaSetup: (legaId) => {
+        const { db } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        set({
+          serataView: 'setup',
+          setupEditing: true,
+          setupModalita: sess.modalita,
+          setupPartIds: new Set<number>(sess.giocatori.map(g => g.id_nome)),
+        });
+      },
+
+      aggiornaSetupSerata: (legaId, sess) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        saveLega({ ...lega, sessioneAttiva: sess });
+        set({ serataView: 'live', setupEditing: false, setupPartIds: new Set<number>() });
+        get().toast('✓ Impostazioni aggiornate');
       },
 
       /* ── Giocatori ── */

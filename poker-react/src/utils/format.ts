@@ -40,3 +40,24 @@ export function getNome(lega: Lega, id: number): string {
   const n = lega.nomi.find(n => n.id === id);
   return n ? n.nome : '?';
 }
+
+/** Ora corrente "HH:MM". */
+export function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** "oggi" / "domani" / "DD/MM/YYYY" rispetto alla data odierna. */
+export function fmtRelativeData(data: string): string {
+  if (!data) return '';
+  if (data === oggi()) return 'oggi';
+  const dom = new Date();
+  dom.setDate(dom.getDate() + 1);
+  const domStr = [
+    dom.getFullYear(),
+    String(dom.getMonth() + 1).padStart(2, '0'),
+    String(dom.getDate()).padStart(2, '0'),
+  ].join('-');
+  if (data === domStr) return 'domani';
+  return fmtData(data);
+}
