@@ -315,7 +315,7 @@ export const useStore = create<PokerStore>()(
 
       /* ── Overlay ── */
       openOverlay:  () => set({ overlayOpen: true }),
-      closeOverlay: () => set({ overlayOpen: false }),
+      closeOverlay: () => set({ overlayOpen: false, setupEditing: false }),
 
       /* ── Serata view ── */
       setSerataView: (v) => set({ serataView: v }),
@@ -406,6 +406,7 @@ export const useStore = create<PokerStore>()(
           serataView:   'live',
           liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'giocatori',
           setupPartIds: new Set<number>(),
+          setupEditing: false,
         });
         get().toast('▶ Serata iniziata!');
       },

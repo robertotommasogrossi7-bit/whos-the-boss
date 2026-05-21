@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, euro } from '../../utils/format';
+import { fmtData, fmtRelativeData, euro } from '../../utils/format';
 
 interface Props { legaId: number; }
 
@@ -32,7 +32,7 @@ export default function FabPartiteAttive({ legaId }: Props) {
           <div className="fab-partite-panel-title">Partite in corso</div>
           {partite.map(({ bgIdx, s }) => {
             const tipo   = s.modalita === 'torneo' ? '🏆' : '💰';
-            const stato  = s.stato === 'attivo' ? '▶' : s.stato === 'pausa' ? '⏸' : '';
+            const stato  = s.stato === 'attivo' ? '▶' : s.stato === 'pausa' ? '⏸' : s.stato === 'pre' ? '🕐' : '';
             const nEnt   = (s.giocatori ?? []).filter(g => g.entrato).length;
             return (
               <button
@@ -48,6 +48,7 @@ export default function FabPartiteAttive({ legaId }: Props) {
                   </div>
                   <div className="fab-partite-row2">
                     {nEnt} giocatori · €{euro(s.buy_in ?? 0)}
+                    {s.stato === 'pre' && <> · inizia {fmtRelativeData(s.data ?? '')} {s.ora_inizio}</>}
                   </div>
                 </div>
                 <span className="fab-partite-arrow">›</span>
