@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import ChiusuraCash    from './ChiusuraCash';
-import ChiusuraTorneo  from './ChiusuraTorneo';
+import CassaView      from './CassaView';
+import ChiusuraCash   from './ChiusuraCash';
+import ChiusuraTorneo from './ChiusuraTorneo';
 
 /* ══════════════════════════════════════════════════════
    CHIUSURA SCREEN — dispatcher cash / torneo
-   Montato dentro PartitaOverlay quando serataView === 'chiusura'.
-   Non usa più routing/navigate: la navigazione avviene via store.
+   Cash: mostra schermata Cassa + schermata Trasferimenti
+   Torneo: comportamento invariato
 ══════════════════════════════════════════════════════ */
 
 export default function ChiusuraScreen() {
@@ -31,8 +32,12 @@ export default function ChiusuraScreen() {
 
   const handleConferma = () => {
     confermaChiusura(legaId, oraFine);
-    /* confermaChiusura imposta serataView:'hub' e overlayOpen:false se successo */
   };
+
+  /* Trasferimenti effettivi (override se presenti, altrimenti calcolati) */
+  const trasferimenti = settlement.trasferimentiOverride
+    ?? settlement.cashResult?.trasferimenti
+    ?? [];
 
   return (
     <div className="tab-content">
@@ -53,10 +58,25 @@ export default function ChiusuraScreen() {
         />
       </div>
 
-      {settlement.isTorneo
-        ? <ChiusuraTorneo legaId={legaId} />
-        : <ChiusuraCash   legaId={legaId} />
-      }
+      {settlement.isTorneo ? (
+        <ChiusuraTorneo legaId={legaId} />
+      ) : (
+        <>
+          {settlement.cashResult && (
+            <CassaView
+              legaId={legaId}
+              cashResult={settlement.cashResult}
+            />
+          )}
+          {settlement.cashResult && (
+            <ChiusuraCash
+              legaId={legaId}
+              cashResult={settlement.cashResult}
+              trasferimenti={trasferimenti}
+            />
+          )}
+        </>
+      )}
 
       <div className="btn--mt16">
         <button className="btn btn-green btn-block" onClick={handleConferma}>

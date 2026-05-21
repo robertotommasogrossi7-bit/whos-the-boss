@@ -3,15 +3,15 @@ import { euro } from '../../utils/format';
 import { getNome } from '../../utils/format';
 
 /* ══════════════════════════════════════════════════════
-   SUB-TAB: GIOCATORI (cash)
-   Derivato da renderSubGiocatori() in session-cash.js
+   SUB-TAB: GIOCATORI (cash) — nuovo modello versato
+   Il campo "versato" sostituisce i toggle buy_in_pagato /
+   extra_pagato / ricarica.pagata del vecchio modello.
 ══════════════════════════════════════════════════════ */
 export default function SubGiocatoriCash() {
   const lega                     = useStore(selectCurrentLega);
   const toggleEntrato            = useStore(s => s.toggleEntrato);
-  const toggleBuyInPagato        = useStore(s => s.toggleBuyInPagato);
-  const setExtraAmt              = useStore(s => s.setExtraAmt);
-  const toggleExtraPagato        = useStore(s => s.toggleExtraPagato);
+  const setEntrata               = useStore(s => s.setEntrata);
+  const setVersato               = useStore(s => s.setVersato);
   const addGiocatoreSessione     = useStore(s => s.addGiocatoreSessione);
   const rimuoviGiocatoreSessione = useStore(s => s.rimuoviGiocatoreSessione);
 
@@ -54,6 +54,9 @@ export default function SubGiocatoriCash() {
       {sess.giocatori.map(g => {
         const nome    = getNome(lega, g.id_nome);
         const entrato = g.entrato;
+        const ricaricheTot = g.ricariche.reduce((a, r) => a + r.importo, 0);
+        const entrata = g.entrata ?? sess.buy_in;
+        const dovuto  = entrato ? entrata + ricaricheTot : 0;
 
         return (
           <div key={g.id_nome} className={`live-card${entrato ? ' in' : ''}`}>
@@ -72,48 +75,57 @@ export default function SubGiocatoriCash() {
             <div className="lc-body">
               {entrato ? (
                 <>
-                  {/* Buy-in */}
-                  <div className="status-line">
-                    <span className="sl-label">Buy-in €{euro(sess.buy_in)} versato?</span>
-                    <button
-                      className={`pay-toggle ${g.buy_in_pagato ? 'paid' : 'unpaid'}`}
-                      onClick={() => toggleBuyInPagato(lega!.id, g.id_nome)}
-                    >
-                      {g.buy_in_pagato ? '✓ Pagato' : '✕ Non pagato'}
-                    </button>
+                  {/* Entrata — buy-in effettivo del giocatore */}
+                  <div className="lc-row">
+                    <span className="lr-label">Entrata €</span>
+                    <input
+                      type="number"
+                      value={entrata || ''}
+                      placeholder={String(sess.buy_in)}
+                      step="0.50"
+                      min="0"
+                      inputMode="decimal"
+                      onInput={e => {
+                        const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
+                        setEntrata(lega!.id, g.id_nome, v);
+                      }}
+                    />
                   </div>
 
-                  {/* Extra ingresso */}
-                  <div className="status-line">
-                    <span className="sl-label">Entrato con extra?</span>
-                    <div className="sl-actions">
-                      <input
-                        type="number"
-                        placeholder="€ extra"
-                        step="0.50"
-                        min="0"
-                        inputMode="decimal"
-                        value={g.extra_amt || ''}
-                        onChange={e => {
-                          const v = parseFloat(e.target.value.replace(',', '.')) || 0;
-                          setExtraAmt(lega!.id, g.id_nome, v);
-                        }}
-                      />
-                      {g.extra_amt > 0 && (
-                        <button
-                          className={`pay-toggle ${g.extra_pagato ? 'paid' : 'unpaid'}`}
-                          onClick={() => toggleExtraPagato(lega!.id, g.id_nome)}
-                        >
-                          {g.extra_pagato ? '✓' : '✕'}
-                        </button>
-                      )}
+                  {/* Dovuto breakdown */}
+                  <div className="versato-dovuto-row">
+                    <span className="vd-label">Dovuto</span>
+                    <span className="vd-amount">€{euro(dovuto)}</span>
+                  </div>
+                  {ricaricheTot > 0 && (
+                    <div className="versato-dovuto-row versato-dovuto-row--sub">
+                      <span className="vd-label">
+                        (Entrata €{euro(entrata)} + ricariche €{euro(ricaricheTot)})
+                      </span>
                     </div>
+                  )}
+
+                  {/* Versato — campo libero */}
+                  <div className="lc-row lc-row--mt">
+                    <span className="lr-label">Versato nel piatto (€)</span>
+                    <input
+                      type="number"
+                      value={g.versato || ''}
+                      placeholder="0"
+                      step="0.50"
+                      min="0"
+                      inputMode="decimal"
+                      onInput={e => {
+                        const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
+                        setVersato(lega!.id, g.id_nome, v);
+                      }}
+                    />
                   </div>
                 </>
               ) : (
                 <>
                   <p className="help-note help-note--bt">
-                    Segna come entrato per registrare buy-in, ricariche, soldi ricevuti e fiches.
+                    Segna come entrato per registrare versato, ricariche e fiches.
                   </p>
                   <button
                     className="btn btn-gray btn-sm"

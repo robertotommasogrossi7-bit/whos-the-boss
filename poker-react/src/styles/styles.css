@@ -1298,3 +1298,108 @@ body.overlay-open { overflow: hidden; }
 .fab-partite-row2 { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .fab-partite-stato { color: var(--green); }
 .fab-partite-arrow { font-size: 20px; color: var(--muted); flex-shrink: 0; }
+
+/* ─── VERSATO / DOVUTO (cash live, nuovo modello) ─── */
+.versato-dovuto-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 4px 0; font-size: 13px;
+}
+.versato-dovuto-row--sub { padding-top: 0; }
+.versato-dovuto-row--sub .vd-label { font-size: 11px; color: var(--muted); }
+.vd-label { color: var(--muted); font-weight: 600; }
+.vd-amount { font-weight: 800; font-size: 14px; }
+
+.mancante-badge {
+  margin-top: 6px;
+  padding: 5px 10px;
+  background: #fff3cd; color: #856404;
+  border-radius: 6px; font-size: 12px; font-weight: 600;
+}
+
+/* ─── CASSA VIEW ─── */
+.cassa-view { margin-top: 8px; }
+.cassa-totals {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  margin-bottom: 10px;
+}
+.cassa-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 5px 0; font-size: 14px;
+}
+.cassa-lbl { color: var(--muted); font-weight: 600; }
+.cassa-val { font-weight: 800; font-size: 15px; }
+.cassa-quadratura {
+  margin-top: 8px; padding: 6px 10px;
+  border-radius: 8px; font-size: 13px; font-weight: 700;
+}
+.cassa-quadratura.ok   { background: var(--green-light); color: var(--green); }
+.cassa-quadratura.warn { background: #fff3cd; color: #856404; }
+
+.cassa-breakdown { margin-top: 8px; }
+.cassa-breakdown-row {
+  display: flex; gap: 8px; align-items: baseline;
+  padding: 5px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.cassa-breakdown-row:last-child { border-bottom: none; }
+.cassa-bd-name { font-weight: 700; min-width: 90px; }
+.cassa-bd-versato { color: var(--muted); }
+.cassa-eccedenza { color: var(--green); font-size: 11px; }
+
+.cassa-no-transfer {
+  text-align: center; padding: 18px 10px;
+  background: var(--green-light); border-radius: 12px;
+  margin: 8px 0;
+}
+.cassa-ok-icon { font-size: 28px; margin-bottom: 4px; }
+
+/* ─── TRASFERIMENTI VIEW ─── */
+.trasferimenti-view { margin-top: 16px; }
+.trasf-list { margin-bottom: 10px; }
+.trasf-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px;
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 6px;
+}
+.trasf-from, .trasf-to { font-weight: 700; font-size: 14px; min-width: 60px; }
+.trasf-arrow { color: var(--muted); font-size: 16px; }
+.trasf-eur   { color: var(--muted); font-size: 13px; }
+.trasf-input { width: 64px; text-align: right; font-weight: 700; font-size: 14px; }
+.btn-icon { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+.btn-icon--del { color: var(--red); }
+.btn-icon--del:active { opacity: .6; }
+
+.trasf-add-form {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--white); border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.trasf-add-form select { flex: 1; min-width: 100px; font-size: 13px; }
+.trasf-add-form input  { width: 70px; text-align: right; font-size: 13px; }
+
+/* Bilanciamento §10 */
+.settle-section-title--sub { font-size: 11px; margin-top: 14px; }
+.balance-check { margin-top: 6px; }
+.balance-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; font-size: 13px;
+  border-radius: 8px; margin-bottom: 4px;
+}
+.balance-row.ok   { background: var(--green-light); }
+.balance-row.warn { background: #fff3cd; }
+.balance-name   { font-weight: 700; flex: 1; }
+.balance-netto  { color: var(--muted); font-size: 12px; min-width: 80px; text-align: right; }
+.balance-status { font-weight: 700; min-width: 50px; text-align: right; }
+.balance-row.ok   .balance-status { color: var(--green); }
+.balance-row.warn .balance-status { color: #856404; }
+
+/* ─── DEBITI — pulsante globale ─── */
+.debiti-salda-all-row { padding: 0 0 12px; }

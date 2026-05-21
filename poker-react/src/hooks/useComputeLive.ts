@@ -3,17 +3,20 @@ import type { GiocatoreSessione, Sessione } from '../types';
 
 /* ══════════════════════════════════════════════════════
    COMPUTE LIVE — cash game calcolatrice
-   Derivato da computeLive() in session-cash.js
+   Nuovo modello §4 SETTLEMENT_SPEC:
+     dovuto  = g.entrata + sum(ricariche.importo)
+     versato = g.versato (numero libero)
+     mancante = max(0, dovuto - versato)
+     netto   = fiche - dovuto
 ══════════════════════════════════════════════════════ */
 
 export interface LiveGiocatore extends GiocatoreSessione {
-  ricaricheTot:   number;
-  versato:        number;   // totale dovuto (buy-in + extra + ricariche)
-  versato_pagato: number;   // solo la parte già pagata
-  mancante:       number;   // versato - versato_pagato
-  fiches:         number;   // alias di fiches_finali
-  ricevuti:       number;   // alias di soldi_ricevuti
-  netto:          number;   // fiches + ricevuti - versato
+  ricaricheTot: number;
+  dovuto:       number; // entrata + ricariche
+  mancante:     number; // max(0, dovuto - versato)
+  fiches:       number; // alias fiches_finali
+  ricevuti:     number; // alias soldi_ricevuti (legacy, non usato nel nuovo modello)
+  netto:        number; // fiche - dovuto
 }
 
 export interface LiveResult {
@@ -21,23 +24,19 @@ export interface LiveResult {
   leaderId: number | null;
 }
 
-/** Pure function — calcola netto/mancante per ogni giocatore cash. */
+/** Pure function — calcola netto/mancante per ogni giocatore cash (nuovo modello). */
 export function computeLive(sess: Sessione | undefined): LiveResult {
   if (!sess) return { arr: [], leaderId: null };
   const arr: LiveGiocatore[] = sess.giocatori.map(g => {
-    const ricaricheTot    = g.ricariche.reduce((a, r) => a + r.importo, 0);
-    const ricarichePagate = g.ricariche.reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
-    const buyInDovuto     = g.entrato ? sess.buy_in : 0;
-    const buyInPagatoAmt  = (g.entrato && g.buy_in_pagato) ? sess.buy_in : 0;
-    const extraDovuto     = g.entrato ? (g.extra_amt || 0) : 0;
-    const extraPagatoAmt  = (g.entrato && g.extra_amt > 0 && g.extra_pagato) ? g.extra_amt : 0;
-    const versato         = buyInDovuto + extraDovuto + ricaricheTot;
-    const versato_pagato  = buyInPagatoAmt + extraPagatoAmt + ricarichePagate;
-    const mancante        = Math.max(0, versato - versato_pagato);
-    const fiches          = g.fiches_finali || 0;
-    const ricevuti        = g.soldi_ricevuti || 0;
-    const netto           = g.entrato ? (fiches + ricevuti - versato) : 0;
-    return { ...g, ricaricheTot, versato, versato_pagato, mancante, fiches, ricevuti, netto };
+    const ricaricheTot = g.ricariche.reduce((a, r) => a + r.importo, 0);
+    const entrata      = g.entrata ?? sess.buy_in;
+    const dovuto       = g.entrato ? Math.round((entrata + ricaricheTot) * 100) / 100 : 0;
+    const versato      = g.versato ?? 0;
+    const mancante     = g.entrato ? Math.max(0, Math.round((dovuto - versato) * 100) / 100) : 0;
+    const fiches       = g.fiches_finali || 0;
+    const ricevuti     = g.soldi_ricevuti || 0;
+    const netto        = g.entrato ? Math.round((fiches - dovuto) * 100) / 100 : 0;
+    return { ...g, ricaricheTot, dovuto, mancante, fiches, ricevuti, netto };
   });
 
   let leaderId: number | null = null;
@@ -53,9 +52,7 @@ export function computeLive(sess: Sessione | undefined): LiveResult {
   return { arr, leaderId };
 }
 
-/** Hook — memoized wrapper di computeLive. Accetta sess undefined così
- *  da poter essere chiamato prima di un eventuale return condizionale
- *  (rispetta le Rules of Hooks). */
+/** Hook — memoized wrapper di computeLive. */
 export function useComputeLive(sess: Sessione | undefined): LiveResult {
   return useMemo(() => computeLive(sess), [sess]);
 }
