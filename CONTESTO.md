@@ -21,6 +21,7 @@ React Router 7 + Vitest. ESLint flat config.
 - `SERATA_PROGRAMMATA_SPEC.md` — spec feature "orario d'inizio programmato + badge FAB-sx con azioni" (Step C, prossimo)
 - `SERATA_PROGRAMMATA_PROMPT.md` — prompt per la fase che implementa la spec sopra (Step C del piano sotto)
 - `ENTRATA_V2_PROMPT.md` — prompt dello Step A (già completato e mergiato; tenuto come storico)
+- `IDEE.md` — bozza dei cambiamenti futuri GRANDI (tavolo interattivo, multi-gioco): il "perché" e il "quando", con lo spartiacque del backend
 - `REACT_MIGRATION_PROMPT.md` — piano di migrazione (storico)
 - `README.md` — descrizione pubblica (architecture journey)
 
@@ -83,10 +84,15 @@ npx tsc -b      # build TS
 ```
 
 ## Roadmap (post-merge attuale)
-1. Feature nuove in React web (tavoli virtuali, estrazione posti, vista spettatori, ecc.)
-2. Backend Supabase (sblocca multi-dispositivo per vista spettatori)
-3. React Native (Expo) per mobile
-4. Tailwind: skippato per ora (deciso col modello mobile come obiettivo)
+1. Step C — serata programmata (orario + badge): prossimo, spec+prompt pronti
+2. Tavolo interattivo locale (riusa `seat`/`assegnaPostiCasuali`) — vedi `IDEE.md`
+3. Backend Supabase (lo "spartiacque": sblocca spettatori, dati personali, ruoli)
+4. Vista spettatori del tavolo + multi-gioco pieno + ruoli/permessi (post-backend) — vedi `IDEE.md`
+5. React Native (Expo) per mobile
+6. Tailwind: skippato per ora (deciso col modello mobile come obiettivo)
+
+> I due cambiamenti GRANDI (tavolo interattivo, multi-gioco) sono descritti in
+> dettaglio in `IDEE.md`, col ragionamento sul momento migliore per ciascuno.
 
 ## Repo
 GitHub privato: `https://github.com/robertotommasogrossi7-bit/poker-tracker`
