@@ -65,8 +65,10 @@ poker-react/src/
 ├── utils/
 │   ├── format.ts               ← esc, fmtData, euro, oggi, getNome
 │   ├── calc.ts                 ← calcoli torneo (montepremi, premi, consolida)
-│   ├── settlement.ts           ← calcolaSettlement (puro, §8 SETTLEMENT_SPEC)
+│   ├── settlement.ts           ← calcolaSettlement cash (puro, §8 SETTLEMENT_SPEC)
 │   ├── settlement.test.ts      ← test §14 (9 base + 3 buy-in misti = 12)
+│   ├── settlementTorneo.ts     ← calcolaSettlementTorneo (puro): auto-compensa contributo↔premio
+│   ├── settlementTorneo.test.ts ← test torneo (5 scenari)
 │   ├── torneo.ts               ← suggerisciTorneo, creaSessione, nuovoGiocatoreSessione, posti
 │   └── migrations.ts           ← migrateSessione, migratePartita
 └── components/
@@ -224,7 +226,8 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 - **`calc.ts`**: `calcolaPremi`, `calcolaMontepremi`, `calcolaMontepremiIncassato`, `calcolaPremiPagati`, `consolidaPremiSeNecessario` (torneo).
 - **`torneo.ts`**: `suggerisciTorneo`, `creaSessione`, `nuovoGiocatoreSessione`, `assegnaPostiCasuali`, `roundChipVal`.
 - **`migrations.ts`**: `migrateSessione`, `migratePartita`. Idempotenti, chiamate all'avvio.
-- **`settlement.ts`**: `calcolaSettlement(players)` — funzione pura, §8 SETTLEMENT_SPEC. Coperta da `settlement.test.ts` (12 test §14).
+- **`settlement.ts`**: `calcolaSettlement(players)` — funzione pura cash, §8 SETTLEMENT_SPEC. Coperta da `settlement.test.ts` (12 test §14).
+- **`settlementTorneo.ts`**: `calcolaSettlementTorneo(entrati)` — funzione pura torneo: auto-compensa `contributo_residuo`↔`premio_residuo` dello stesso giocatore, poi greedy debiti→premi. Coperta da `settlementTorneo.test.ts` (5 test).
 
 ---
 

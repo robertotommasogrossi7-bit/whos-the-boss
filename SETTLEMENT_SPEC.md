@@ -207,10 +207,20 @@ E nella schermata **Debiti aperti** (esistente, fuori dall'overlay):
 
 ---
 
-## 13. Torneo — fuori scope
+## 13. Torneo — modello separato
 
-Il torneo ha già un suo modello (`contributo_residuo` / `premio_residuo`) e qui
-**non si tocca**.
+Il torneo ha un suo modello (`contributo_residuo` / `premio_residuo`), distinto
+dal cash. La logica vive nella funzione pura `utils/settlementTorneo.ts`
+(`calcolaSettlementTorneo`), usata da `apriChiusuraTorneo`.
+
+**Auto-compensazione (fix 2026-05-21)**: prima dell'abbinamento greedy, per
+ogni giocatore si elide `min(contributo_residuo, premio_residuo)` — lo stesso
+principio del §8 cash, applicato ai due valori dello *stesso* giocatore. Senza,
+un vincitore che non ha versato il buy-in risultava insieme debitore e
+creditore, generando un trasferimento verso sé stesso (V→V) e un debito fittizio
+nello storico. Esempio: vince 100 senza aver versato 25 → `contributo_residuo 0`,
+`premio_residuo 75` → riceve 75 dagli altri, nessun V→V. Chi *ha* versato resta
+invariato (riprende i propri soldi dal piatto). Coperto da `settlementTorneo.test.ts`.
 
 ---
 

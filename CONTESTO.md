@@ -27,10 +27,20 @@ React Router 7 + Vitest. ESLint flat config.
 ## Stato attuale (2026-05-21)
 
 Su `main`: Fasi React 1-5 + Fase A (overlay partita) + **settlement cash v2 +
-`entrata` per giocatore** (merge `9c423f3`). TSC + lint verdi, 15/15 test Vitest verdi.
-- Il settlement cash usa il modello `versato`/`dovuto` con viste Cassa + Trasferimenti.
-- Ogni giocatore cash ha `entrata` editabile (buy-in personale): risolve "non posso
+`entrata` per giocatore** (merge `9c423f3`) + **fix settlement torneo**
+(merge `fe23005`). TSC + lint verdi, **20/20 test Vitest verdi**.
+- **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
+  giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
+- **Torneo**: auto-compensazione `contributo_residuo`↔`premio_residuo` dello
+  stesso giocatore (funzione pura `calcolaSettlementTorneo`). Un vincitore che
+  non ha versato il buy-in non genera più un pagamento verso sé stesso (prima
+  usciva un trasferimento V→V); riceve il premio al netto del proprio buy-in.
+
+**Branch**: solo `main` (più i `claude/*` dell'ambiente). I branch di fase
+mergiati sono stati cancellati (locale+remoto) dopo il merge — il codice resta
+tutto in `main`. Il vecchio approccio settlement scartato è conservato nel tag
+`archive/settlement-rework` (recuperabile se mai servisse).
 
 ### Piano in corso — 4 step (A e B completati)
 
@@ -53,7 +63,8 @@ Su `main`: Fasi React 1-5 + Fase A (overlay partita) + **settlement cash v2 +
    - `git merge --no-ff` in `main`
 
 ## Workflow del progetto
-- Branch per ogni fase (es. `settlement-cash-v2`)
+- Branch per ogni fase (es. `serata-programmata`), cancellato dopo il merge
+  (il codice resta in `main`; eventuale lavoro scartato si archivia in un tag)
 - Commit a checkpoint logici, **push dopo OGNI commit**
 - Chat dedicata per ogni fase (Opus per logica delicata, Sonnet per resto)
 - Review in chat Opus separata prima di mergiare in main
