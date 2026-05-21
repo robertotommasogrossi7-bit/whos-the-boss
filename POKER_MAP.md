@@ -65,8 +65,8 @@ poker-react/src/
 ├── utils/
 │   ├── format.ts               ← esc, fmtData, euro, oggi, getNome
 │   ├── calc.ts                 ← calcoli torneo (montepremi, premi, consolida)
-│   ├── settlement.ts           ← calcolaSettlement (puro, §8 SETTLEMENT_SPEC) — su branch v2
-│   ├── settlement.test.ts      ← test §14 (9 base + 3 buy-in misti dopo fase entrata) — su branch v2
+│   ├── settlement.ts           ← calcolaSettlement (puro, §8 SETTLEMENT_SPEC)
+│   ├── settlement.test.ts      ← test §14 (9 base + 3 buy-in misti = 12)
 │   ├── torneo.ts               ← suggerisciTorneo, creaSessione, nuovoGiocatoreSessione, posti
 │   └── migrations.ts           ← migrateSessione, migratePartita
 └── components/
@@ -100,7 +100,7 @@ Schema (riepilogo — vedi file per i campi esatti):
   - giocatori: `giocatori: GiocatoreSessione[]`
 - **`GiocatoreSessione`** — per giocatore in sessione attiva. Campi:
   - `id_nome`, `entrato`, `buy_in_pagato`
-  - cash nuovo modello (su branch v2): `versato: number` (libero); **post-fase entrata**: `entrata: number` (default = `Sessione.buy_in`, libero)
+  - cash nuovo modello: `versato: number` (quanto è nel piatto, libero) e `entrata: number` (buy-in personale, default = `Sessione.buy_in`, editabile)
   - `extra_amt`, `extra_pagato`
   - `ricariche: Ricarica[]` (cash; `pagata` opzionale dopo v2), `rebuys: Ricarica[]` (torneo)
   - `soldi_ricevuti` (legacy cash), `fiches_finali` (cash)
@@ -110,7 +110,7 @@ Schema (riepilogo — vedi file per i campi esatti):
 - **`Lega`** — contiene `nomi`, `partite`, `sessioneAttiva`, `serate_bg[]`.
 - **`Db`** — `{ leghe, _lid, _currentLegaId }` (persisted in localStorage).
 - **Settlement UI**: `SettlementState`, `SettlementEntrato`, `SettlementAlloc`,
-  più (branch v2): `CashSettlementResult`, `GiocatoreCalcolato`, `Trasferimento`.
+  più `CashSettlementResult`, `GiocatoreCalcolato`, `Trasferimento`.
 
 ---
 
@@ -147,8 +147,7 @@ Singleton store: tutto lo stato UI + il `db` persistito.
   `toggleExtraPagato`, `aggiungiRicarica`, `modificaRicarica`,
   `toggleRicaricaPagata`, `setSoldiRicevuti`, `aggiornaFiches`,
   `addGiocatoreSessione`, `rimuoviGiocatoreSessione`.
-  - **Su branch v2**: `setVersato(legaId, idNome, val)`.
-  - **Post-fase entrata**: `setEntrata(legaId, idNome, val)`.
+  - `setVersato(legaId, idNome, val)`, `setEntrata(legaId, idNome, val)` (cash nuovo modello).
 - **Torneo live timer**: `avviaTorneo`, `pausaTorneo`, `riprendiTorneo`,
   `avanzaLivelloAuto`, `avanzaLivelloManuale`, `stopTorneo`, `recoveryTorneo`.
 - **Torneo live giocatori**: `torneoAggiungiGiocatore`, `torneoAddRebuy`,
@@ -156,7 +155,7 @@ Singleton store: tutto lo stato UI + il `db` persistito.
   `torneoElimina`, `confirmaPremio`.
 - **Settlement / chiusura**: `apriChiusura`, `apriChiusuraTorneo`,
   `setAllocazione`, `confermaChiusura`.
-  - **Su branch v2**: `setTrasferimento`, `addTrasferimento`,
+  - Cash nuovo modello: `setTrasferimento`, `addTrasferimento`,
     `removeTrasferimento`, `saldaTuttiDebiti`.
 - **Debiti**: `toggleSettlementPaid`, `saldaDebito`, `saldaTuttiDi`.
 - **Storico**: `eliminaPartita`, `setStoricoFrom`, `setStoricoTo`, `toggleStoricoOpen`.
@@ -193,7 +192,8 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 
 ### `settlement/`
 - `ChiusuraScreen.tsx` — dispatcher cash/torneo.
-- `ChiusuraCash.tsx` — chiusura cash (su branch v2: Cassa + Trasferimenti).
+- `ChiusuraCash.tsx` — chiusura cash (viste Cassa + Trasferimenti).
+- `CassaView.tsx` — dettaglio del piatto (di chi sono i soldi).
 - `ChiusuraTorneo.tsx` — chiusura torneo (vecchio modello, invariato).
 
 ### `common/`
@@ -213,8 +213,7 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 - **`useCurrentLega()`** — selector `db.leghe.find(l => l.id === db._currentLegaId)`.
 - **`useComputeLive(sess)`** / `computeLive(sess)` — pure function per cash.
   Ritorna `{ arr: LiveGiocatore[], leaderId }`. Calcola `dovuto`, `mancante`, `netto`.
-  - Modello v2: `dovuto = sess.buy_in + ricariche`, `versato = g.versato`.
-  - Post-fase entrata: `dovuto = (g.entrata ?? sess.buy_in) + ricariche`.
+  - `dovuto = (g.entrata ?? sess.buy_in) + ricariche`, `versato = g.versato`, `netto = fiche − dovuto`.
 - **`useTimer()`** — driver del timer torneo (auto-advance livelli).
 
 ---
@@ -225,7 +224,7 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 - **`calc.ts`**: `calcolaPremi`, `calcolaMontepremi`, `calcolaMontepremiIncassato`, `calcolaPremiPagati`, `consolidaPremiSeNecessario` (torneo).
 - **`torneo.ts`**: `suggerisciTorneo`, `creaSessione`, `nuovoGiocatoreSessione`, `assegnaPostiCasuali`, `roundChipVal`.
 - **`migrations.ts`**: `migrateSessione`, `migratePartita`. Idempotenti, chiamate all'avvio.
-- **`settlement.ts`** (branch v2): `calcolaSettlement(players)` — funzione pura, §8 SETTLEMENT_SPEC. Coperta da `settlement.test.ts`.
+- **`settlement.ts`**: `calcolaSettlement(players)` — funzione pura, §8 SETTLEMENT_SPEC. Coperta da `settlement.test.ts` (12 test §14).
 
 ---
 

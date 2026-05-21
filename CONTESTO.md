@@ -16,38 +16,36 @@ Vite 6 + React 19 + TypeScript strict + Zustand (persist localStorage) +
 React Router 7 + Vitest. ESLint flat config.
 
 ## File di riferimento (leggere quando servono)
-- `POKER_MAP.md` — mappa del codice (struttura dati, dove sta cosa) — **OUTDATED**: descrive la versione vanilla JS, l'app attuale è React in `poker-react/`
-- `SETTLEMENT_SPEC.md` — contratto del settlement cash (modello + algoritmo + 12 test §14, inclusi 3 buy-in misti)
-- `ENTRATA_V2_PROMPT.md` — prompt per estendere `settlement-cash-v2` con campo `entrata` per giocatore (Step A del piano sotto)
-- `SERATA_PROGRAMMATA_SPEC.md` — spec feature "orario d'inizio programmato + badge FAB-sx con azioni"
+- `POKER_MAP.md` — mappa del codice React (routing, store Zustand, componenti per area, hook, utility, cose da non toccare)
+- `SETTLEMENT_SPEC.md` — contratto del settlement cash (modello + algoritmo + 12 test §14, inclusi 3 buy-in misti). **Implementato e mergiato in main.**
+- `SERATA_PROGRAMMATA_SPEC.md` — spec feature "orario d'inizio programmato + badge FAB-sx con azioni" (Step C, prossimo)
 - `SERATA_PROGRAMMATA_PROMPT.md` — prompt per la fase che implementa la spec sopra (Step C del piano sotto)
+- `ENTRATA_V2_PROMPT.md` — prompt dello Step A (già completato e mergiato; tenuto come storico)
 - `REACT_MIGRATION_PROMPT.md` — piano di migrazione (storico)
 - `README.md` — descrizione pubblica (architecture journey)
 
-## Stato attuale (2026-05-20)
+## Stato attuale (2026-05-21)
 
-Su `main`: Fasi React 1-5 + Fase A (overlay partita). Settlement v2 **non ancora mergiato**.
-TSC + lint + Vitest tutti verdi.
+Su `main`: Fasi React 1-5 + Fase A (overlay partita) + **settlement cash v2 +
+`entrata` per giocatore** (merge `9c423f3`). TSC + lint verdi, 15/15 test Vitest verdi.
+- Il settlement cash usa il modello `versato`/`dovuto` con viste Cassa + Trasferimenti.
+- Ogni giocatore cash ha `entrata` editabile (buy-in personale): risolve "non posso
+  modificare il buy-in delle persone".
 
-### Piano in corso — 4 step
-Pianificato in chat base 2026-05-20 (questa). Vedi CONTESTO precedente al commit 34f2fcf per la storia.
+### Piano in corso — 4 step (A e B completati)
 
-1. **Step A — Estendere `settlement-cash-v2` con `entrata` per giocatore** (prima del merge)
-   - Branch: `settlement-cash-v2` (esistente, ci si aggiunge sopra)
-   - Prompt: `ENTRATA_V2_PROMPT.md`
-   - Motivo: SETTLEMENT_SPEC §3 prevede `entrata` per giocatore (default = `Sessione.buy_in`, libero). v2 attualmente implementa solo `versato` libero — manca l'altro pezzo. Senza questo, "Mario entra con 10 invece di 25" calcola `mancante`/`netto` sbagliati.
-   - Stato: prompt scritto, da lanciare in chat di fase nuova.
+1. ✅ **Step A — `entrata` per giocatore** — FATTO. Branch `settlement-cash-v2`,
+   6 commit `feat(entrata)` Step 1-6. Prompt: `ENTRATA_V2_PROMPT.md`.
 
-2. **Step B — Review e merge di `settlement-cash-v2` esteso**
-   - Chat di review separata (Opus)
-   - Rileggere SETTLEMENT_SPEC.md + diff `main...settlement-cash-v2`
-   - Test manuale browser (porta 5173): caso "sa" (§7) + 3 esempi buy-in misti (§14 ES.10-12)
-   - `git merge --no-ff` in `main`
+2. ✅ **Step B — Review + merge v2 in main** — FATTO (chat base, merge `9c423f3`).
+   Review: tsc+lint verdi, 15/15 test verdi, coerenza con SETTLEMENT_SPEC §3/§14.
+   ⚠️ **Test manuale browser NON ancora fatto dall'utente** (caso "sa" §7 + i 3
+   buy-in misti). Da verificare visivamente alla prossima occasione.
 
-3. **Step C — Fase nuova "serata-programmata"** (orario d'inizio + badge FAB-sx)
-   - Branch: `serata-programmata` (DA `main` dopo merge v2)
+3. ⏭️ **Step C — Fase "serata-programmata"** (orario d'inizio + badge FAB-sx) — PROSSIMO
+   - Branch: `serata-programmata` (DA `main` aggiornato)
    - Spec: `SERATA_PROGRAMMATA_SPEC.md`. Prompt: `SERATA_PROGRAMMATA_PROMPT.md`
-   - Stato: spec+prompt scritti, da lanciare in chat di fase nuova DOPO Step B.
+   - Stato: spec+prompt pronti, da lanciare in chat di fase (Sonnet).
 
 4. **Step D — Review e merge di `serata-programmata`**
    - Chat di review separata
