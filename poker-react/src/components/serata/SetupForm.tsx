@@ -12,17 +12,31 @@ export default function SetupForm() {
   const setupPartIds      = useStore(s => s.setupPartIds);
   const setSetupModalita  = useStore(s => s.setSetupModalita);
   const toggleSetupPartId = useStore(s => s.toggleSetupPartId);
-  const avviaSessione     = useStore(s => s.avviaSessione);
-  const closeOverlay      = useStore(s => s.closeOverlay);
-  const toast             = useStore(s => s.toast);
+  const avviaSessione       = useStore(s => s.avviaSessione);
+  const aggiornaSetupSerata = useStore(s => s.aggiornaSetupSerata);
+  const setupEditing        = useStore(s => s.setupEditing);
+  const closeOverlay        = useStore(s => s.closeOverlay);
+  const toast               = useStore(s => s.toast);
+
+  /* In modalità modifica precompila dalla sessione 'pre' esistente */
+  const sessE = setupEditing ? lega?.sessioneAttiva : undefined;
 
   /* Form state locale */
-  const [data,       setData]       = useState(oggi);
-  const [oraInizio,  setOraInizio]  = useState('21:00');
-  const [oraFine,    setOraFine]    = useState('');
-  const [buyIn,      setBuyIn]      = useState(25);
-  const [torneoConfig, setTorneoConfig] = useState<TorneoSetupConfig>(
-    () => suggerisciTorneo(9, 3),
+  const [data,       setData]       = useState(() => sessE?.data ?? oggi());
+  const [oraInizio,  setOraInizio]  = useState(() => sessE?.ora_inizio ?? '21:00');
+  const [oraFine,    setOraFine]    = useState(() => sessE?.ora_fine ?? '');
+  const [buyIn,      setBuyIn]      = useState(() => sessE?.buy_in ?? 25);
+  const [torneoConfig, setTorneoConfig] = useState<TorneoSetupConfig>(() =>
+    sessE && sessE.modalita === 'torneo'
+      ? {
+          fiche_iniziali: sessE.fiche_iniziali,
+          num_giocatori:  sessE.num_giocatori_target,
+          durata_ore:     sessE.durata_ore,
+          livelli:        sessE.livelli,
+          late_reg:       sessE.late_reg,
+          add_on:         sessE.add_on,
+        }
+      : suggerisciTorneo(9, 3),
   );
 
   if (!lega) return null;
@@ -56,7 +70,8 @@ export default function SetupForm() {
       setupModalita === 'torneo' ? torneoConfig : undefined,
     );
 
-    avviaSessione(lega!.id, sess);
+    if (setupEditing) aggiornaSetupSerata(lega!.id, sess);
+    else avviaSessione(lega!.id, sess);
   }
 
   return (
@@ -150,7 +165,7 @@ export default function SetupForm() {
       </div>
 
       <button className="btn btn-green btn-block" onClick={avvia}>
-        ▶ Inizia serata
+        {setupEditing ? '✓ Salva modifiche' : '▶ Crea serata'}
       </button>
     </div>
   );
