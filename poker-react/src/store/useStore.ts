@@ -129,7 +129,7 @@ interface StoreActions {
   // Debiti / settlement
   toggleSettlementPaid: (legaId: number, partitaId: number, idx: number) => void;
   saldaDebito: (legaId: number, partitaId: number, idx: number) => void;
-  saldaTuttiDi: (legaId: number, debtorId: number) => number;
+  saldaTuttiDi: (legaId: number, debtorId?: number) => number;
 
   // Cash live — giocatori
   toggleEntrato:             (legaId: number, idNome: number) => void;
@@ -172,7 +172,6 @@ interface StoreActions {
   addTrasferimento:       (legaId: number, t: { from: number; to: number; importo: number }) => void;
   removeTrasferimento:    (legaId: number, idx: number) => void;
   confermaChiusura:       (legaId: number, oraFine: string) => void;
-  saldaTuttiDebiti:       (legaId: number) => number;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -185,6 +184,11 @@ type PokerStore = { db: Db } & UiState & StoreActions;
 ══════════════════════════════════════════════════════ */
 function emptyDb(): Db {
   return { leghe: [], _lid: 1, _currentLegaId: undefined };
+}
+
+function sessioneTorneoAttiva(sess: Sessione): Sessione {
+  return { ...sess, stato: 'attivo',
+    inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0), trascorso_ms: 0 };
 }
 
 /* ── Legge l'utente da sessionStorage all'avvio ── */
@@ -415,12 +419,9 @@ export const useStore = create<PokerStore>()(
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
-        const aggiornata: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          ora_inizio: nowHHMM(),
-          ...(sess.modalita === 'torneo' ? { inizio_livello_ms: Date.now() } : {}),
-        };
+        const aggiornata: Sessione = sess.modalita === 'torneo'
+          ? { ...sessioneTorneoAttiva(sess), ora_inizio: nowHHMM() }
+          : { ...sess, stato: 'attivo', ora_inizio: nowHHMM() };
         saveLega({ ...lega, sessioneAttiva: aggiornata });
         set({ serataView: 'live', liveSubTab: sess.modalita === 'torneo' ? 'orologio' : 'giocatori' });
         get().toast('▶ Serata iniziata!');
@@ -522,7 +523,7 @@ export const useStore = create<PokerStore>()(
         });
       },
 
-      saldaTuttiDi: (legaId, debtorId) => {
+      saldaTuttiDi: (legaId, debtorId?) => {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 0;
@@ -532,7 +533,7 @@ export const useStore = create<PokerStore>()(
           partite: lega.partite.map(p => ({
             ...p,
             settlements: p.settlements.map(s => {
-              if (s.from === debtorId && !s.pagato) {
+              if (!s.pagato && (debtorId === undefined || s.from === debtorId)) {
                 count++;
                 return { ...s, pagato: true };
               }
@@ -717,13 +718,7 @@ export const useStore = create<PokerStore>()(
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pre') return;
-        const updSess: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
-          trascorso_ms: 0,
-        };
-        saveLega({ ...lega, sessioneAttiva: updSess });
+        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
         toast('▶ Torneo avviato!');
       },
 
@@ -748,13 +743,7 @@ export const useStore = create<PokerStore>()(
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pausa') return;
-        const updSess: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
-          trascorso_ms: 0,
-        };
-        saveLega({ ...lega, sessioneAttiva: updSess });
+        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
         toast('▶ Ripreso');
       },
 
@@ -1193,29 +1182,20 @@ export const useStore = create<PokerStore>()(
         setSettlement({ ...settlement, trasferimentiOverride: current.filter((_, i) => i !== idx) });
       },
 
-      saldaTuttiDebiti: (legaId) => {
-        const { db, saveLega } = get();
-        const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega) return 0;
-        let count = 0;
-        saveLega({
-          ...lega,
-          partite: lega.partite.map(p => ({
-            ...p,
-            settlements: p.settlements.map(s => {
-              if (!s.pagato) { count++; return { ...s, pagato: true }; }
-              return s;
-            }),
-          })),
-        });
-        return count;
-      },
-
       confermaChiusura: (legaId, oraFine) => {
         const { db, saveLega, settlement, setSettlement, toast } = get();
         if (!settlement) return;
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
+
+        const salvaPartita = (partita: Partita) => {
+          const serate_bg = [...(lega.serate_bg ?? [])];
+          const nuovaAttiva = serate_bg.shift();
+          saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
+          setSettlement(null);
+          set({ serataView: 'hub', overlayOpen: false });
+          toast('✓ Serata salvata!');
+        };
 
         const sa = { ...settlement.sessione, ora_fine: oraFine || settlement.sessione.ora_fine };
 
@@ -1275,19 +1255,12 @@ export const useStore = create<PokerStore>()(
               pagato: false,
             }));
 
-          const partita: Partita = {
+          salvaPartita({
             id: lega._pid, data: sa.data,
             ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
             modalita: sa.modalita, buy_in: sa.buy_in,
             giocatori, settlements,
-          };
-
-          const serate_bg   = [...(lega.serate_bg ?? [])];
-          const nuovaAttiva = serate_bg.shift();
-          saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
-          setSettlement(null);
-          set({ serataView: 'hub', overlayOpen: false });
-          toast('✓ Serata salvata!');
+          });
           return;
         }
 
@@ -1354,19 +1327,12 @@ export const useStore = create<PokerStore>()(
           });
         });
 
-        const partita: Partita = {
+        salvaPartita({
           id: lega._pid, data: sa.data,
           ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
-        };
-
-        const serate_bg   = [...(lega.serate_bg ?? [])];
-        const nuovaAttiva = serate_bg.shift();
-        saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
-        setSettlement(null);
-        set({ serataView: 'hub', overlayOpen: false });
-        toast('✓ Serata salvata!');
+        });
       },
 
       /* ── Migrations ── */
