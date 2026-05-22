@@ -1059,6 +1059,33 @@ tr:nth-child(even) td { background: #fafafa; }
 }
 .seat-empty { color: var(--muted); font-style: italic; font-size: 12px; }
 
+/* ─── TAVOLO VIEW (T2) ─── */
+.tavolo-view { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+.seat-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.seat-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.seat-money { font-size: 11px; color: var(--muted); }
+.seat-debt  { color: var(--red); font-weight: 700; }
+.seat-row--debt .seat-num { background: #fde4e1; color: var(--red); }
+
+.da-entrare {
+  background: var(--white); border-radius: 12px;
+  padding: 10px 12px; box-shadow: var(--shadow);
+}
+.da-entrare-title {
+  font-size: 11px; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px;
+}
+.da-entrare-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--border);
+}
+.da-entrare-row:last-child { border-bottom: none; }
+.de-name { flex: 1; font-size: 14px; font-weight: 600; }
+
 /* ─── PRIZE MODAL (eliminato in zona premi) ─── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 600;
