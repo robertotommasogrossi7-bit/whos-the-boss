@@ -1188,6 +1188,15 @@ export const useStore = create<PokerStore>()(
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
 
+        const salvaPartita = (partita: Partita) => {
+          const serate_bg = [...(lega.serate_bg ?? [])];
+          const nuovaAttiva = serate_bg.shift();
+          saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
+          setSettlement(null);
+          set({ serataView: 'hub', overlayOpen: false });
+          toast('✓ Serata salvata!');
+        };
+
         const sa = { ...settlement.sessione, ora_fine: oraFine || settlement.sessione.ora_fine };
 
         /* ── CASH nuovo modello ── */
@@ -1246,19 +1255,12 @@ export const useStore = create<PokerStore>()(
               pagato: false,
             }));
 
-          const partita: Partita = {
+          salvaPartita({
             id: lega._pid, data: sa.data,
             ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
             modalita: sa.modalita, buy_in: sa.buy_in,
             giocatori, settlements,
-          };
-
-          const serate_bg   = [...(lega.serate_bg ?? [])];
-          const nuovaAttiva = serate_bg.shift();
-          saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
-          setSettlement(null);
-          set({ serataView: 'hub', overlayOpen: false });
-          toast('✓ Serata salvata!');
+          });
           return;
         }
 
@@ -1325,19 +1327,12 @@ export const useStore = create<PokerStore>()(
           });
         });
 
-        const partita: Partita = {
+        salvaPartita({
           id: lega._pid, data: sa.data,
           ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
-        };
-
-        const serate_bg   = [...(lega.serate_bg ?? [])];
-        const nuovaAttiva = serate_bg.shift();
-        saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
-        setSettlement(null);
-        set({ serataView: 'hub', overlayOpen: false });
-        toast('✓ Serata salvata!');
+        });
       },
 
       /* ── Migrations ── */
