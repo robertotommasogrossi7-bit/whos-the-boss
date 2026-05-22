@@ -187,6 +187,11 @@ function emptyDb(): Db {
   return { leghe: [], _lid: 1, _currentLegaId: undefined };
 }
 
+function sessioneTorneoAttiva(sess: Sessione): Sessione {
+  return { ...sess, stato: 'attivo',
+    inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0), trascorso_ms: 0 };
+}
+
 /* ── Legge l'utente da sessionStorage all'avvio ── */
 function readUtente(): User | null {
   try {
@@ -415,12 +420,9 @@ export const useStore = create<PokerStore>()(
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
-        const aggiornata: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          ora_inizio: nowHHMM(),
-          ...(sess.modalita === 'torneo' ? { inizio_livello_ms: Date.now() } : {}),
-        };
+        const aggiornata: Sessione = sess.modalita === 'torneo'
+          ? { ...sessioneTorneoAttiva(sess), ora_inizio: nowHHMM() }
+          : { ...sess, stato: 'attivo', ora_inizio: nowHHMM() };
         saveLega({ ...lega, sessioneAttiva: aggiornata });
         set({ serataView: 'live', liveSubTab: sess.modalita === 'torneo' ? 'orologio' : 'giocatori' });
         get().toast('▶ Serata iniziata!');
@@ -717,13 +719,7 @@ export const useStore = create<PokerStore>()(
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pre') return;
-        const updSess: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
-          trascorso_ms: 0,
-        };
-        saveLega({ ...lega, sessioneAttiva: updSess });
+        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
         toast('▶ Torneo avviato!');
       },
 
@@ -748,13 +744,7 @@ export const useStore = create<PokerStore>()(
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pausa') return;
-        const updSess: Sessione = {
-          ...sess,
-          stato: 'attivo',
-          inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0),
-          trascorso_ms: 0,
-        };
-        saveLega({ ...lega, sessioneAttiva: updSess });
+        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
         toast('▶ Ripreso');
       },
 
