@@ -107,6 +107,46 @@ aver deciso l'identità multi-gioco.
 
 ---
 
+## Idea 2 — Design concreto (discusso 2026-05-22)
+
+Navigazione oggi: clic sulla lega → si entra DIRETTAMENTE nell'app poker (4 tab).
+Nuovo modello: clic sulla lega → **hub della lega** → scegli il gioco.
+
+### Hub della lega (nuova schermata, subito dopo aver scelto la lega)
+- **Scelta del gioco** (poker, Magic, Yu-Gi-Oh, Pokémon, scopa, briscola, tresette, …).
+- **Classifica globale della lega**: vinte/perse per ogni giocatore in ogni gioco.
+- **Elenco giocatori della lega**: l'attuale tab "Partecipanti" si SPOSTA qui
+  (i giocatori sono della lega, non del poker; `lega.nomi` è già a livello lega).
+
+### Dopo la scelta del gioco
+- **Poker** → porta all'app attuale, invariata.
+- **Altro gioco** → schermata dedicata con: **crea partita base** + classifica
+  del gioco + storico del gioco.
+
+### "Crea partita base" (nuovo, semplice — NON come il poker)
+- Scegli le persone che partecipano.
+- Segni chi ha vinto.
+- Nessun soldo / buy-in / settlement.
+
+### Terminologia
+- NON chiamare "serata" la sessione avviata: si gioca anche di giorno.
+  Usare "partita" (o "sessione").
+
+### Modello dati (bozza)
+- Una **lega contiene più giochi**: le partite sono "taggate" per gioco.
+- Il poker resta il modello complesso esistente; i giochi semplici sono un
+  modello parallelo LEGGERO, es. `PartitaSemplice { gioco, data, partecipanti[],
+  vincitore/i }`.
+
+### Decisioni aperte (da fissare nello SPEC)
+1. Partita semplice: **un solo vincitore** o piazzamento/più vincitori?
+2. Lista giochi **fissa** o anche giochi **custom** aggiunti dall'utente?
+3. La classifica globale include anche il **poker**? (il poker ha un concetto di
+   vittoria diverso → probabilmente classifica separata).
+4. **Permessi/ruoli** (admin vs membro): confermato "più avanti" + dipende dal backend.
+
+---
+
 ## Sequenza consigliata complessiva
 
 1. **Step C — serata programmata** (orario + badge) → pronto, prossimo.
