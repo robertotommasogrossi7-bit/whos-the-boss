@@ -141,7 +141,6 @@ interface StoreActions {
   aggiungiRicarica:          (legaId: number, idNome: number, importo: number, pagata: boolean) => void;
   modificaRicarica:          (legaId: number, idNome: number, idx: number, importo: number) => void;
   toggleRicaricaPagata:      (legaId: number, idNome: number, idx: number) => void;
-  setSoldiRicevuti:          (legaId: number, idNome: number, val: number) => void;
   aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
   addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
   rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
@@ -663,17 +662,6 @@ export const useStore = create<PokerStore>()(
           );
           return { ...g, ricariche };
         });
-        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
-      },
-
-      setSoldiRicevuti: (legaId, idNome, val) => {
-        const { db, saveLega } = get();
-        const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return;
-        const sess = lega.sessioneAttiva;
-        const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, soldi_ricevuti: val } : g,
-        );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
 
@@ -1412,6 +1400,3 @@ export function selectCurrentLega(s: PokerStore): Lega | null {
   return s.db.leghe.find(l => l.id === s.db._currentLegaId) ?? null;
 }
 
-export function selectSessioneAttiva(s: PokerStore): Sessione | undefined {
-  return selectCurrentLega(s)?.sessioneAttiva;
-}

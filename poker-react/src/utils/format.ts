@@ -1,13 +1,5 @@
 import type { Lega } from '../types';
 
-export function esc(s: unknown): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 export function oggi(): string {
   const d = new Date();
   return [
@@ -30,10 +22,6 @@ export function euro(v: unknown): string {
 export function euroSigned(v: unknown): string {
   const n = parseFloat(String(v)) || 0;
   return (n >= 0 ? '+' : '') + euro(n);
-}
-
-export function numVal(el: HTMLInputElement | null): number {
-  return parseFloat(el?.value ?? '') || 0;
 }
 
 export function getNome(lega: Lega, id: number): string {

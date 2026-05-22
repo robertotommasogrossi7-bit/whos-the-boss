@@ -102,8 +102,8 @@ export function nuovoGiocatoreSessione(id_nome: number, buyInDefault?: number): 
   };
 }
 
-/* ── Assegna posti casuali (torneo) ── */
-export function assegnaPostiCasuali(sess: Sessione): void {
+/* ── Assegna posti casuali (torneo) — uso interno a creaSessione ── */
+function assegnaPostiCasuali(sess: Sessione): void {
   const num_tavoli = sess.num_tavoli || Math.ceil((sess.num_giocatori_target || 9) / 9);
   const seats: { tavolo: number; posto: number }[] = [];
   for (let t = 1; t <= num_tavoli; t++) {
