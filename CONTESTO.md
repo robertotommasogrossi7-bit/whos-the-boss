@@ -25,11 +25,15 @@ React Router 7 + Vitest. ESLint flat config.
 - `REACT_MIGRATION_PROMPT.md` — piano di migrazione (storico)
 - `README.md` — descrizione pubblica (architecture journey)
 
-## Stato attuale (2026-05-21)
+## Stato attuale (2026-05-22)
 
-Su `main`: Fasi React 1-5 + Fase A (overlay partita) + **settlement cash v2 +
-`entrata` per giocatore** (merge `9c423f3`) + **fix settlement torneo**
-(merge `fe23005`). TSC + lint verdi, **20/20 test Vitest verdi**.
+Su `main`: Fasi React 1-5 + Fase A (overlay) + settlement cash v2 + `entrata`
+per giocatore + fix settlement torneo + **serata programmata** (merge `7139c36`)
++ **rimozione codice morto** (merge `83722ef`). TSC + lint verdi, **20/20 test**.
+
+**Prossimi passi**: (a) unificare 3 funzioni duplicate residue (avvio torneo,
+saldaTutti, coda confermaChiusura) → vedi `CLEANUP_PROMPT.md` (chat Sonnet);
+(b) feature multi-gioco → vedi `IDEE.md`.
 - **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
   giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
@@ -53,7 +57,7 @@ tutto in `main`. Il vecchio approccio settlement scartato è conservato nel tag
    ⚠️ **Test manuale browser NON ancora fatto dall'utente** (caso "sa" §7 + i 3
    buy-in misti). Da verificare visivamente alla prossima occasione.
 
-3. ⏭️ **Step C — Fase "serata-programmata"** (orario d'inizio + badge FAB-sx) — PROSSIMO
+3. ✅ **Step C — serata programmata** (orario + badge + WaitingPanel) — FATTO (merge `7139c36`)
    - Branch: `serata-programmata` (DA `main` aggiornato)
    - Spec: `SERATA_PROGRAMMATA_SPEC.md`. Prompt: `SERATA_PROGRAMMATA_PROMPT.md`
    - Stato: spec+prompt pronti, da lanciare in chat di fase (Sonnet).
