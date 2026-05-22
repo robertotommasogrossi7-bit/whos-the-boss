@@ -34,10 +34,11 @@ per giocatore + fix settlement torneo + **serata programmata** (merge `7139c36`)
 Cleanup completato: dead code rimosso + 3 funzioni duplicate unificate (merge
 `45c286c`). 20/20 test verdi.
 
-**Prossimo passo**: **feature tavoli poker** (tavolo interattivo +
-bilanciamento automatico posti) → `TAVOLI_SPEC.md` — logica delicata, da fare
-PRIMA del Card Tracker. _Poi_: Card Tracker → `MULTIGIOCO_SPEC.md` +
-`MULTIGIOCO_M1_PROMPT.md` (Fase M1).
+**Prossimo passo**: feature tavoli poker (`TAVOLI_SPEC.md`) — **T1 fatto**
+(funzioni pure `utils/tavoli.ts` + 8 test, merge `f9cf6b5`). Ora **T2** (UI
+tavolo) → `TAVOLI_T2_PROMPT.md`; poi T3 (spostamenti manuali + aggiunta
+giocatori in corso). _Dopo i tavoli_: Card Tracker → `MULTIGIOCO_SPEC.md` +
+`MULTIGIOCO_M1_PROMPT.md`.
 - **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
   giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
