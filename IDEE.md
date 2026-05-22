@@ -138,12 +138,24 @@ Nuovo modello: clic sulla lega → **hub della lega** → scegli il gioco.
   modello parallelo LEGGERO, es. `PartitaSemplice { gioco, data, partecipanti[],
   vincitore/i }`.
 
-### Decisioni aperte (da fissare nello SPEC)
-1. Partita semplice: **un solo vincitore** o piazzamento/più vincitori?
-2. Lista giochi **fissa** o anche giochi **custom** aggiunti dall'utente?
-3. La classifica globale include anche il **poker**? (il poker ha un concetto di
-   vittoria diverso → probabilmente classifica separata).
-4. **Permessi/ruoli** (admin vs membro): confermato "più avanti" + dipende dal backend.
+### Decisioni prese (2026-05-22)
+1. **Vincitori per partita base**: un numero QUALUNQUE di vincitori (0, 1 o più).
+   Adattabile poi in base al tipo di gioco.
+2. **Giochi**: set **preimpostato** (con logo dedicato) + possibilità per l'utente
+   di creare un **gioco custom**. Un gioco custom ottiene automaticamente le
+   schermate base (crea partita / classifica / storico) per segnare le vittorie.
+3. **Classifica globale della lega**: una **colonna per gioco** = **% vinte/giocate**,
+   con 👑 accanto a chi ha vinto più partite in quel gioco (per il poker il leader
+   è "chi ha vinto di più", non la percentuale). Ogni gioco ha COMUNQUE anche la sua
+   **classifica dedicata** separata. (Scelta: 1 colonna/gioco per non far esplodere
+   la tabella con 10+ giochi.)
+4. **Ruoli/permessi — granulari PER GIOCO** (importante):
+   - **super-admin di lega**: permessi totali su tutto.
+   - **admin di un singolo gioco** (es. admin Magic): permessi solo su quel gioco,
+     nessun permesso sugli altri (es. niente poker).
+   - chi NON ha permessi su un gioco deve **chiedere all'admin** per avviare una
+     partita di quel gioco.
+   - Richiede utenti veri/identità → dipende dal **backend**.
 
 ---
 
