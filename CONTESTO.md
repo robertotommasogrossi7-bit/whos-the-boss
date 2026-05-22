@@ -31,9 +31,11 @@ Su `main`: Fasi React 1-5 + Fase A (overlay) + settlement cash v2 + `entrata`
 per giocatore + fix settlement torneo + **serata programmata** (merge `7139c36`)
 + **rimozione codice morto** (merge `83722ef`). TSC + lint verdi, **20/20 test**.
 
-**Prossimi passi**: (a) unificare 3 funzioni duplicate residue (avvio torneo,
-saldaTutti, coda confermaChiusura) → vedi `CLEANUP_PROMPT.md` (chat Sonnet);
-(b) feature multi-gioco → SPEC in `MULTIGIOCO_SPEC.md` (fasi M1–M5), design in `IDEE.md`.
+Cleanup completato: dead code rimosso + 3 funzioni duplicate unificate (merge
+`45c286c`). 20/20 test verdi.
+
+**Prossimo passo**: feature multi-gioco → SPEC in `MULTIGIOCO_SPEC.md`
+(fasi M1–M5), design in `IDEE.md`. Si parte dalla **Fase M1** (modello dati + test).
 - **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
   giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
