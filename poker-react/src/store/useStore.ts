@@ -129,7 +129,7 @@ interface StoreActions {
   // Debiti / settlement
   toggleSettlementPaid: (legaId: number, partitaId: number, idx: number) => void;
   saldaDebito: (legaId: number, partitaId: number, idx: number) => void;
-  saldaTuttiDi: (legaId: number, debtorId: number) => number;
+  saldaTuttiDi: (legaId: number, debtorId?: number) => number;
 
   // Cash live — giocatori
   toggleEntrato:             (legaId: number, idNome: number) => void;
@@ -172,7 +172,6 @@ interface StoreActions {
   addTrasferimento:       (legaId: number, t: { from: number; to: number; importo: number }) => void;
   removeTrasferimento:    (legaId: number, idx: number) => void;
   confermaChiusura:       (legaId: number, oraFine: string) => void;
-  saldaTuttiDebiti:       (legaId: number) => number;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -524,7 +523,7 @@ export const useStore = create<PokerStore>()(
         });
       },
 
-      saldaTuttiDi: (legaId, debtorId) => {
+      saldaTuttiDi: (legaId, debtorId?) => {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 0;
@@ -534,7 +533,7 @@ export const useStore = create<PokerStore>()(
           partite: lega.partite.map(p => ({
             ...p,
             settlements: p.settlements.map(s => {
-              if (s.from === debtorId && !s.pagato) {
+              if (!s.pagato && (debtorId === undefined || s.from === debtorId)) {
                 count++;
                 return { ...s, pagato: true };
               }
@@ -1181,24 +1180,6 @@ export const useStore = create<PokerStore>()(
         if (!settlement || settlement.legaId !== legaId) return;
         const current = settlement.trasferimentiOverride ?? settlement.cashResult?.trasferimenti ?? [];
         setSettlement({ ...settlement, trasferimentiOverride: current.filter((_, i) => i !== idx) });
-      },
-
-      saldaTuttiDebiti: (legaId) => {
-        const { db, saveLega } = get();
-        const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega) return 0;
-        let count = 0;
-        saveLega({
-          ...lega,
-          partite: lega.partite.map(p => ({
-            ...p,
-            settlements: p.settlements.map(s => {
-              if (!s.pagato) { count++; return { ...s, pagato: true }; }
-              return s;
-            }),
-          })),
-        });
-        return count;
       },
 
       confermaChiusura: (legaId, oraFine) => {

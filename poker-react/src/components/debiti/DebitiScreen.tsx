@@ -13,10 +13,9 @@ interface DebitoItem {
 export default function DebitiScreen() {
   const navigate         = useNavigate();
   const lega             = useStore(selectCurrentLega);
-  const saldaDebito      = useStore(s => s.saldaDebito);
-  const saldaTuttiDi     = useStore(s => s.saldaTuttiDi);
-  const saldaTuttiDebiti = useStore(s => s.saldaTuttiDebiti);
-  const toast            = useStore(s => s.toast);
+  const saldaDebito  = useStore(s => s.saldaDebito);
+  const saldaTuttiDi = useStore(s => s.saldaTuttiDi);
+  const toast        = useStore(s => s.toast);
 
   function doSaldaDebito(partitaId: number, idx: number) {
     saldaDebito(lega!.id, partitaId, idx);
@@ -30,7 +29,7 @@ export default function DebitiScreen() {
 
   function doSaldaTuttiDebiti() {
     if (!confirm('Saldare TUTTI i debiti aperti della lega? L\'operazione non è reversibile.')) return;
-    const n = saldaTuttiDebiti(lega!.id);
+    const n = saldaTuttiDi(lega!.id);
     toast(`✓ ${n} debiti saldati`);
   }
 
