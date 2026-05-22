@@ -33,7 +33,7 @@ per giocatore + fix settlement torneo + **serata programmata** (merge `7139c36`)
 
 **Prossimi passi**: (a) unificare 3 funzioni duplicate residue (avvio torneo,
 saldaTutti, coda confermaChiusura) → vedi `CLEANUP_PROMPT.md` (chat Sonnet);
-(b) feature multi-gioco → vedi `IDEE.md`.
+(b) feature multi-gioco → SPEC in `MULTIGIOCO_SPEC.md` (fasi M1–M5), design in `IDEE.md`.
 - **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
   giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
