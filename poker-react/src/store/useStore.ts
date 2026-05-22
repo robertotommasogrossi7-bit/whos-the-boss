@@ -7,6 +7,7 @@ import type {
 import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
+import { assegnaPostoIngresso, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
 import { calcolaSettlement } from '../utils/settlement';
 import { calcolaSettlementTorneo } from '../utils/settlementTorneo';
@@ -556,10 +557,26 @@ export const useStore = create<PokerStore>()(
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
-        const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, entrato: !g.entrato } : g,
-        );
-        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g) return;
+
+        if (!g.entrato) {
+          // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC)
+          const seduti = sess.giocatori.map(x => ({ id_nome: x.id_nome, seat: x.seat }));
+          const nuoviSeduti = assegnaPostoIngresso(seduti, idNome);
+          const nuovoSeat = nuoviSeduti.find(s => s.id_nome === idNome)?.seat ?? null;
+          const nEntrati = sess.giocatori.filter(x => x.entrato).length + 1;
+          const giocatori = sess.giocatori.map(x =>
+            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat } : x,
+          );
+          saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(nEntrati) } });
+        } else {
+          // Uscita: libera il seat (nessun riequilibrio automatico in T2)
+          const giocatori = sess.giocatori.map(x =>
+            x.id_nome === idNome ? { ...x, entrato: false, seat: null } : x,
+          );
+          saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        }
       },
 
       setEntrata: (legaId, idNome, val) => {
