@@ -34,8 +34,10 @@ per giocatore + fix settlement torneo + **serata programmata** (merge `7139c36`)
 Cleanup completato: dead code rimosso + 3 funzioni duplicate unificate (merge
 `45c286c`). 20/20 test verdi.
 
-**Prossimo passo**: feature multi-gioco → SPEC in `MULTIGIOCO_SPEC.md`
-(fasi M1–M5), design in `IDEE.md`. Si parte dalla **Fase M1** (modello dati + test).
+**Prossimo passo**: **feature tavoli poker** (tavolo interattivo +
+bilanciamento automatico posti) → `TAVOLI_SPEC.md` — logica delicata, da fare
+PRIMA del Card Tracker. _Poi_: Card Tracker → `MULTIGIOCO_SPEC.md` +
+`MULTIGIOCO_M1_PROMPT.md` (Fase M1).
 - **Cash**: modello `versato`/`dovuto` con viste Cassa + Trasferimenti. Ogni
   giocatore ha `entrata` editabile (buy-in personale) → risolve "non posso
   modificare il buy-in delle persone".
