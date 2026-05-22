@@ -1,190 +1,209 @@
-# MULTIGIOCO — SPEC
+# CARD TRACKER — SPEC (trasformazione multi-gioco)
 
-> Trasformazione della lega da "poker tracker" a "tracker di serate di gioco".
-> Design discusso e deciso con l'utente (vedi `IDEE.md`, Idea 2). Questo file è
-> il **contratto di design**: cosa costruire, in che ordine, cosa NON toccare.
-> Implementazione in fasi separate (chat dedicate).
-
----
-
-## 1. Scopo
-
-Una **lega** non è più solo poker: è un gruppo di amici che gioca a **più
-giochi**. Entri nella lega → scegli il gioco → vai alla sua schermata.
-
-- **Poker**: resta esattamente com'è (modello complesso, soldi, settlement).
-- **Altri giochi** (Magic, Yu-Gi-Oh, Pokémon, scopa, briscola, tresette, +
-  custom): modello **leggero** — solo "chi ha giocato" e "chi ha vinto".
-
-**Terminologia**: la sessione di gioco si chiama **"partita"**, NON "serata"
-(si gioca anche di giorno).
+> Trasformazione dell'app da **poker tracker** a **"Card Tracker"**: un tracker
+> per gruppi di amici che giocano a carte (e non solo). Questo file è il
+> contratto di design dell'INTERA operazione. Sostituisce il design preliminare
+> in `IDEE.md` (che resta come storico). Implementazione a fasi (chat dedicate).
+>
+> Stato: design deciso con l'utente 2026-05-22. Non ancora avviato.
 
 ---
 
-## 2. Concetti
+## 1. Visione
 
-- **Lega**: contenitore di amici (`nomi`) + più giochi + partite di vari giochi.
-- **Gioco**: poker (speciale) oppure un gioco semplice. Set **preimpostato**
-  (con logo) + possibilità di **giochi custom** creati dall'utente.
-- **Partita semplice**: una giocata di un gioco non-poker: partecipanti +
-  vincitori (uno o più). Niente soldi.
-- **Hub della lega**: la schermata che si apre cliccando la lega — scelta gioco
-  + classifica globale + elenco giocatori.
+La lega non è più "solo poker": è un gruppo di amici che gioca a **più giochi**.
+Entri nella lega → scegli il gioco → giochi e ti segni i risultati.
+- **Poker**: resta com'è oggi (schermata dedicata, soldi, settlement).
+- **Tutti gli altri giochi**: usano una **schermata default comune** (semplice,
+  senza soldi) finché non ne personalizziamo qualcuno in futuro.
+
+**Rebranding**: nome app → "Card Tracker" (titolo, README, intestazioni). È
+cosmetico, va in una fase a sé.
 
 ---
 
-## 3. Modello dati
+## 2. Gerarchia dei concetti (CHIAVE)
 
-### Nuovi tipi
+```
+Lega → Gioco → Sessione → Partita
+```
+- **Lega**: gruppo di amici (`nomi`) + i giochi che praticano.
+- **Gioco**: poker (speciale) o un gioco "default" (predefinito o custom).
+- **Sessione di gioco**: una "serata" di un gioco (es. "scopa di venerdì").
+  - **Programmabile in anticipo** (come la serata poker: stato `pre` → si avvia).
+  - Rilevamento automatico ora inizio/fine.
+  - Contiene **più partite**.
+  - Si chiude (con un esito), e si può chiudere anche **in pareggio**.
+- **Partita**: una singola mano/match dentro la sessione.
+  - Rilevamento **automatico** di ora inizio e fine.
+  - Si segna il/i **vincitore/i** (o pareggio).
+  - Quando una partita si chiude, **la sessione resta aperta** (se ne può
+    avviare un'altra). La sessione si chiude separatamente, a parte.
+
+> Nota: questo modello a 2 livelli (Sessione→Partite) vale per i giochi
+> "default". Il poker mantiene il suo modello attuale separato.
+
+---
+
+## 3. Modello dati (giochi non-poker)
+
 ```ts
 interface GiocoLega {
-  id: string;            // es. 'poker', 'magic', o 'custom-<n>'
-  nome: string;          // "Poker", "Magic", "Burraco"...
-  preimpostato: boolean;  // true = dal catalogo con logo; false = custom utente
-  logo?: string;         // chiave logo o dataURL (solo preimpostati per ora)
-  attivo: boolean;       // mostrato nell'hub di questa lega
+  id: string;             // 'magic', 'scopa', 'custom-<n>'
+  nome: string;
+  preimpostato: boolean;
+  foto?: string;          // dataURL (custom) o chiave logo (predefiniti)
+  attivo: boolean;
+  pareggioComeVittoria: boolean; // default true (vedi §6)
 }
 
-interface PartitaSemplice {
+interface PartitaGioco {
   id: number;
-  giocoId: string;       // → GiocoLega.id
-  data: string;          // "YYYY-MM-DD"
-  ora?: string;          // "HH:MM" opzionale
-  partecipanti: number[];// id_nome dei presenti
-  vincitori: number[];   // id_nome dei vincitori (0, 1 o più)
-  note?: string;
+  ora_inizio: string;     // auto (HH:MM) all'avvio
+  ora_fine: string;       // auto (HH:MM) alla chiusura
+  vincitori: number[];    // id_nome (vuoto + pareggio=true → pareggio)
+  pareggio: boolean;
+}
+
+interface SessioneGioco {
+  id: number;
+  giocoId: string;
+  data: string;           // "YYYY-MM-DD"
+  stato: 'pre' | 'attiva' | 'chiusa';
+  ora_inizio: string;     // programmata, poi reale all'avvio
+  ora_fine: string;       // auto alla chiusura
+  partecipanti: number[]; // id_nome
+  partite: PartitaGioco[];
+  esitoPareggio: boolean;  // true se la sessione è chiusa in pareggio
 }
 ```
 
-### Estensione `Lega`
+Estensione `Lega`:
 ```ts
 interface Lega {
-  // ...campi esistenti (nomi, partite, sessioneAttiva, serate_bg, _nid, _pid)...
-  giochi?: GiocoLega[];            // giochi attivi nella lega (poker incluso)
-  partiteSemplici?: PartitaSemplice[];
-  _psid?: number;                  // auto-increment id partita semplice
+  // ...esistenti...
+  giochi?: GiocoLega[];
+  sessioniGioco?: SessioneGioco[];
+  _sgid?: number;  // auto-increment sessione gioco
 }
 ```
-
-- `partite` (esistente) = partite **poker** (invariato).
-- `partiteSemplici` (nuovo) = partite degli **altri giochi**.
-- **Poker è sempre presente** come gioco (anche se `giochi` è vuoto/undefined →
-  si assume poker disponibile, per retrocompatibilità).
-
-### Catalogo giochi preimpostati (costante, non in localStorage)
-Lista fissa con `{ id, nome, logo }`: poker, magic, yugioh, pokemon, scopa,
-briscola, tresette (estendibile). Vive in un file tipo `utils/giochi.ts`.
-
-### Migrazione (leghe esistenti)
-- `giochi` undefined → l'app assume poker disponibile; nessuna scrittura forzata.
-- `partiteSemplici` undefined → trattato come `[]`.
-- Idempotente. **Nessun dato poker viene toccato.**
+- Il poker continua a usare `partite`/`sessioneAttiva`/`serate_bg` esistenti.
+- I giochi default usano `sessioniGioco`. Migrazione idempotente: campi assenti
+  → trattati come vuoti, **poker mai toccato**.
 
 ---
 
-## 4. Navigazione (routing)
+## 4. Flusso d'uso (gioco default)
 
-Oggi: `/app/:legaId` → entra DIRETTAMENTE nel poker (4 tab).
+1. Hub lega → scegli un gioco → schermata del gioco.
+2. **Crea sessione** (programmabile): scegli partecipanti, data, ora (anche
+   futura). Nasce in stato `pre`.
+3. **Avvia sessione** → stato `attiva`, ora_inizio = ora reale.
+4. Dentro la sessione: **Avvia partita** → registra ora_inizio automatica.
+   - **Chiudi partita** → registra ora_fine automatica + segna vincitore/i
+     (o pareggio). La **sessione resta attiva**.
+   - Ripeti per quante partite vuoi.
+5. **Chiudi sessione** → stato `chiusa`, ora_fine automatica.
+   - Esito automatico: vincitore sessione = chi ha vinto **più partite**.
+   - Possibile chiudere **in pareggio** (parità o scelta esplicita).
 
-Nuovo:
+---
+
+## 5. Statistiche da tracciare
+
+Per ogni giocatore, per ogni gioco (derivabili dalle sessioni/partite):
+- **Sessioni**: giocate, vinte, perse, pareggi.
+- **Partite**: giocate, vinte, perse, pareggi.
+- **% partite vinte / partite giocate** (NON sessioni).
+- **Sessioni vinte** (conteggio).
+
+Definizioni:
+- Partita **vinta** = il giocatore è in `vincitori`. **Pareggio** = `pareggio=true`.
+- Sessione **vinta** = ha vinto più partite di tutti (da solo). **Pareggio** =
+  parità in testa o `esitoPareggio=true`. **Persa** = altrimenti.
+
+---
+
+## 6. Pareggi (configurabile per gioco)
+
+- Campo `pareggioComeVittoria` per gioco. **Default: true** → una partita/sessione
+  pareggiata conta **come vinta** nei calcoli (es. nella %).
+- Se `false` (per giochi dove il pareggio è neutro): i pareggi NON contano come
+  vittorie (restano conteggiati a parte come pareggi).
+- Si può chiudere sia la singola **partita** sia la **sessione** in pareggio.
+
+---
+
+## 7. Classifica interna per gioco
+
+Dentro la schermata del gioco: tabella con TUTTI i dati del §5 per ogni
+giocatore + **storico** di sessioni e partite (con date e ore). Ordinabile.
+
+---
+
+## 8. Menù generale (classifica globale)
+
+Schermata d'insieme della lega, **filtrabile per gioco e per persona**.
+Per ogni gioco mostra, per giocatore:
+- **% partite vinte su partite giocate** (non sessioni);
+- **numero di sessioni vinte**.
+Il conteggio rispetta `pareggioComeVittoria` del singolo gioco (default:
+pareggio = vinta). 👑 a chi guida ogni gioco.
+
+---
+
+## 9. Giochi: predefiniti + custom
+
+- **Predefiniti**: catalogo fisso (con logo). Per ora TUTTI (tranne poker)
+  aprono la **schermata default**.
+- **Poker**: unico con schermata propria (l'app attuale).
+- **Custom**: l'utente aggiunge un gioco inserendo **nome + foto** → ottiene la
+  schermata default e le **impostazioni di default** (`pareggioComeVittoria=true`).
+
+---
+
+## 10. Navigazione (routing)
+
 | Route | Schermata |
 |---|---|
-| `/app/:legaId` | **HubLega** (nuovo): scelta gioco + classifica globale + giocatori |
-| `/app/:legaId/poker/*` | App poker attuale (le 4 tab di oggi, invariate) |
-| `/app/:legaId/g/:giocoId` | **GiocoView** (nuovo): gioco semplice |
+| `/app/:legaId` | Hub lega: griglia giochi + classifica globale + giocatori |
+| `/app/:legaId/poker/*` | App poker attuale (invariata, spostata sotto `/poker`) |
+| `/app/:legaId/g/:giocoId` | Schermata default del gioco (sessioni/partite/classifica/storico) |
 
-- Il routing poker odierno (`AppLayout` + bottom nav + tab + overlay) si sposta
-  **sotto `/poker`**, sostanzialmente invariato.
-- La tab "Partecipanti" del poker **si sposta nell'hub** (i giocatori sono della
-  lega, non del poker). Il poker continua a usare `lega.nomi`.
+La gestione giocatori (rubrica) si sposta nell'hub.
 
 ---
 
-## 5. Hub della lega (`HubLega`)
+## 11. Fasi di implementazione
 
-Tre sezioni:
-1. **Giochi**: griglia di card (poker + giochi attivi + "➕ Aggiungi gioco").
-   - Tap su poker → `/app/:legaId/poker`.
-   - Tap su altro gioco → `/app/:legaId/g/:giocoId`.
-   - "Aggiungi gioco" → scegli da catalogo preimpostato o crea custom (nome).
-2. **Classifica globale** (§7).
-3. **Elenco giocatori della lega**: la gestione rubrica (aggiungi/elimina nome)
-   spostata qui dall'attuale tab Partecipanti.
+1. **M1 — Modello dati**: tipi `GiocoLega`/`SessioneGioco`/`PartitaGioco`,
+   estensione `Lega`, catalogo giochi, migrazione idempotente, + funzioni pure
+   di statistiche (§5/§6) con test Vitest. Nessuna UI.
+2. **M2 — Hub + routing**: hub lega, poker spostato sotto `/poker`, gestione
+   giocatori nell'hub. Poker invariato.
+3. **M3 — Schermata default del gioco**: crea/avvia sessione (programmabile),
+   avvia/chiudi partita (auto-orari), chiudi sessione (+ pareggio), storico.
+4. **M4 — Classifiche**: interna per gioco (§7) + menù globale filtrabile (§8).
+5. **M5 — Rebranding "Card Tracker"** (nome, README, titoli) + giochi custom UI.
+6. **(Futuro, post-backend)** — ruoli/permessi per-gioco (vedi `IDEE.md`).
 
----
-
-## 6. Schermata gioco semplice (`GiocoView`)
-
-Per un gioco non-poker. Tre parti (tab o sezioni):
-1. **Crea partita** (base):
-   - selezione partecipanti (pill come nel setup poker, da `lega.nomi`);
-   - selezione vincitore/i (0, 1 o più tra i partecipanti);
-   - data (default oggi), ora opzionale, note opzionali;
-   - salva → nuova `PartitaSemplice`.
-2. **Classifica del gioco**: per ogni giocatore: partite giocate, vinte, %
-   (ordinata per vinte o %). 👑 al migliore.
-3. **Storico del gioco**: lista delle partite del gioco (data, partecipanti,
-   vincitori), con elimina.
+Ogni fase: branch dedicato, micro-commit, push, test, review prima del merge.
 
 ---
 
-## 7. Classifiche
-
-### Classifica per gioco (dentro GiocoView)
-Per i giochi semplici: per ogni `id_nome` → `giocate` (è in `partecipanti`),
-`vinte` (è in `vincitori`), `perc = vinte/giocate`.
-
-### Classifica globale (nell'hub)
-Tabella: **righe = giocatori**, **una colonna per gioco**.
-- Cella di un gioco semplice = **% vinte/giocate** (es. "60%").
-- 👑 nella colonna = a chi ha **più vittorie assolute** in quel gioco.
-- Colonna **poker** = metrica poker (es. **serate vinte**, coerente con la
-  corona = chi ha vinto più serate). Il poker mantiene comunque la sua
-  classifica dettagliata dentro `/poker`.
-- Scelta "1 colonna per gioco" per non far esplodere la tabella con 10+ giochi.
+## 12. Cosa NON toccare
+- Tutto il **poker** (modello, settlement cash/torneo, overlay, timer): si
+  sposta sotto `/poker` ma non cambia.
+- `vanillaCompatStorage`, `calcolaSettlement`, `calcolaSettlementTorneo`.
 
 ---
 
-## 8. Ruoli e permessi — FASE FUTURA (richiede backend)
-
-Modello deciso (NON implementabile in locale single-device):
-- **super-admin di lega**: permessi totali.
-- **admin di un singolo gioco** (es. admin Magic): permessi solo su quel gioco.
-- **membro**: chi non ha permessi su un gioco deve **chiedere all'admin** per
-  avviare una partita di quel gioco.
-
-Richiede **utenti veri** che si collegano (identità persistente tra
-dispositivi) → dipende dal **backend (Supabase)**. In locale, l'unico
-dispositivo è l'admin: i ruoli si rimandano.
-
----
-
-## 9. Fasi di implementazione
-
-1. **Fase M1 — Modello dati**: tipi `GiocoLega`/`PartitaSemplice`, estensione
-   `Lega`, catalogo `utils/giochi.ts`, migrazione idempotente. + funzioni pure
-   di calcolo classifica (giocate/vinte/%) con test Vitest. Nessuna UI.
-2. **Fase M2 — Hub + routing**: `HubLega`, sposta il poker sotto `/poker`,
-   sposta la gestione giocatori nell'hub. Poker invariato.
-3. **Fase M3 — Gioco semplice**: `GiocoView` (crea partita + classifica +
-   storico) + azioni store (`addPartitaSemplice`, `eliminaPartitaSemplice`,
-   `aggiungiGioco`, ...).
-4. **Fase M4 — Classifica globale** nell'hub.
-5. **Fase M5 (post-backend) — Ruoli/permessi.**
-
-Ogni fase = branch dedicato, micro-commit, push, test, review prima del merge.
-
----
-
-## 10. Cosa NON toccare
-
-- **Tutto il poker**: modello (`Sessione`, `Partita`, settlement cash/torneo),
-  overlay, timer, chiusura. Si SPOSTA sotto `/poker` ma non cambia.
-- `vanillaCompatStorage` (retrocompat dati).
-- Le funzioni pure `calcolaSettlement` / `calcolaSettlementTorneo`.
-
-## 11. Decisioni prese (rif. IDEE.md, 2026-05-22)
-- Vincitori per partita: numero qualunque (0/1/più).
-- Giochi: preimpostati (con logo) + custom (con schermate base automatiche).
-- Classifica globale: 1 colonna/gioco con % + 👑; poker = serate vinte.
-- Ruoli per-gioco + super-admin: confermati, ma in fase post-backend.
+## 13. Riepilogo decisioni (2026-05-22)
+- Gerarchia **Sessione → Partite**; la partita chiude senza chiudere la sessione.
+- Sessione **programmabile** in anticipo; orari partita **automatici**.
+- Statistiche a 2 livelli (sessione e partita): V / S / pareggi.
+- Vincitore sessione = più partite vinte; chiusura in pareggio possibile.
+- Classifica globale: **% partite vinte/giocate** + **sessioni vinte**, filtrabile.
+- Pareggio = vinta **di default**, configurabile per gioco.
+- Giochi predefiniti → schermata default comune (poker escluso); custom con
+  nome + foto + impostazioni di default.
