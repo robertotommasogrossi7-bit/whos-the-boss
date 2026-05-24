@@ -7,7 +7,7 @@ import type {
 import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita } from '../utils/migrations';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
-import { assegnaPostoIngresso, tavoliNecessari } from '../utils/tavoli';
+import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
 import { calcolaSettlement } from '../utils/settlement';
 import { calcolaSettlementTorneo } from '../utils/settlementTorneo';
@@ -145,6 +145,9 @@ interface StoreActions {
   aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
   addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
   rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
+  spostaGiocatore:           (legaId: number, idNome: number, tavolo: number, posto: number) => void;
+  riequilibraSeat:           (legaId: number) => void;
+  aggiungiEFaiEntrare:       (legaId: number, nome: string) => void;
 
   // Torneo live — timer & stato
   avviaTorneo:               (legaId: number) => void;
@@ -726,6 +729,100 @@ export const useStore = create<PokerStore>()(
         if (g.entrato) { toast('Non puoi rimuovere un giocatore già entrato'); return; }
         const giocatori = sess.giocatori.filter(x => x.id_nome !== idNome);
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+      },
+
+      /* ── Spostamento manuale posto/tavolo (§6 TAVOLI_SPEC) ── */
+      spostaGiocatore: (legaId, idNome, tavolo, posto) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const g = sess.giocatori.find(x => x.id_nome === idNome);
+        if (!g?.seat) return;
+
+        const oldSeat = g.seat;
+        const occupante = sess.giocatori.find(
+          x => x.id_nome !== idNome && x.seat?.tavolo === tavolo && x.seat?.posto === posto,
+        );
+
+        const giocatori = sess.giocatori.map(x => {
+          if (x.id_nome === idNome)       return { ...x, seat: { tavolo, posto } };
+          if (x.id_nome === occupante?.id_nome) return { ...x, seat: oldSeat };
+          return x;
+        });
+
+        const maxTavolo = Math.max(...giocatori.filter(x => x.seat).map(x => x.seat!.tavolo), 1);
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: maxTavolo } });
+      },
+
+      /* ── Riequilibrio seat su richiesta (§8-§9 TAVOLI_SPEC) ── */
+      riequilibraSeat: (legaId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+
+        const entrati = sess.giocatori.filter(g => g.entrato);
+        if (entrati.length === 0) return;
+
+        const seduti = entrati.map(g => ({ id_nome: g.id_nome, seat: g.seat }));
+        const nuoviSeduti = riequilibraTavoli(seduti);
+        const seatMap = new Map(nuoviSeduti.map(s => [s.id_nome, s.seat]));
+
+        const giocatori = sess.giocatori.map(g =>
+          seatMap.has(g.id_nome) ? { ...g, seat: seatMap.get(g.id_nome) ?? null } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(entrati.length) } });
+      },
+
+      /* ── Aggiungi giocatore in corsa e fallo entrare subito ── */
+      aggiungiEFaiEntrare: (legaId, nome) => {
+        const { db, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+
+        const n = nome.trim();
+        if (!n) return;
+
+        // Torneo: late reg check
+        if (sess.modalita === 'torneo') {
+          const gameLvl = sess.livelli
+            .slice(0, sess.livello_corrente + 1)
+            .filter(l => l.tipo === 'gioco').length;
+          if (sess.stato !== 'pre' && gameLvl > sess.late_reg.fino_a_livello) {
+            toast('Late reg chiusa — non puoi aggiungere altri giocatori');
+            return;
+          }
+        }
+
+        const nLower = n.toLowerCase();
+        const nomeTrovato = lega.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        const giàInSess   = nomeTrovato
+          ? sess.giocatori.find(g => g.id_nome === nomeTrovato.id)
+          : null;
+
+        // Già entrato
+        if (giàInSess?.entrato) { toast(`${n} è già al tavolo`); return; }
+
+        // In sessione ma non ancora entrato → entra subito
+        if (giàInSess) {
+          get().toggleEntrato(legaId, giàInSess.id_nome);
+          return;
+        }
+
+        // Aggiunge alla sessione (e alla rubrica se il nome è nuovo)
+        const err = get().addGiocatoreSessione(legaId, n);
+        if (err) { toast(err); return; }
+
+        // Rilegge la lega aggiornata e fa entrare il nuovo giocatore
+        const legaUpd = get().db.leghe.find(l => l.id === legaId);
+        if (!legaUpd?.sessioneAttiva) return;
+        const nomeTrovatoUpd = legaUpd.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        if (!nomeTrovatoUpd) return;
+        const nuovoG = legaUpd.sessioneAttiva.giocatori.find(g => g.id_nome === nomeTrovatoUpd.id);
+        if (!nuovoG || nuovoG.entrato) return;
+        get().toggleEntrato(legaId, nomeTrovatoUpd.id);
       },
 
       /* ── Torneo live — timer & stato ── */
