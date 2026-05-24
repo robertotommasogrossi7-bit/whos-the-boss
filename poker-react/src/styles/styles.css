@@ -1086,6 +1086,37 @@ tr:nth-child(even) td { background: #fafafa; }
 .da-entrare-row:last-child { border-bottom: none; }
 .de-name { flex: 1; font-size: 14px; font-weight: 600; }
 
+/* ─── TAVOLO T3: sposta mode, riequilibra, aggiungi in corsa ─── */
+.seat-table-warn { color: var(--gold); font-size: 11px; font-weight: 700; margin-left: 6px; }
+
+.seat-row--moving {
+  background: #fff8e1; outline: 2px solid var(--gold); border-radius: 6px;
+}
+.seat-row--moving .seat-num { background: var(--gold); color: #fff; }
+
+.seat-row--target {
+  background: #f0fdf4; outline: 2px dashed var(--green); border-radius: 6px;
+  cursor: pointer;
+}
+
+.sposta-banner {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #fff8e1; border: 1px solid var(--gold); border-radius: 10px;
+  padding: 10px 14px; font-size: 14px; gap: 10px;
+}
+
+.tavolo-actions { display: flex; flex-direction: column; gap: 8px; }
+
+.de-add-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.de-add-input {
+  flex: 1; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--border); font-size: 14px;
+  background: var(--white);
+}
+.de-add-input:focus { outline: none; border-color: var(--green); }
+
 /* ─── PRIZE MODAL (eliminato in zona premi) ─── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 600;
