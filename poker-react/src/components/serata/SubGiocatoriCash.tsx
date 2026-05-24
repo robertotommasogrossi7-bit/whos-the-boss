@@ -1,11 +1,10 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro } from '../../utils/format';
-import { getNome } from '../../utils/format';
+import { euro, getNome } from '../../utils/format';
+import TavoloView from './TavoloView';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: GIOCATORI (cash) — nuovo modello versato
-   Il campo "versato" sostituisce i toggle buy_in_pagato /
-   extra_pagato / ricarica.pagata del vecchio modello.
+   T2: TavoloView in cima + cards solo per entrati.
 ══════════════════════════════════════════════════════ */
 export default function SubGiocatoriCash() {
   const lega                     = useStore(selectCurrentLega);
@@ -29,115 +28,104 @@ export default function SubGiocatoriCash() {
     addGiocatoreSessione(lega!.id, raw.trim());
   }
 
-  const addBtn = (
-    <button className="add-player-card" onClick={handleAggiungi}>
-      <span className="api">➕</span>
-      <span className="apt">Aggiungi giocatore alla serata</span>
-    </button>
-  );
+  const entrati = sess.giocatori.filter(g => g.entrato);
 
-  if (!sess.giocatori.length) {
-    return (
-      <>
-        {addBtn}
+  return (
+    <>
+      {/* Tavolo interattivo + sezione "da far entrare" */}
+      <TavoloView
+        lega={lega}
+        sess={sess}
+        onRimuovi={(id) => rimuoviGiocatoreSessione(lega!.id, id)}
+      />
+
+      {/* Bottone aggiungi giocatore alla serata */}
+      <button className="add-player-card" onClick={handleAggiungi}>
+        <span className="api">➕</span>
+        <span className="apt">Aggiungi giocatore alla serata</span>
+      </button>
+
+      {/* Cards solo per i giocatori entrati (controlli entrata/versato) */}
+      {entrati.length === 0 && sess.giocatori.length === 0 && (
         <div className="empty">
           <div className="eico">👥</div>
           <p>Nessun giocatore nella serata</p>
         </div>
-      </>
-    );
-  }
+      )}
 
-  return (
-    <>
-      {addBtn}
-      {sess.giocatori.map(g => {
-        const nome    = getNome(lega, g.id_nome);
-        const entrato = g.entrato;
+      {entrati.map(g => {
+        const nome         = getNome(lega, g.id_nome);
         const ricaricheTot = g.ricariche.reduce((a, r) => a + r.importo, 0);
-        const entrata = g.entrata ?? sess.buy_in;
-        const dovuto  = entrato ? entrata + ricaricheTot : 0;
+        const entrata      = g.entrata ?? sess.buy_in;
+        const dovuto       = entrata + ricaricheTot;
 
         return (
-          <div key={g.id_nome} className={`live-card${entrato ? ' in' : ''}`}>
+          <div key={g.id_nome} className="live-card in">
             <div className="lc-head">
-              <div className="lc-name">{nome}</div>
-              <label className="entrato-toggle">
-                <input
-                  type="checkbox"
-                  checked={entrato}
-                  onChange={() => toggleEntrato(lega!.id, g.id_nome)}
-                />
-                <span>{entrato ? 'Entrato' : 'Entra'}</span>
-              </label>
+              <div className="lc-name">
+                {nome}
+                {g.seat && (
+                  <span className="seat"> T{g.seat.tavolo}·P{g.seat.posto}</span>
+                )}
+              </div>
+              <button
+                className="btn btn-gray btn-sm"
+                onClick={() => {
+                  if (!confirm(`Far uscire ${nome} dal tavolo?`)) return;
+                  toggleEntrato(lega!.id, g.id_nome);
+                }}
+              >
+                Esci
+              </button>
             </div>
 
             <div className="lc-body">
-              {entrato ? (
-                <>
-                  {/* Entrata — buy-in effettivo del giocatore */}
-                  <div className="lc-row">
-                    <span className="lr-label">Entrata €</span>
-                    <input
-                      type="number"
-                      value={entrata || ''}
-                      placeholder={String(sess.buy_in)}
-                      step="0.50"
-                      min="0"
-                      inputMode="decimal"
-                      onInput={e => {
-                        const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
-                        setEntrata(lega!.id, g.id_nome, v);
-                      }}
-                    />
-                  </div>
+              {/* Entrata — buy-in effettivo del giocatore */}
+              <div className="lc-row">
+                <span className="lr-label">Entrata €</span>
+                <input
+                  type="number"
+                  value={entrata || ''}
+                  placeholder={String(sess.buy_in)}
+                  step="0.50"
+                  min="0"
+                  inputMode="decimal"
+                  onInput={e => {
+                    const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
+                    setEntrata(lega!.id, g.id_nome, v);
+                  }}
+                />
+              </div>
 
-                  {/* Dovuto breakdown */}
-                  <div className="versato-dovuto-row">
-                    <span className="vd-label">Dovuto</span>
-                    <span className="vd-amount">€{euro(dovuto)}</span>
-                  </div>
-                  {ricaricheTot > 0 && (
-                    <div className="versato-dovuto-row versato-dovuto-row--sub">
-                      <span className="vd-label">
-                        (Entrata €{euro(entrata)} + ricariche €{euro(ricaricheTot)})
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Versato — campo libero */}
-                  <div className="lc-row lc-row--mt">
-                    <span className="lr-label">Versato nel piatto (€)</span>
-                    <input
-                      type="number"
-                      value={g.versato || ''}
-                      placeholder="0"
-                      step="0.50"
-                      min="0"
-                      inputMode="decimal"
-                      onInput={e => {
-                        const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
-                        setVersato(lega!.id, g.id_nome, v);
-                      }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="help-note help-note--bt">
-                    Segna come entrato per registrare versato, ricariche e fiches.
-                  </p>
-                  <button
-                    className="btn btn-gray btn-sm"
-                    onClick={() => {
-                      if (!confirm(`Rimuovere ${nome} dalla serata?`)) return;
-                      rimuoviGiocatoreSessione(lega!.id, g.id_nome);
-                    }}
-                  >
-                    Rimuovi dalla serata
-                  </button>
-                </>
+              {/* Dovuto breakdown */}
+              <div className="versato-dovuto-row">
+                <span className="vd-label">Dovuto</span>
+                <span className="vd-amount">€{euro(dovuto)}</span>
+              </div>
+              {ricaricheTot > 0 && (
+                <div className="versato-dovuto-row versato-dovuto-row--sub">
+                  <span className="vd-label">
+                    (Entrata €{euro(entrata)} + ricariche €{euro(ricaricheTot)})
+                  </span>
+                </div>
               )}
+
+              {/* Versato — campo libero */}
+              <div className="lc-row lc-row--mt">
+                <span className="lr-label">Versato nel piatto (€)</span>
+                <input
+                  type="number"
+                  value={g.versato || ''}
+                  placeholder="0"
+                  step="0.50"
+                  min="0"
+                  inputMode="decimal"
+                  onInput={e => {
+                    const v = parseFloat((e.target as HTMLInputElement).value.replace(',', '.')) || 0;
+                    setVersato(lega!.id, g.id_nome, v);
+                  }}
+                />
+              </div>
             </div>
           </div>
         );

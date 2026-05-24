@@ -1,13 +1,13 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
+import TavoloView from './TavoloView';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: GIOCATORI (torneo)
-   Derivato da renderSubGiocatoriTorneo() in session-tournament.js
+   T2: TavoloView in cima + cards solo per entrati.
 ══════════════════════════════════════════════════════ */
 export default function SubGiocatoriTorneo() {
   const lega                     = useStore(selectCurrentLega);
-  const toggleEntrato            = useStore(s => s.toggleEntrato);
   const toggleBuyInPagato        = useStore(s => s.toggleBuyInPagato);
   const torneoAggiungiGiocatore  = useStore(s => s.torneoAggiungiGiocatore);
   const torneoAddRebuy           = useStore(s => s.torneoAddRebuy);
@@ -53,48 +53,49 @@ export default function SubGiocatoriTorneo() {
     torneoAddOn(lega!.id, idNome, pagato);
   }
 
-  const addBtn = (
-    <button
-      className="add-player-card"
-      onClick={handleAggiungi}
-      disabled={!lateRegOpen && sess.stato !== 'pre'}
-    >
-      <span className="api">➕</span>
-      <span className="apt">
-        {!lateRegOpen && sess.stato !== 'pre'
-          ? 'Late reg chiusa — non puoi aggiungere'
-          : 'Aggiungi giocatore al torneo'}
-      </span>
-    </button>
-  );
+  // Solo giocatori entrati (ordinati: in gioco → eliminati)
+  const entrati = [...sess.giocatori]
+    .filter(g => g.entrato)
+    .sort((a, b) => {
+      if (a.eliminato !== b.eliminato) return a.eliminato ? 1 : -1;
+      if (a.eliminato && b.eliminato) return (b.elim_ts_ms ?? 0) - (a.elim_ts_ms ?? 0);
+      return 0;
+    });
 
-  if (!sess.giocatori.length) {
-    return (
-      <>
-        {addBtn}
+  return (
+    <>
+      {/* Tavolo interattivo + sezione "da far entrare" */}
+      <TavoloView
+        lega={lega}
+        sess={sess}
+        onRimuovi={(id) => rimuoviGiocatoreSessione(lega!.id, id)}
+      />
+
+      {/* Bottone aggiungi giocatore */}
+      <button
+        className="add-player-card"
+        onClick={handleAggiungi}
+        disabled={!lateRegOpen && sess.stato !== 'pre'}
+      >
+        <span className="api">➕</span>
+        <span className="apt">
+          {!lateRegOpen && sess.stato !== 'pre'
+            ? 'Late reg chiusa — non puoi aggiungere'
+            : 'Aggiungi giocatore al torneo'}
+        </span>
+      </button>
+
+      {sess.giocatori.length === 0 && (
         <div className="empty">
           <div className="eico">👥</div>
           <p>Nessun giocatore nel torneo</p>
         </div>
-      </>
-    );
-  }
+      )}
 
-  // Ordina: in gioco → non ancora entrati → eliminati (per timestamp desc)
-  const sorted = [...sess.giocatori].sort((a, b) => {
-    if (a.entrato !== b.entrato) return a.entrato ? -1 : 1;
-    if (a.eliminato !== b.eliminato) return a.eliminato ? 1 : -1;
-    if (a.eliminato && b.eliminato) return (b.elim_ts_ms ?? 0) - (a.elim_ts_ms ?? 0);
-    return 0;
-  });
-
-  return (
-    <>
-      {addBtn}
-      {sorted.map(g => {
+      {/* Cards solo per entrati */}
+      {entrati.map(g => {
         const nome    = getNome(lega!, g.id_nome);
-        const cardCls = g.eliminato ? 'busted' : (g.entrato ? 'in' : '');
-        const seat    = g.seat ? `T${g.seat.tavolo}·P${g.seat.posto}` : null;
+        const cardCls = g.eliminato ? 'busted' : 'in';
 
         let posBadge: React.ReactNode = null;
         if (g.posizione_finale === 1) {
@@ -103,54 +104,46 @@ export default function SubGiocatoriTorneo() {
           posBadge = <span className="pos">#{g.posizione_finale}</span>;
         }
 
-        let body: React.ReactNode;
+        const totVersato = (g.buy_in_pagato ? sess.buy_in : 0)
+          + (g.rebuys ?? []).reduce((a, r) => a + (r.pagata ? r.importo : 0), 0)
+          + (g.add_on_fatto && g.add_on_pagato ? (sess.add_on?.prezzo ?? 0) : 0);
+        const totDovuto = sess.buy_in
+          + (g.rebuys ?? []).reduce((a, r) => a + r.importo, 0)
+          + (g.add_on_fatto ? (sess.add_on?.prezzo ?? 0) : 0);
+        const mancante = totDovuto - totVersato;
 
-        if (!g.entrato) {
-          body = (
-            <>
-              <p className="help-note help-note--bt">Tocca "Entra" quando si siede al tavolo.</p>
-              <div className="torneo-pcard-actions">
-                <button className="ta-paid" onClick={() => toggleEntrato(lega!.id, g.id_nome)}>✓ Entra</button>
-                <button className="ta-bust" onClick={() => {
-                  if (!confirm(`Rimuovere ${nome} dal torneo?`)) return;
-                  rimuoviGiocatoreSessione(lega!.id, g.id_nome);
-                }}>Rimuovi</button>
+        const actions = !g.eliminato ? (
+          <div className="torneo-pcard-actions">
+            {lateRegOpen && (
+              <button className="ta-rebuy" onClick={() => handleAddRebuy(g.id_nome)}>+ Rebuy</button>
+            )}
+            {addOnAvailable && !g.add_on_fatto && (
+              <button className="ta-addon" onClick={() => handleAddOn(g.id_nome)}>+ Add-on</button>
+            )}
+            <button className="ta-bust" onClick={() => {
+              if (!confirm(`Eliminare ${nome}?`)) return;
+              torneoElimina(lega!.id, g.id_nome);
+            }}>❌ Eliminato</button>
+          </div>
+        ) : (
+          <div className="torneo-pcard-actions">
+            {lateRegOpen && (
+              <button className="ta-rebuy" onClick={() => handleAddRebuy(g.id_nome)}>+ Rebuy (rientra)</button>
+            )}
+            <button className="ta-revive" onClick={() => torneoRevive(lega!.id, g.id_nome)}>Reintegra</button>
+          </div>
+        );
+
+        return (
+          <div key={g.id_nome} className={`torneo-pcard ${cardCls}`}>
+            <div className="torneo-pcard-head">
+              <div className="torneo-pcard-name">
+                {nome}
+                {g.seat && <span className="seat"> T{g.seat.tavolo}·P{g.seat.posto}</span>}
+                {posBadge && <> {posBadge}</>}
               </div>
-            </>
-          );
-        } else {
-          const totVersato = (g.buy_in_pagato ? sess.buy_in : 0)
-            + (g.rebuys ?? []).reduce((a, r) => a + (r.pagata ? r.importo : 0), 0)
-            + (g.add_on_fatto && g.add_on_pagato ? (sess.add_on?.prezzo ?? 0) : 0);
-          const totDovuto = sess.buy_in
-            + (g.rebuys ?? []).reduce((a, r) => a + r.importo, 0)
-            + (g.add_on_fatto ? (sess.add_on?.prezzo ?? 0) : 0);
-          const mancante = totDovuto - totVersato;
-
-          const actions = !g.eliminato ? (
-            <div className="torneo-pcard-actions">
-              {lateRegOpen && (
-                <button className="ta-rebuy" onClick={() => handleAddRebuy(g.id_nome)}>+ Rebuy</button>
-              )}
-              {addOnAvailable && !g.add_on_fatto && (
-                <button className="ta-addon" onClick={() => handleAddOn(g.id_nome)}>+ Add-on</button>
-              )}
-              <button className="ta-bust" onClick={() => {
-                if (!confirm(`Eliminare ${nome}?`)) return;
-                torneoElimina(lega!.id, g.id_nome);
-              }}>❌ Eliminato</button>
             </div>
-          ) : (
-            <div className="torneo-pcard-actions">
-              {lateRegOpen && (
-                <button className="ta-rebuy" onClick={() => handleAddRebuy(g.id_nome)}>+ Rebuy (rientra)</button>
-              )}
-              <button className="ta-revive" onClick={() => torneoRevive(lega!.id, g.id_nome)}>Reintegra</button>
-            </div>
-          );
-
-          body = (
-            <>
+            <div className="torneo-pcard-body">
               <div className="torneo-info-row">
                 <span className="ti-lbl">Stato</span>
                 <span className="ti-val">
@@ -210,20 +203,7 @@ export default function SubGiocatoriTorneo() {
               )}
 
               {actions}
-            </>
-          );
-        }
-
-        return (
-          <div key={g.id_nome} className={`torneo-pcard${cardCls ? ' ' + cardCls : ''}`}>
-            <div className="torneo-pcard-head">
-              <div className="torneo-pcard-name">
-                {nome}
-                {seat && <span className="seat"> {seat}</span>}
-                {posBadge && <> {posBadge}</>}
-              </div>
             </div>
-            <div className="torneo-pcard-body">{body}</div>
           </div>
         );
       })}
