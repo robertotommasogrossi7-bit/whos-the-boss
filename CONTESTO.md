@@ -35,7 +35,7 @@ Cleanup completato: dead code rimosso + 3 funzioni duplicate unificate (merge
 `45c286c`). 20/20 test verdi.
 
 **Prossimo passo**: feature tavoli poker (`TAVOLI_SPEC.md`) — **T1+T2 fatti**
-(funzioni pure + UI tavolo con auto-seat; merge `f9cf6b5` / `0b4779f`). Ora **T3**:
+(funzioni pure + UI tavolo con auto-seat; merge `f9cf6b5` / `0b4779f`). Ora **T3** → `TAVOLI_T3_PROMPT.md`:
 spostamento manuale posto/tavolo + riequilibrio su uscita (`riequilibraTavoli`)
 + aggiunta giocatori nuovi alla lega in corso. _Dopo i tavoli_: Card Tracker →
 `MULTIGIOCO_SPEC.md` + `MULTIGIOCO_M1_PROMPT.md`.
