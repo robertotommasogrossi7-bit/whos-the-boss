@@ -31,3 +31,9 @@ Partite_giocate/
 
 # Config locale Claude Code
 .claude/
+
+# ── Documenti di processo / memoria AI (restano LOCALI) ──
+# Su GitHub deve apparire solo l'app + README + LICENSE.
+# Sono: CONTESTO, DECISIONI, IDEE, *_SPEC.md, *_PROMPT.md, *_MAP.md.
+/*.md
+!/README.md
