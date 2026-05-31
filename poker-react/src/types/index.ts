@@ -147,6 +147,42 @@ export interface Partita {
   settlements: Settlement[];
 }
 
+/* ─── MULTIGIOCO (Card Tracker M1) ─── */
+/* Tipi per i giochi non-poker. Vedi MULTIGIOCO_SPEC.md §4.
+   Il poker NON usa questi tipi: mantiene Sessione/Partita/serate_bg. */
+
+export interface GiocoLega {
+  id: string;             // 'magic', 'scopa', 'custom-<ts>'
+  nome: string;
+  preimpostato: boolean;
+  foto?: string;          // dataURL caricato dall'utente (locale, non nel repo)
+  accent?: string;        // colore custom (i preimpostati lo prendono dal catalogo)
+  attivo: boolean;
+  pareggioComeVittoria: boolean; // default true (vedi SPEC §7)
+}
+
+export interface PartitaGioco {
+  id: number;
+  ora_inizio: string;      // auto (HH:MM) all'avvio
+  ora_fine: string;        // auto (HH:MM) alla chiusura
+  vincitori: number[];     // id_nome (vuoto + pareggio=true → pareggio)
+  pareggio: boolean;
+  partecipanti?: number[]; // override: chi ha giocato QUESTA partita (default: sessione)
+  nomeLibero?: string;     // gioco "una tantum"/sconosciuto per la singola partita
+}
+
+export interface SessioneGioco {
+  id: number;
+  giocoId: string;
+  data: string;            // "YYYY-MM-DD"
+  stato: 'pre' | 'attiva' | 'chiusa'; // femminile, distinto da Sessione.stato del poker
+  ora_inizio: string;      // programmata, poi reale all'avvio
+  ora_fine: string;        // auto alla chiusura
+  partecipanti: number[];  // id_nome di default per le partite
+  partite: PartitaGioco[];
+  esitoPareggio: boolean;  // true se la sessione è chiusa in pareggio
+}
+
 /* ─── LEGA ─── */
 
 export interface Lega {
@@ -159,6 +195,11 @@ export interface Lega {
   serate_bg: Sessione[];
   _nid: number;
   _pid: number;
+  // ── Multigioco (Card Tracker M1) — opzionali, poker implicito se assenti ──
+  personale?: boolean;            // true SOLO per la lega "Personale"
+  giochi?: GiocoLega[];           // undefined = solo poker implicito
+  sessioniGioco?: SessioneGioco[];
+  _sgid?: number;                 // auto-increment id sessione gioco
 }
 
 /* ─── DATABASE (localStorage) ─── */
