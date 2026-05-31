@@ -34,6 +34,9 @@ Partite_giocate/
 
 # ── Documenti di processo / memoria AI (restano LOCALI) ──
 # Su GitHub deve apparire solo l'app + README + LICENSE.
-# Sono: CONTESTO, DECISIONI, IDEE, *_SPEC.md, *_PROMPT.md, *_MAP.md.
+# Tutta la memoria del progetto (CONTESTO, DECISIONI, IDEE, *_SPEC, *_PROMPT,
+# *_MAP) vive nella cartella _processo/ (con _processo/archivio/ per gli spenti).
+/_processo/
+# Reti di sicurezza: ignora anche eventuali .md sparsi nella root (tranne README).
 /*.md
 !/README.md
