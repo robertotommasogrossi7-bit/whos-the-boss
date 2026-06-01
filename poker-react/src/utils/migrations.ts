@@ -1,4 +1,4 @@
-import type { Sessione, Partita } from '../types';
+import type { Sessione, Partita, Lega } from '../types';
 
 export function migrateSessione(s: Sessione | undefined): void {
   if (!s?.giocatori) return;
@@ -67,4 +67,16 @@ export function migratePartita(p: Partita): void {
     });
   });
   p.settlements = acc.length ? acc : [];
+}
+
+/* ── Lega: default dei campi multigioco (Card Tracker M1, SPEC §4) ──
+   Idempotente. NON tocca alcun campo del poker. In M1 resta SCRITTA ma
+   NON agganciata allo store: la collega M2 (la fase che crea la lega
+   "Personale" e legge questi campi). `giochi` se assente resta undefined
+   (poker implicito): qui si impostano solo gli altri default. */
+export function migrateLega(l: Lega): void {
+  if (!l) return;
+  if (l.sessioniGioco === undefined) l.sessioniGioco = [];
+  if (l._sgid === undefined)         l._sgid = 1;
+  if (l.personale === undefined)     l.personale = false;
 }
