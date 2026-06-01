@@ -1222,7 +1222,7 @@ tr:nth-child(even) td { background: var(--surface-2); }
 .game-card-head { cursor: pointer; }
 /* Sub-info serata nello storico (data, ora, modalità) */
 .game-card-date-sub { font-size: 12px; opacity: .85; margin-top: 1px; }
-/* Icona toggle accordion storico ▶/▼ */
+/* Icona toggle accordion storico (chevron SVG) */
 .storico-toggle { font-size: 13px; opacity: .8; margin-right: 4px; }
 /* Card senza padding interno (per tabelle full-width) */
 .card--flush { padding: 0; overflow: hidden; }
