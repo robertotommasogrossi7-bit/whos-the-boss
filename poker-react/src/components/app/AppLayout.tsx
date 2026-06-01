@@ -46,12 +46,12 @@ export default function AppLayout() {
     return () => document.body.classList.remove('overlay-open');
   }, [overlayOpen]);
 
-  if (!lega) return <Navigate to="/circoli" replace />;
+  if (!lega) return <Navigate to="/leghe" replace />;
 
   return (
     <>
       <header className="app-header">
-        <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+        <button className="hdr-back" onClick={() => navigate(`/leghe/${idNum}`)}>‹</button>
         <div className="hdr-center">
           <h1>{lega.nome}</h1>
           <p>{lega.nomi.length} partecipanti</p>

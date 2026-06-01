@@ -65,13 +65,13 @@ export default function NuovaLega() {
     addLega(nuovaLega);
     setCurrentLega(nuovaLega.id);
     toast('Lega creata!');
-    navigate(`/app/${nuovaLega.id}`);
+    navigate(`/leghe/${nuovaLega.id}`);
   }
 
   return (
     <>
       <header className="app-header">
-        <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+        <button className="hdr-back" onClick={() => navigate('/leghe')}>‹</button>
         <div className="hdr-center"><h1>Nuova lega</h1></div>
         <div className="hdr-right" />
       </header>

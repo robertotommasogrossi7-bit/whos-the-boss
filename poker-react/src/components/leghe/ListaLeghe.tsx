@@ -12,7 +12,7 @@ export default function ListaLeghe() {
 
   function vaiAllaLega(legaId: number) {
     setCurrentLega(legaId);
-    navigate(`/app/${legaId}`);
+    navigate(`/leghe/${legaId}`);
   }
 
   function statsUtente(lega: Lega) {
@@ -36,7 +36,7 @@ export default function ListaLeghe() {
     return (
       <>
         <header className="app-header">
-          <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+          <button className="hdr-back" onClick={() => navigate('/')}>‹</button>
           <div className="hdr-center"><h1>Le tue leghe</h1></div>
           <div className="hdr-right" />
         </header>
@@ -59,7 +59,7 @@ export default function ListaLeghe() {
   return (
     <>
       <header className="app-header">
-        <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+        <button className="hdr-back" onClick={() => navigate('/')}>‹</button>
         <div className="hdr-center"><h1>Le tue leghe</h1></div>
         <div className="hdr-right" />
       </header>

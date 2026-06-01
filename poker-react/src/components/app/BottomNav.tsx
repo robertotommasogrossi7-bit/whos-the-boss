@@ -5,7 +5,7 @@ import { IconUsers, IconHistory, IconTrophy, IconPlus } from '../icons';
 interface Props { legaId: number; }
 
 export default function BottomNav({ legaId }: Props) {
-  const base = `/app/${legaId}`;
+  const base = `/leghe/${legaId}/poker`;
   const navigate = useNavigate();
 
   const openOverlay       = useStore(s => s.openOverlay);
