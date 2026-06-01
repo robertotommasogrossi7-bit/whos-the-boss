@@ -200,6 +200,7 @@ export interface Lega {
   giochi?: GiocoLega[];           // undefined = solo poker implicito
   sessioniGioco?: SessioneGioco[];
   _sgid?: number;                 // auto-increment id sessione gioco
+  monoGiocoId?: string;           // (predisposizione M2d) lega mono-gioco: id del solo gioco attivo (admin/post-backend)
 }
 
 /* ─── DATABASE (localStorage) ─── */

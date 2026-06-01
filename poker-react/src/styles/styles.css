@@ -1655,3 +1655,31 @@ button.ui-listrow:active { transform: scale(.99); }
   border-radius: var(--radius-sm); color: var(--text-muted);
   font-size: 13px; font-weight: 600; cursor: pointer;
 }
+
+/* ═══ HUB DI LEGA — griglia giochi (M2d) ═══ */
+.game-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;
+}
+.game-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  min-height: 104px; padding: 18px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); cursor: pointer;
+  transition: transform .1s, border-color .15s;
+}
+.game-tile:active { transform: scale(.97); }
+.game-tile--poker { border-color: var(--accent); }
+.game-tile-ico  { color: var(--accent); display: flex; }
+.game-tile--soon .game-tile-ico { color: var(--text-muted); }
+.game-tile-nome { font-size: 13px; font-weight: 700; text-align: center; }
+.game-tile-soon {
+  font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.hub-add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.hub-add-row input {
+  flex: 1; padding: 11px 13px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 15px;
+  color: var(--text); background: var(--surface-2);
+}
+.hub-add-row input:focus { outline: none; border-color: var(--accent); }
