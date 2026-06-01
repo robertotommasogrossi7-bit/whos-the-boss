@@ -25,6 +25,17 @@ export default function AppLayout() {
     return () => document.body.classList.remove('in-app');
   }, []);
 
+  /* Tema feltro del poker (DESIGN_SPEC §6): il poker è sempre feltro,
+     a prescindere dal gioco filtrato nella shell. */
+  useEffect(() => {
+    const prev = document.documentElement.dataset.tema;
+    document.documentElement.dataset.tema = 'poker';
+    return () => {
+      if (prev) document.documentElement.dataset.tema = prev;
+      else delete document.documentElement.dataset.tema;
+    };
+  }, []);
+
   /* Blocca lo scroll del body quando l'overlay è aperto */
   useEffect(() => {
     if (overlayOpen) {

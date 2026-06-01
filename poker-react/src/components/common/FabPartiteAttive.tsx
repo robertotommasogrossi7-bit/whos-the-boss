@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, fmtRelativeData, euro } from '../../utils/format';
+import { GameIcon, IconTrophy, IconCoins } from '../icons';
 
 interface Props { legaId: number; }
 
@@ -31,8 +32,9 @@ export default function FabPartiteAttive({ legaId }: Props) {
         <div className="fab-partite-panel">
           <div className="fab-partite-panel-title">Partite in corso</div>
           {partite.map(({ bgIdx, s }) => {
-            const tipo   = s.modalita === 'torneo' ? '🏆' : '💰';
-            const stato  = s.stato === 'attivo' ? '▶' : s.stato === 'pausa' ? '⏸' : s.stato === 'pre' ? '🕐' : '';
+            const stato  = s.stato === 'attivo' ? 'in corso'
+                         : s.stato === 'pausa'  ? 'in pausa'
+                         : s.stato === 'pre'    ? 'programmata' : '';
             const nEnt   = (s.giocatori ?? []).filter(g => g.entrato).length;
             return (
               <button
@@ -40,11 +42,13 @@ export default function FabPartiteAttive({ legaId }: Props) {
                 className="fab-partite-item"
                 onClick={() => scegli(bgIdx)}
               >
-                <span className="fab-partite-ico">{tipo}</span>
+                <span className="fab-partite-ico">
+                  {s.modalita === 'torneo' ? <IconTrophy size={22} /> : <IconCoins size={22} />}
+                </span>
                 <div className="fab-partite-info">
                   <div className="fab-partite-row1">
                     {s.modalita === 'torneo' ? 'Torneo' : 'Cash'} · {fmtData(s.data ?? '')}
-                    {stato && <span className="fab-partite-stato"> {stato}</span>}
+                    {stato && <span className="fab-partite-stato"> · {stato}</span>}
                   </div>
                   <div className="fab-partite-row2">
                     {nEnt} giocatori · €{euro(s.buy_in ?? 0)}
@@ -63,7 +67,7 @@ export default function FabPartiteAttive({ legaId }: Props) {
         onClick={() => setPanelOpen(p => !p)}
         title={`${partite.length} partite attive`}
       >
-        🃏
+        <GameIcon icona="mazzo" size={26} />
         <span className="fab-count">{partite.length}</span>
       </button>
     </>

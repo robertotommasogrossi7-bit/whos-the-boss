@@ -1606,3 +1606,8 @@ button.ui-listrow:active { transform: scale(.99); }
   background: var(--border); margin: 0 auto 12px;
 }
 .ui-sheet-title { font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+
+/* ─── R4: utilità restyle poker (icone inline + cursori da classe) ─── */
+.ico-inline { vertical-align: -2px; }
+.seat-row.is-clickable { cursor: pointer; }
+.de-name-ico { display: inline-flex; align-items: center; gap: 6px; }

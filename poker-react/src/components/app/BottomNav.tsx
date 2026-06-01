@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { IconUsers, IconHistory, IconTrophy, IconPlus } from '../icons';
 
 interface Props { legaId: number; }
 
@@ -27,19 +28,19 @@ export default function BottomNav({ legaId }: Props) {
   return (
     <nav className="bottom-nav">
       <NavLink to={`${base}/partecipanti`} className={cls}>
-        <span className="ico">👥</span>
+        <span className="ico"><IconUsers size={22} /></span>
         Partecipanti
       </NavLink>
       <NavLink to={`${base}/storico`} className={cls}>
-        <span className="ico">📋</span>
+        <span className="ico"><IconHistory size={22} /></span>
         Storico
       </NavLink>
       <NavLink to={`${base}/classifica`} className={cls}>
-        <span className="ico">🏆</span>
+        <span className="ico"><IconTrophy size={22} /></span>
         Classifica
       </NavLink>
       <button className="nav-btn" onClick={apriNuovaPartita}>
-        <span className="ico">➕</span>
+        <span className="ico"><IconPlus size={22} /></span>
         Nuova partita
       </button>
     </nav>

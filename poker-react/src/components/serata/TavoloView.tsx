@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
 import { computeLive } from '../../hooks/useComputeLive';
+import { IconWarning, IconRefresh, IconSwap, IconArrowRight } from '../icons';
 import type { Lega, Sessione, GiocatoreSessione } from '../../types';
 
 interface Props {
@@ -96,7 +97,7 @@ export default function TavoloView({ lega, sess, onRimuovi }: Props) {
                 <div className="seat-table-title">
                   Tavolo {tNum} — {gioc.length}/9
                   {gioc.length <= 3 && tavoliNums.length > 1 && (
-                    <span className="seat-table-warn"> ⚠ pochi giocatori</span>
+                    <span className="seat-table-warn"> <IconWarning size={13} className="ico-inline" /> pochi giocatori</span>
                   )}
                 </div>
 
@@ -118,11 +119,12 @@ export default function TavoloView({ lega, sess, onRimuovi }: Props) {
                         key={posto}
                         className={rowClass}
                         onClick={() => handlePostoClick(tNum, posto, undefined)}
-                        style={{ cursor: spostaId !== null ? 'pointer' : 'default' }}
                       >
                         <span className="seat-num">{posto}</span>
                         <span className="seat-empty">
-                          {isTarget ? '→ sposta qui' : 'libero'}
+                          {isTarget
+                            ? <><IconArrowRight size={13} className="ico-inline" /> sposta qui</>
+                            : 'libero'}
                         </span>
                       </div>
                     );
@@ -148,20 +150,19 @@ export default function TavoloView({ lega, sess, onRimuovi }: Props) {
                   return (
                     <div
                       key={posto}
-                      className={`${rowClass}${mancante > 0.005 ? ' seat-row--debt' : ''}`}
+                      className={`${rowClass} is-clickable${mancante > 0.005 ? ' seat-row--debt' : ''}`}
                       onClick={() => handlePostoClick(tNum, posto, g)}
-                      style={{ cursor: 'pointer' }}
                     >
                       <span className="seat-num">{posto}</span>
                       <div className="seat-info">
                         <span className="seat-name">
-                          {isTarget ? '⇄ ' : ''}{nome}
+                          {isTarget && <IconSwap size={13} className="ico-inline" />}{isTarget ? ' ' : ''}{nome}
                         </span>
                         <span className="seat-money">
                           €{euro(dovuto)}
                           {versato > 0 && ` · vers. €${euro(versato)}`}
                           {mancante > 0.005 && (
-                            <span className="seat-debt"> ⚠ −€{euro(mancante)}</span>
+                            <span className="seat-debt"> <IconWarning size={12} className="ico-inline" /> −€{euro(mancante)}</span>
                           )}
                         </span>
                       </div>
@@ -181,7 +182,9 @@ export default function TavoloView({ lega, sess, onRimuovi }: Props) {
             className={`btn btn-sm btn-block ${needsRebalance ? 'btn-gold' : 'btn-gray'}`}
             onClick={handleRiequilibra}
           >
-            {needsRebalance ? '⚠ Riequilibra tavoli' : '↺ Riequilibra tavoli'}
+            {needsRebalance
+              ? <><IconWarning size={15} className="ico-inline" /> Riequilibra tavoli</>
+              : <><IconRefresh size={15} className="ico-inline" /> Riequilibra tavoli</>}
           </button>
         </div>
       )}
