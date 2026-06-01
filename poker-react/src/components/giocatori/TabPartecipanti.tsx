@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
+import { IconUser, IconTrash } from '../icons';
 
 export default function TabPartecipanti() {
   const lega               = useStore(selectCurrentLega);
@@ -21,7 +22,7 @@ export default function TabPartecipanti() {
     const err = aggiungiGiocatore(lega!.id, nuovoNome);
     if (err) { toast(err); return; }
     setNuovoNome('');
-    toast('✓ Giocatore aggiunto');
+    toast('Giocatore aggiunto');
   }
 
   function elimina(idNome: number, nome: string) {
@@ -55,7 +56,7 @@ export default function TabPartecipanti() {
         <div className="card-title">{lega.nomi.length} partecipanti</div>
         {lega.nomi.length === 0 ? (
           <div className="empty">
-            <div className="eico">👤</div>
+            <div className="eico"><IconUser size={46} /></div>
             <p>Nessun partecipante. Aggiungine uno!</p>
           </div>
         ) : (
@@ -74,7 +75,7 @@ export default function TabPartecipanti() {
                   onClick={() => elimina(nm.id, nm.nome)}
                   title="Elimina"
                 >
-                  🗑
+                  <IconTrash size={16} />
                 </button>
               </div>
             );

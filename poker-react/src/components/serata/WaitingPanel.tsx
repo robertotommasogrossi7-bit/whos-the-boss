@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, fmtRelativeData, euro } from '../../utils/format';
+import { IconPlay, IconEdit, IconTrash } from '../icons';
 
 /* ══════════════════════════════════════════════════════
    WAITING PANEL — serata programmata (stato 'pre')
@@ -21,9 +22,9 @@ export default function WaitingPanel() {
   return (
     <div className="tab-content">
       <div className="card">
-        <div className="card-title">🕐 Serata programmata</div>
+        <div className="card-title">Serata programmata</div>
         <p className="settle-info-txt">
-          {isTorneo ? '🏆 Torneo' : '💰 Cash'} · inizia {fmtRelativeData(sess.data)} alle {sess.ora_inizio || '—'}
+          {isTorneo ? 'Torneo' : 'Cash'} · inizia {fmtRelativeData(sess.data)} alle {sess.ora_inizio || '—'}
         </p>
         <p className="settle-info-txt">
           Data: {fmtData(sess.data)} · Buy-in: €{euro(sess.buy_in)} · Partecipanti: {nGioc}
@@ -39,13 +40,13 @@ export default function WaitingPanel() {
       </div>
 
       <button className="btn btn-green btn-block" onClick={() => iniziaOra(lega.id)}>
-        ▶ Inizia ora
+        <IconPlay size={15} className="ico-inline" /> Inizia ora
       </button>
       <button className="btn btn-gray btn-block" onClick={() => modificaSetup(lega.id)}>
-        ✎ Modifica impostazioni
+        <IconEdit size={15} className="ico-inline" /> Modifica impostazioni
       </button>
       <button className="btn btn-gray btn-block" onClick={() => annullaSessione(lega.id)}>
-        🗑 Annulla serata
+        <IconTrash size={15} className="ico-inline" /> Annulla serata
       </button>
     </div>
   );

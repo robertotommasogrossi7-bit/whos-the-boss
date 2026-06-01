@@ -1609,5 +1609,6 @@ button.ui-listrow:active { transform: scale(.99); }
 
 /* ─── R4: utilità restyle poker (icone inline + cursori da classe) ─── */
 .ico-inline { vertical-align: -2px; }
+.dot-live { color: var(--danger); }
 .seat-row.is-clickable { cursor: pointer; }
 .de-name-ico { display: inline-flex; align-items: center; gap: 6px; }

@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
+import { IconPlus, IconUsers, IconTrophy, IconWarning } from '../icons';
 import TavoloView from './TavoloView';
 
 /* ══════════════════════════════════════════════════════
@@ -77,7 +78,7 @@ export default function SubGiocatoriTorneo() {
         onClick={handleAggiungi}
         disabled={!lateRegOpen && sess.stato !== 'pre'}
       >
-        <span className="api">➕</span>
+        <span className="api"><IconPlus size={22} /></span>
         <span className="apt">
           {!lateRegOpen && sess.stato !== 'pre'
             ? 'Late reg chiusa — non puoi aggiungere'
@@ -87,7 +88,7 @@ export default function SubGiocatoriTorneo() {
 
       {sess.giocatori.length === 0 && (
         <div className="empty">
-          <div className="eico">👥</div>
+          <div className="eico"><IconUsers size={46} /></div>
           <p>Nessun giocatore nel torneo</p>
         </div>
       )}
@@ -99,7 +100,7 @@ export default function SubGiocatoriTorneo() {
 
         let posBadge: React.ReactNode = null;
         if (g.posizione_finale === 1) {
-          posBadge = <span className="pos">🏆 1°</span>;
+          posBadge = <span className="pos"><IconTrophy size={13} className="ico-inline" /> 1°</span>;
         } else if (g.posizione_finale && g.eliminato) {
           posBadge = <span className="pos">#{g.posizione_finale}</span>;
         }
@@ -123,7 +124,7 @@ export default function SubGiocatoriTorneo() {
             <button className="ta-bust" onClick={() => {
               if (!confirm(`Eliminare ${nome}?`)) return;
               torneoElimina(lega!.id, g.id_nome);
-            }}>❌ Eliminato</button>
+            }}>Elimina</button>
           </div>
         ) : (
           <div className="torneo-pcard-actions">
@@ -148,8 +149,8 @@ export default function SubGiocatoriTorneo() {
                 <span className="ti-lbl">Stato</span>
                 <span className="ti-val">
                   {g.eliminato
-                    ? `☠ Eliminato${g.posizione_finale ? ' · #' + g.posizione_finale : ''}`
-                    : '✓ In gioco'}
+                    ? `Eliminato${g.posizione_finale ? ' · #' + g.posizione_finale : ''}`
+                    : 'In gioco'}
                 </span>
               </div>
 
@@ -160,7 +161,7 @@ export default function SubGiocatoriTorneo() {
                   className={`pay-toggle ${g.buy_in_pagato ? 'paid' : 'unpaid'}`}
                   onClick={() => toggleBuyInPagato(lega!.id, g.id_nome)}
                 >
-                  {g.buy_in_pagato ? '✓ Pagato' : '✕ Non pagato'}
+                  {g.buy_in_pagato ? 'Pagato' : 'Non pagato'}
                 </button>
               </div>
 
@@ -172,7 +173,7 @@ export default function SubGiocatoriTorneo() {
                     className={`pay-toggle ${r.pagata ? 'paid' : 'unpaid'}`}
                     onClick={() => torneoToggleRebuyPag(lega!.id, g.id_nome, i)}
                   >
-                    {r.pagata ? '✓ Pagato' : '✕ Non pagato'}
+                    {r.pagata ? 'Pagato' : 'Non pagato'}
                   </button>
                 </div>
               ))}
@@ -185,7 +186,7 @@ export default function SubGiocatoriTorneo() {
                     className={`pay-toggle ${g.add_on_pagato ? 'paid' : 'unpaid'}`}
                     onClick={() => torneoToggleAddOnPag(lega!.id, g.id_nome)}
                   >
-                    {g.add_on_pagato ? '✓ Pagato' : '✕ Non pagato'}
+                    {g.add_on_pagato ? 'Pagato' : 'Non pagato'}
                   </button>
                 </div>
               )}
@@ -198,7 +199,7 @@ export default function SubGiocatoriTorneo() {
 
               {mancante > 0.005 && (
                 <div className="mancante-btn mancante-btn--card">
-                  ⚠ Mancano €{euro(mancante)} da versare
+                  <IconWarning size={13} className="ico-inline" /> Mancano €{euro(mancante)} da versare
                 </div>
               )}
 

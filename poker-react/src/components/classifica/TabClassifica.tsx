@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
+import { IconCrown, IconTrophy } from '../icons';
 
 interface StatGiocatore {
   idNome: number;
@@ -44,7 +45,6 @@ export default function TabClassifica() {
   }
 
   const stats = [...statsMap.values()].sort((a, b) => b.totaleNetto - a.totaleNetto);
-  const medaglie = ['🥇', '🥈', '🥉'];
 
   function resetFiltri() {
     setClassificaFrom('');
@@ -69,13 +69,13 @@ export default function TabClassifica() {
           onChange={e => setClassificaTo(e.target.value)}
         />
         {(classificaFrom || classificaTo) && (
-          <button className="btn-reset" onClick={resetFiltri}>✕ Reset</button>
+          <button className="btn-reset" onClick={resetFiltri}>Reset</button>
         )}
       </div>
 
       {stats.length === 0 ? (
         <div className="empty">
-          <div className="eico">🏆</div>
+          <div className="eico"><IconTrophy size={46} /></div>
           <p>Nessuna partita nel periodo selezionato.</p>
         </div>
       ) : (
@@ -96,7 +96,7 @@ export default function TabClassifica() {
                   <tr key={s.idNome} className={i < 3 ? `rank-${i + 1}` : ''}>
                     <td>
                       <span className="rank-medal">
-                        {medaglie[i] ?? String(i + 1)}
+                        {i === 0 ? <IconCrown size={16} className="ico-inline" /> : String(i + 1)}
                       </span>
                     </td>
                     <td>{getNome(lega, s.idNome)}</td>

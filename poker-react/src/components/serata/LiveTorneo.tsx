@@ -1,6 +1,7 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
 import { useTimer } from '../../hooks/useTimer';
+import { IconTrophy, IconClock, IconUsers, IconCoins } from '../icons';
 import SubOrologio          from './SubOrologio';
 import SubGiocatoriTorneo   from './SubGiocatoriTorneo';
 import SubPremi             from './SubPremi';
@@ -53,7 +54,7 @@ export default function LiveTorneo() {
       <div className="live-summary">
         <div className="ls-row1">
           <span className="ls-data">{fmtData(sess.data)}</span>
-          <span className="ls-mod">🏆 Torneo</span>
+          <span className="ls-mod"><IconTrophy size={14} className="ico-inline" /> Torneo</span>
         </div>
         <div className="ls-meta">{meta || '—'}</div>
       </div>
@@ -64,20 +65,20 @@ export default function LiveTorneo() {
           className={`live-subtab${subTab === 'orologio' ? ' active' : ''}`}
           onClick={() => setLiveSubTab('orologio')}
         >
-          🕐 Orologio
+          <IconClock size={16} className="ico-inline" /> Orologio
         </button>
         <button
           className={`live-subtab${subTab === 'giocatori' ? ' active' : ''}`}
           onClick={() => setLiveSubTab('giocatori')}
         >
-          👥 Player{' '}
+          <IconUsers size={16} className="ico-inline" /> Player{' '}
           <span className="count">{vivi}/{totEntrati || totGioc}</span>
         </button>
         <button
           className={`live-subtab${subTab === 'premi' ? ' active' : ''}`}
           onClick={() => setLiveSubTab('premi')}
         >
-          💰 Premi
+          <IconCoins size={16} className="ico-inline" /> Premi
         </button>
       </div>
 
@@ -92,13 +93,13 @@ export default function LiveTorneo() {
           className="btn btn-green btn-block"
           onClick={() => apriChiusuraTorneo(lega.id)}
         >
-          ✓ Chiudi serata
+          Chiudi serata
         </button>
         <button
           className="btn btn-gray btn-block"
           onClick={() => annullaSessione(lega.id)}
         >
-          ✕ Annulla torneo
+          Annulla torneo
         </button>
       </div>
       <div className="spacer-16" />

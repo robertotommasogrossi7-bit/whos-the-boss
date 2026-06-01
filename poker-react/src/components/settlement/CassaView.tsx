@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { euro } from '../../utils/format';
+import { IconCheck, IconWarning, IconChevronUp, IconChevronDown } from '../icons';
 import type { CashSettlementResult } from '../../types';
 
 /* ══════════════════════════════════════════════════════
@@ -46,17 +47,17 @@ export default function CassaView({ legaId, cashResult }: Props) {
         {/* Indicatore quadratura */}
         <div className={`cassa-quadratura ${quadra ? 'ok' : 'warn'}`}>
           {quadra
-            ? '✓ Cassa quadra'
+            ? <><IconCheck size={13} className="ico-inline" /> Cassa quadra</>
             : diff > 0
-              ? `⚠ Eccedenza in cassa: +€${euro(Math.abs(diff))}`
-              : `⚠ Cassa scoperta: −€${euro(Math.abs(diff))}`
+              ? <><IconWarning size={13} className="ico-inline" /> Eccedenza in cassa: +€{euro(Math.abs(diff))}</>
+              : <><IconWarning size={13} className="ico-inline" /> Cassa scoperta: −€{euro(Math.abs(diff))}</>
           }
         </div>
 
         {/* Sbilancio fiche globale */}
         {sbilancioFiche > 0.01 && (
           <div className="cassa-quadratura warn">
-            ⚠ Le fiche non quadrano (sbilancio €{euro(sbilancioFiche)}) — contarle di nuovo
+            <IconWarning size={13} className="ico-inline" /> Le fiche non quadrano (sbilancio €{euro(sbilancioFiche)}) — contarle di nuovo
           </div>
         )}
       </div>
@@ -66,7 +67,9 @@ export default function CassaView({ legaId, cashResult }: Props) {
         className="btn btn-outline btn-sm btn--full-mt"
         onClick={() => setShowBreakdown(v => !v)}
       >
-        {showBreakdown ? '▲ Nascondi' : '▼ Di chi sono i soldi'}
+        {showBreakdown
+          ? <><IconChevronUp size={14} className="ico-inline" /> Nascondi</>
+          : <><IconChevronDown size={14} className="ico-inline" /> Di chi sono i soldi</>}
       </button>
 
       {showBreakdown && (

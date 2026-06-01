@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
+import { IconTrophy, IconCoins } from '../icons';
 
 /* ══════════════════════════════════════════════════════
    MODALE PREMIO — eliminazione in zona premi
@@ -20,13 +21,14 @@ export default function PrizeModal() {
 
   if (!premio) return null;
 
-  const emoji = pos === 1 ? '🏆' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '💰';
   const title = pos === 1 ? 'Vincitore!' : 'In the money!';
 
   return (
     <div className="prize-modal-overlay">
       <div className="prize-modal-inner">
-        <div className="prize-modal-emoji">{emoji}</div>
+        <div className="prize-modal-emoji">
+          {pos === 1 ? <IconTrophy size={50} /> : <IconCoins size={50} />}
+        </div>
         <div className="prize-modal-title">{title}</div>
         <div className="prize-modal-pos">{pos}° posto</div>
         <div className="prize-modal-name">{nome}</div>
@@ -37,13 +39,13 @@ export default function PrizeModal() {
             className="btn btn-green"
             onClick={() => confirmaPremio(lega.id, true)}
           >
-            ✓ Pagato subito
+            Pagato subito
           </button>
           <button
             className="btn btn-gray"
             onClick={() => confirmaPremio(lega.id, false)}
           >
-            ⏱ Da pagare
+            Da pagare
           </button>
         </div>
       </div>

@@ -17,11 +17,11 @@ export default function PartitaOverlay() {
   const titleLabel = serataView === 'setup'
     ? 'Nuova partita'
     : serataView === 'chiusura'
-      ? (settlement?.isTorneo ? '🏆 Chiusura torneo' : '💰 Chiusura cash')
+      ? (settlement?.isTorneo ? 'Chiusura torneo' : 'Chiusura cash')
       : sess
         ? (sess.modalita === 'torneo'
-            ? `🏆 Torneo · ${fmtData(sess.data)} · €${euro(sess.buy_in)}`
-            : `💰 Cash · ${fmtData(sess.data)} · €${euro(sess.buy_in)}`)
+            ? `Torneo · ${fmtData(sess.data)} · €${euro(sess.buy_in)}`
+            : `Cash · ${fmtData(sess.data)} · €${euro(sess.buy_in)}`)
         : '';
 
   return (

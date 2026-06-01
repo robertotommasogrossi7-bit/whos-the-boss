@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { IconUsers, IconClose } from '../icons';
 import type { Lega } from '../../types';
 
 export default function NuovaLega() {
@@ -63,7 +64,7 @@ export default function NuovaLega() {
 
     addLega(nuovaLega);
     setCurrentLega(nuovaLega.id);
-    toast('✓ Lega creata!');
+    toast('Lega creata!');
     navigate(`/app/${nuovaLega.id}`);
   }
 
@@ -83,7 +84,7 @@ export default function NuovaLega() {
               className={`photo-preview${foto ? ' filled' : ''}`}
               onClick={() => fotoInputRef.current?.click()}
             >
-              {foto ? <img src={foto} alt="foto lega" /> : '📷'}
+              {foto ? <img src={foto} alt="foto lega" /> : <IconUsers size={38} />}
             </div>
             <input
               type="file"
@@ -125,7 +126,7 @@ export default function NuovaLega() {
                 className="btn-rem"
                 onClick={() => rimuoviCampo(idx)}
               >
-                ✕
+                <IconClose size={16} />
               </button>
             </div>
           ))}
@@ -138,7 +139,7 @@ export default function NuovaLega() {
         </div>
 
         <button className="btn btn-green btn-block" onClick={creaLega}>
-          ✓ Crea lega
+          Crea lega
         </button>
       </div>
     </>

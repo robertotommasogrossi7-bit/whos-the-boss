@@ -102,6 +102,29 @@ export const IconCoins = (p: IconProps) => (
   </Svg>
 );
 
+/* ── Azioni / stato (sostituiscono ✓ ✎ 🗑 ▶ ⏸ ⏹ ⏭ 🔒 ecc.) ── */
+export const IconCheck = (p: IconProps) => (<Svg {...p}><path d="M5 12.5l4.5 4.5L19 7" /></Svg>);
+export const IconTrash = (p: IconProps) => (
+  <Svg {...p}><path d="M4 7h16" /><path d="M9 7V5h6v2" /><path d="M6.5 7l1 12.5h9L17.5 7" /><path d="M10 11v5M14 11v5" /></Svg>
+);
+export const IconEdit = (p: IconProps) => (
+  <Svg {...p}><path d="M14.5 5 19 9.5" /><path d="M4 20l1-4L15.5 5.5l3 3L8 19l-4 1z" /></Svg>
+);
+export const IconPlay = (p: IconProps) => (
+  <Svg {...p}><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></Svg>
+);
+export const IconPause = (p: IconProps) => (<Svg {...p}><path d="M9 5v14M15 5v14" /></Svg>);
+export const IconStop = (p: IconProps) => (
+  <Svg {...p}><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none" /></Svg>
+);
+export const IconSkip = (p: IconProps) => (
+  <Svg {...p}><path d="M6 5l9 7-9 7z" fill="currentColor" stroke="none" /><path d="M18 5v14" /></Svg>
+);
+export const IconLock = (p: IconProps) => (
+  <Svg {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>
+);
+export const IconChevronUp = (p: IconProps) => (<Svg {...p}><path d="M6 15l6-6 6 6" /></Svg>);
+
 /* Pallino "live" pieno (sostituisce 🔴) */
 export const IconLiveDot = ({ size = 12, ...rest }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" {...rest}>

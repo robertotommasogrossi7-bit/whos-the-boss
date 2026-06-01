@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
+import { IconCoins, IconUsers, GameIcon } from '../icons';
 import SubGiocatoriCash from './SubGiocatoriCash';
 import SubAttivi        from './SubAttivi';
 
@@ -34,7 +35,7 @@ export default function LiveCash() {
       <div className="live-summary">
         <div className="ls-row1">
           <span className="ls-data">{fmtData(sess.data)}</span>
-          <span className="ls-mod">💰 Cash Game</span>
+          <span className="ls-mod"><IconCoins size={14} className="ico-inline" /> Cash Game</span>
         </div>
         <div className="ls-meta">{meta || '—'}</div>
       </div>
@@ -45,13 +46,13 @@ export default function LiveCash() {
           className={`live-subtab${subTab === 'giocatori' ? ' active' : ''}`}
           onClick={() => setLiveSubTab('giocatori')}
         >
-          👥 Giocatori <span className="count">{tot}</span>
+          <IconUsers size={16} className="ico-inline" /> Giocatori <span className="count">{tot}</span>
         </button>
         <button
           className={`live-subtab${subTab === 'attivi' ? ' active' : ''}`}
           onClick={() => setLiveSubTab('attivi')}
         >
-          ♠ Attivi <span className="count">{attivi}</span>
+          <GameIcon icona="picche" size={16} className="ico-inline" /> Attivi <span className="count">{attivi}</span>
         </button>
       </div>
 
@@ -64,13 +65,13 @@ export default function LiveCash() {
           className="btn btn-green btn-block"
           onClick={() => apriChiusura(lega.id)}
         >
-          ✓ Chiudi serata
+          Chiudi serata
         </button>
         <button
           className="btn btn-gray btn-block"
           onClick={() => annullaSessione(lega.id)}
         >
-          ✕ Annulla serata
+          Annulla serata
         </button>
       </div>
       <div className="spacer-16" />

@@ -5,6 +5,7 @@ import { suggerisciTorneo, nuovoGiocatoreSessione, creaSessione } from '../../ut
 import type { TorneoSetupConfig } from '../../utils/torneo';
 import ConfigCash from './ConfigCash';
 import ConfigTorneo from './ConfigTorneo';
+import { IconWarning, IconCoins, IconTrophy } from '../icons';
 
 export default function SetupForm() {
   const lega              = useStore(selectCurrentLega);
@@ -47,7 +48,7 @@ export default function SetupForm() {
       <div className="tab-content">
         <div className="card">
           <div className="empty">
-            <div className="eico">⚠️</div>
+            <div className="eico"><IconWarning size={46} /></div>
             <p>Aggiungi prima i partecipanti dalla tab Partecipanti.</p>
           </div>
         </div>
@@ -123,13 +124,13 @@ export default function SetupForm() {
             className={setupModalita === 'cash' ? 'active' : ''}
             onClick={() => setSetupModalita('cash')}
           >
-            💰 Cash Game
+            <IconCoins size={15} className="ico-inline" /> Cash Game
           </button>
           <button
             className={setupModalita === 'torneo' ? 'active' : ''}
             onClick={() => setSetupModalita('torneo')}
           >
-            🏆 Torneo
+            <IconTrophy size={15} className="ico-inline" /> Torneo
           </button>
         </div>
 
@@ -165,7 +166,7 @@ export default function SetupForm() {
       </div>
 
       <button className="btn btn-green btn-block" onClick={avvia}>
-        {setupEditing ? '✓ Salva modifiche' : '▶ Crea serata'}
+        {setupEditing ? 'Salva modifiche' : 'Crea serata'}
       </button>
     </div>
   );

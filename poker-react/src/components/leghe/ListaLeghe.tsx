@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { euroSigned } from '../../utils/format';
+import { IconTrophy, GameIcon } from '../icons';
 import type { Lega } from '../../types';
 
 export default function ListaLeghe() {
@@ -41,7 +42,7 @@ export default function ListaLeghe() {
         </header>
         <div className="screen-body">
           <div className="empty">
-            <div className="eico">🏆</div>
+            <div className="eico"><IconTrophy size={46} /></div>
             <p>Non sei ancora in nessuna lega.<br />Creane una nuova!</p>
           </div>
           <button
@@ -82,7 +83,7 @@ export default function ListaLeghe() {
                 <div className="lega-foto">
                   {lega.foto
                     ? <img src={lega.foto} alt={lega.nome} />
-                    : '♠'}
+                    : <GameIcon icona="picche" size={24} />}
                 </div>
                 <div className="lega-info">
                   <div className="lega-name">{lega.nome}</div>
