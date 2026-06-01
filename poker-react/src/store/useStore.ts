@@ -5,7 +5,8 @@ import type {
   User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
 } from '../types';
 import { computeLive } from '../hooks/useComputeLive';
-import { migrateSessione, migratePartita } from '../utils/migrations';
+import { migrateSessione, migratePartita, migrateLega } from '../utils/migrations';
+import { creaLegaPersonale } from '../utils/personale';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
@@ -1477,8 +1478,26 @@ export const useStore = create<PokerStore>()(
           (lega.partite ?? []).forEach(p => {
             if (!p.settlements) { migratePartita(p); dirty = true; }
           });
+          // Multigioco (M1→M2): default campi gioco. Marca dirty se mancavano.
+          const needMultigioco =
+            lega.sessioniGioco === undefined ||
+            lega._sgid === undefined ||
+            lega.personale === undefined;
+          migrateLega(lega);
+          if (needMultigioco) dirty = true;
           if (dirty) saveLega(lega);
         });
+
+        // Crea la lega "Personale" (default dell'app) se non esiste ancora.
+        if (!get().db.leghe.some(l => l.personale)) {
+          set(s => ({
+            db: {
+              ...s.db,
+              leghe: [...s.db.leghe, creaLegaPersonale(s.db._lid)],
+              _lid: s.db._lid + 1,
+            },
+          }));
+        }
       },
     }),
     {

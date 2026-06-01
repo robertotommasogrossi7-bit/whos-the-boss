@@ -6,7 +6,8 @@ import type { Lega } from '../../types';
 
 export default function ListaLeghe() {
   const navigate = useNavigate();
-  const leghe    = useStore(s => s.db.leghe);
+  const tutteLeghe = useStore(s => s.db.leghe);
+  const leghe    = tutteLeghe.filter(l => !l.personale); // il Personale è la Home, non una lega
   const utente   = useStore(s => s.utente);
   const setCurrentLega = useStore(s => s.setCurrentLega);
 
