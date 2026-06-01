@@ -65,6 +65,11 @@ interface UiState {
   // Toast
   toastMsg: string;
   toastVisible: boolean;
+
+  // GameBar / filtro gioco globale (persistito) — Card Tracker §5
+  giocoFiltro: string;       // id gioco selezionato (catalogo), default 'poker'
+  gameBarVisible: boolean;   // mostra/nascondi la barra (impostazione)
+  gameBarPinned: boolean;    // gioco "fisso" (pin) — predisposizione
 }
 
 interface StoreActions {
@@ -119,6 +124,11 @@ interface StoreActions {
 
   // Toast
   toast: (msg: string) => void;
+
+  // GameBar / filtro gioco
+  setGiocoFiltro: (id: string) => void;
+  setGameBarVisible: (v: boolean) => void;
+  setGameBarPinned: (v: boolean) => void;
 
   // Giocatori
   aggiungiGiocatore: (legaId: number, nome: string) => string | null;
@@ -272,6 +282,9 @@ export const useStore = create<PokerStore>()(
       classificaTo: '',
       toastMsg: '',
       toastVisible: false,
+      giocoFiltro: 'poker',
+      gameBarVisible: true,
+      gameBarPinned: false,
 
       /* ── Azioni DB ── */
       saveLega: (updated) =>
@@ -366,6 +379,11 @@ export const useStore = create<PokerStore>()(
         set({ toastMsg: msg, toastVisible: true });
         setTimeout(() => set({ toastVisible: false }), 2700);
       },
+
+      /* ── GameBar / filtro gioco (Card Tracker §5) ── */
+      setGiocoFiltro:    (id) => set({ giocoFiltro: id }),
+      setGameBarVisible: (v)  => set({ gameBarVisible: v }),
+      setGameBarPinned:  (v)  => set({ gameBarPinned: v }),
 
       /* ── Serata hub ── */
       apriSerataAttiva: (legaId, bgIdx) => {
@@ -1466,8 +1484,13 @@ export const useStore = create<PokerStore>()(
     {
       name: STORE_KEY,
       storage: createJSONStorage(() => vanillaCompatStorage),
-      // Persisti solo il db, non lo stato UI temporaneo
-      partialize: (state) => ({ db: state.db }),
+      // Persisti il db + le preferenze GameBar (resto UI ricostruito a ogni avvio)
+      partialize: (state) => ({
+        db: state.db,
+        giocoFiltro: state.giocoFiltro,
+        gameBarVisible: state.gameBarVisible,
+        gameBarPinned: state.gameBarPinned,
+      }),
     }
   )
 );

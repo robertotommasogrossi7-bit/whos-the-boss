@@ -1612,3 +1612,46 @@ button.ui-listrow:active { transform: scale(.99); }
 .dot-live { color: var(--danger); }
 .seat-row.is-clickable { cursor: pointer; }
 .de-name-ico { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ═══ GAMEBAR (M2b — DESIGN_SPEC §5) ═══ */
+.gamebar {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+}
+.gamebar-current {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 44px; padding: 8px 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); cursor: pointer;
+}
+.gamebar-current:disabled { cursor: default; }
+.gamebar-ico  { color: var(--accent); display: flex; flex-shrink: 0; }
+.gamebar-nome { font-size: 15px; font-weight: 700; flex: 1; text-align: left; }
+.gamebar-pin {
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 9px; border-radius: 999px;
+}
+.gamebar-show {
+  display: block; width: 100%; padding: 9px;
+  background: var(--surface); border: none; border-bottom: 1px solid var(--border);
+  color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.gamebar-list { display: flex; flex-direction: column; gap: 6px; }
+.gamebar-item {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 10px 12px; width: 100%; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); cursor: pointer;
+}
+.gamebar-item-ico  { color: var(--text-muted); display: flex; flex-shrink: 0; }
+.gamebar-item.selected { border-color: var(--accent); }
+.gamebar-item.selected .gamebar-item-ico { color: var(--accent); }
+.gamebar-item-nome { font-size: 15px; font-weight: 600; flex: 1; }
+.gamebar-settings { display: flex; gap: 8px; margin-top: 14px; }
+.gamebar-setting {
+  flex: 1; min-height: 40px; padding: 8px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-muted);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}

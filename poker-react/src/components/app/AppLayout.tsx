@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { applyTema } from '../../utils/tema';
 import BottomNav from './BottomNav';
 import FabDebiti from '../common/FabDebiti';
 import FabPartiteAttive from '../common/FabPartiteAttive';
@@ -25,15 +26,11 @@ export default function AppLayout() {
     return () => document.body.classList.remove('in-app');
   }, []);
 
-  /* Tema feltro del poker (DESIGN_SPEC §6): il poker è sempre feltro,
-     a prescindere dal gioco filtrato nella shell. */
+  /* Tema feltro del poker (DESIGN_SPEC §6): il poker è SEMPRE feltro,
+     a prescindere dal gioco filtrato nella shell. Al ritorno nella shell
+     è ShellLayout a ri-applicare il tema del gioco selezionato. */
   useEffect(() => {
-    const prev = document.documentElement.dataset.tema;
-    document.documentElement.dataset.tema = 'poker';
-    return () => {
-      if (prev) document.documentElement.dataset.tema = prev;
-      else delete document.documentElement.dataset.tema;
-    };
+    applyTema('poker');
   }, []);
 
   /* Blocca lo scroll del body quando l'overlay è aperto */
