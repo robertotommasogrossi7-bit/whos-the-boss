@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { getNome, euro, fmtData } from '../../utils/format';
+import { IconCoins, IconCheck } from '../icons';
 import type { Settlement } from '../../types';
 
 interface DebitoItem {
@@ -19,18 +20,18 @@ export default function DebitiScreen() {
 
   function doSaldaDebito(partitaId: number, idx: number) {
     saldaDebito(lega!.id, partitaId, idx);
-    toast('✓ Pagamento registrato');
+    toast('Pagamento registrato');
   }
 
   function doSaldaTutti(debtorId: number) {
     const n = saldaTuttiDi(lega!.id, debtorId);
-    toast(`✓ ${n} pagament${n === 1 ? 'o' : 'i'} registrat${n === 1 ? 'o' : 'i'}`);
+    toast(`${n} pagament${n === 1 ? 'o' : 'i'} registrat${n === 1 ? 'o' : 'i'}`);
   }
 
   function doSaldaTuttiDebiti() {
     if (!confirm('Saldare TUTTI i debiti aperti della lega? L\'operazione non è reversibile.')) return;
     const n = saldaTuttiDi(lega!.id);
-    toast(`✓ ${n} debiti saldati`);
+    toast(`${n} debiti saldati`);
   }
 
   if (!lega) {
@@ -43,7 +44,7 @@ export default function DebitiScreen() {
         </header>
         <div className="screen-body">
           <div className="empty">
-            <div className="eico">💳</div>
+            <div className="eico"><IconCoins size={46} /></div>
             <p>Seleziona una lega per vedere i debiti.</p>
           </div>
         </div>
@@ -83,14 +84,14 @@ export default function DebitiScreen() {
               className="btn btn-green btn-block"
               onClick={doSaldaTuttiDebiti}
             >
-              ✓ Salda tutti i debiti della lega
+              Salda tutti i debiti della lega
             </button>
           </div>
         )}
 
         {debtorIds.length === 0 ? (
           <div className="empty">
-            <div className="eico">🎉</div>
+            <div className="eico"><IconCheck size={46} /></div>
             <p>Nessun debito aperto!</p>
           </div>
         ) : (

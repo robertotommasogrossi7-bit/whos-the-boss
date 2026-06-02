@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro } from '../../utils/format';
+import { IconLock, IconWarning, IconCoins } from '../icons';
 import {
   calcolaMontepremi,
   calcolaMontepremiIncassato,
@@ -11,8 +12,6 @@ import {
    SUB-TAB: PREMI (torneo)
    Derivato da renderSubPremi() in session-premi.js
 ══════════════════════════════════════════════════════ */
-const MEDALS = ['🥇', '🥈', '🥉'];
-
 export default function SubPremi() {
   const lega = useStore(selectCurrentLega);
   if (!lega?.sessioneAttiva) return null;
@@ -32,7 +31,7 @@ export default function SubPremi() {
     <div className="pool-banner locked">
       <div className="pb-lbl">Montepremi consolidato</div>
       <div className="pb-val">€{euro(monte)}</div>
-      <div className="pb-sub">🔒 Late reg chiusa</div>
+      <div className="pb-sub"><IconLock size={12} className="ico-inline" /> Late reg chiusa</div>
     </div>
   ) : (
     <div className="pool-banner">
@@ -54,7 +53,7 @@ export default function SubPremi() {
         <div className="smb-val">€{euro(giaPagato)}</div>
       </div>
       <div className="smb-item">
-        <div className="smb-label">{nonPagato > 0.005 ? '⚠ Da incassare' : 'Residuo monte'}</div>
+        <div className="smb-label">{nonPagato > 0.005 ? <><IconWarning size={11} className="ico-inline" /> Da incassare</> : 'Residuo monte'}</div>
         <div className={`smb-val${nonPagato > 0.005 ? ' neg' : ''}`}>
           €{euro(nonPagato > 0.005 ? nonPagato : residuo)}
         </div>
@@ -68,7 +67,7 @@ export default function SubPremi() {
         {banner}
         {poolStateBar}
         <div className="empty">
-          <div className="eico">💰</div>
+          <div className="eico"><IconCoins size={46} /></div>
           <p>Aggiungi giocatori entrati per vedere la struttura premi</p>
         </div>
       </>
@@ -97,7 +96,7 @@ export default function SubPremi() {
           const cls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
           return (
             <div key={p.posizione} className={`prize-row${cls ? ' ' + cls : ''}`}>
-              <div className="prize-medal">{MEDALS[i] ?? `${i + 1}°`}</div>
+              <div className="prize-medal">{i + 1}°</div>
               <div><strong>{p.posizione}° posto</strong></div>
               <div className="prize-perc">{p.percentuale}%</div>
               <div className="prize-amount">€{euro(p.importo)}</div>

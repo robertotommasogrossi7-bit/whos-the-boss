@@ -5,7 +5,8 @@ import type {
   User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
 } from '../types';
 import { computeLive } from '../hooks/useComputeLive';
-import { migrateSessione, migratePartita } from '../utils/migrations';
+import { migrateSessione, migratePartita, migrateLega } from '../utils/migrations';
+import { creaLegaPersonale } from '../utils/personale';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
@@ -65,6 +66,11 @@ interface UiState {
   // Toast
   toastMsg: string;
   toastVisible: boolean;
+
+  // GameBar / filtro gioco globale (persistito) — Card Tracker §5
+  giocoFiltro: string;       // id gioco selezionato (catalogo), default 'poker'
+  gameBarVisible: boolean;   // mostra/nascondi la barra (impostazione)
+  gameBarPinned: boolean;    // gioco "fisso" (pin) — predisposizione
 }
 
 interface StoreActions {
@@ -119,6 +125,11 @@ interface StoreActions {
 
   // Toast
   toast: (msg: string) => void;
+
+  // GameBar / filtro gioco
+  setGiocoFiltro: (id: string) => void;
+  setGameBarVisible: (v: boolean) => void;
+  setGameBarPinned: (v: boolean) => void;
 
   // Giocatori
   aggiungiGiocatore: (legaId: number, nome: string) => string | null;
@@ -272,6 +283,9 @@ export const useStore = create<PokerStore>()(
       classificaTo: '',
       toastMsg: '',
       toastVisible: false,
+      giocoFiltro: 'poker',
+      gameBarVisible: true,
+      gameBarPinned: false,
 
       /* ── Azioni DB ── */
       saveLega: (updated) =>
@@ -367,6 +381,11 @@ export const useStore = create<PokerStore>()(
         setTimeout(() => set({ toastVisible: false }), 2700);
       },
 
+      /* ── GameBar / filtro gioco (Card Tracker §5) ── */
+      setGiocoFiltro:    (id) => set({ giocoFiltro: id }),
+      setGameBarVisible: (v)  => set({ gameBarVisible: v }),
+      setGameBarPinned:  (v)  => set({ gameBarPinned: v }),
+
       /* ── Serata hub ── */
       apriSerataAttiva: (legaId, bgIdx) => {
         const { db, saveLega } = get();
@@ -415,7 +434,7 @@ export const useStore = create<PokerStore>()(
           setupPartIds: new Set<number>(),
           setupEditing: false,
         });
-        get().toast('▶ Serata iniziata!');
+        get().toast('Serata iniziata!');
       },
 
       iniziaOra: (legaId) => {
@@ -428,7 +447,7 @@ export const useStore = create<PokerStore>()(
           : { ...sess, stato: 'attivo', ora_inizio: nowHHMM() };
         saveLega({ ...lega, sessioneAttiva: aggiornata });
         set({ serataView: 'live', liveSubTab: sess.modalita === 'torneo' ? 'orologio' : 'giocatori' });
-        get().toast('▶ Serata iniziata!');
+        get().toast('Serata iniziata!');
       },
 
       modificaSetup: (legaId) => {
@@ -450,7 +469,7 @@ export const useStore = create<PokerStore>()(
         if (!lega) return;
         saveLega({ ...lega, sessioneAttiva: sess });
         set({ serataView: 'live', setupEditing: false, setupPartIds: new Set<number>() });
-        get().toast('✓ Impostazioni aggiornate');
+        get().toast('Impostazioni aggiornate');
       },
 
       /* ── Giocatori ── */
@@ -715,7 +734,7 @@ export const useStore = create<PokerStore>()(
         }
         const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
         saveLega({ ...lega, nomi, _nid, sessioneAttiva: { ...sess, giocatori } });
-        toast(`✓ ${n} aggiunto alla serata`);
+        toast(`${n} aggiunto alla serata`);
         return null;
       },
 
@@ -833,7 +852,7 @@ export const useStore = create<PokerStore>()(
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pre') return;
         saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
-        toast('▶ Torneo avviato!');
+        toast('Torneo avviato!');
       },
 
       pausaTorneo: (legaId) => {
@@ -848,7 +867,7 @@ export const useStore = create<PokerStore>()(
           trascorso_ms: Date.now() - sess.inizio_livello_ms,
         };
         saveLega({ ...lega, sessioneAttiva: updSess });
-        toast('⏸ Pausa');
+        toast('Pausa');
       },
 
       riprendiTorneo: (legaId) => {
@@ -858,7 +877,7 @@ export const useStore = create<PokerStore>()(
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pausa') return;
         saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
-        toast('▶ Ripreso');
+        toast('Ripreso');
       },
 
       avanzaLivelloAuto: (legaId) => {
@@ -884,7 +903,7 @@ export const useStore = create<PokerStore>()(
       avanzaLivelloManuale: (legaId) => {
         if (!confirm('Passare al livello successivo?')) return;
         get().avanzaLivelloAuto(legaId);
-        get().toast('▶ Livello successivo');
+        get().toast('Livello successivo');
       },
 
       stopTorneo: (legaId) => {
@@ -895,7 +914,7 @@ export const useStore = create<PokerStore>()(
         const sess = { ...lega.sessioneAttiva, stato: 'concluso' as const };
         consolidaPremiSeNecessario(sess);
         saveLega({ ...lega, sessioneAttiva: sess });
-        toast('⏹ Torneo terminato');
+        toast('Torneo terminato');
       },
 
       recoveryTorneo: (legaId) => {
@@ -997,7 +1016,7 @@ export const useStore = create<PokerStore>()(
             : { ...x, rebuys };
         });
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
-        toast('✓ Rebuy aggiunto');
+        toast('Rebuy aggiunto');
       },
 
       torneoAddOn: (legaId, idNome, pagato) => {
@@ -1015,7 +1034,7 @@ export const useStore = create<PokerStore>()(
             : x,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
-        toast('✓ Add-on');
+        toast('Add-on');
       },
 
       torneoRevive: (legaId, idNome) => {
@@ -1095,7 +1114,7 @@ export const useStore = create<PokerStore>()(
             consolidaPremiSeNecessario(sess);
             saveLega({ ...lega, sessioneAttiva: sess });
             const winnerNome = lega.nomi.find(n => n.id === winner.id_nome)?.nome ?? '?';
-            toast(`🏆 Vince ${winnerNome}!`);
+            toast(`Vince ${winnerNome}!`);
             const premioWin = sess.premi[0]?.importo ?? 0;
             if (premioWin > 0) setPendingPrizeNome(winner.id_nome);
             return;
@@ -1122,7 +1141,7 @@ export const useStore = create<PokerStore>()(
           g.id_nome === pendingPrizeNome ? { ...g, prize_pagato: !!pagato } : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
-        toast(pagato ? '✓ Premio segnato come pagato' : '⏱ Premio segnato come da pagare');
+        toast(pagato ? 'Premio segnato come pagato' : 'Premio segnato come da pagare');
       },
 
       /* ══════════════════════════════════════════════════════
@@ -1308,7 +1327,7 @@ export const useStore = create<PokerStore>()(
           saveLega({ ...lega, partite: [...lega.partite, partita], _pid: lega._pid + 1, sessioneAttiva: nuovaAttiva, serate_bg });
           setSettlement(null);
           set({ serataView: 'hub', overlayOpen: false });
-          toast('✓ Serata salvata!');
+          toast('Serata salvata!');
         };
 
         const sa = { ...settlement.sessione, ora_fine: oraFine || settlement.sessione.ora_fine };
@@ -1459,15 +1478,38 @@ export const useStore = create<PokerStore>()(
           (lega.partite ?? []).forEach(p => {
             if (!p.settlements) { migratePartita(p); dirty = true; }
           });
+          // Multigioco (M1→M2): default campi gioco. Marca dirty se mancavano.
+          const needMultigioco =
+            lega.sessioniGioco === undefined ||
+            lega._sgid === undefined ||
+            lega.personale === undefined;
+          migrateLega(lega);
+          if (needMultigioco) dirty = true;
           if (dirty) saveLega(lega);
         });
+
+        // Crea la lega "Personale" (default dell'app) se non esiste ancora.
+        if (!get().db.leghe.some(l => l.personale)) {
+          set(s => ({
+            db: {
+              ...s.db,
+              leghe: [...s.db.leghe, creaLegaPersonale(s.db._lid)],
+              _lid: s.db._lid + 1,
+            },
+          }));
+        }
       },
     }),
     {
       name: STORE_KEY,
       storage: createJSONStorage(() => vanillaCompatStorage),
-      // Persisti solo il db, non lo stato UI temporaneo
-      partialize: (state) => ({ db: state.db }),
+      // Persisti il db + le preferenze GameBar (resto UI ricostruito a ogni avvio)
+      partialize: (state) => ({
+        db: state.db,
+        giocoFiltro: state.giocoFiltro,
+        gameBarVisible: state.gameBarVisible,
+        gameBarPinned: state.gameBarPinned,
+      }),
     }
   )
 );

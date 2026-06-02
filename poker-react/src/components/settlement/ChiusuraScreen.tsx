@@ -46,7 +46,7 @@ export default function ChiusuraScreen() {
       </button>
 
       <div className="settle-page-title">
-        {settlement.isTorneo ? '🏆 Chiusura torneo' : '💰 Chiusura cash game'}
+        {settlement.isTorneo ? 'Chiusura torneo' : 'Chiusura cash game'}
       </div>
 
       <div className="form-row">
@@ -80,7 +80,7 @@ export default function ChiusuraScreen() {
 
       <div className="btn--mt16">
         <button className="btn btn-green btn-block" onClick={handleConferma}>
-          ✓ Conferma e salva serata
+          Conferma e salva serata
         </button>
       </div>
       <div className="spacer-20" />

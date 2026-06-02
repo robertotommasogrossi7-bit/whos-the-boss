@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { GameIcon } from '../icons';
 
 type Tab = 'login' | 'reg';
 
@@ -26,7 +27,7 @@ export default function LoginScreen() {
     const password = liPwdRef.current?.value ?? '';
     const err = login(username, password);
     if (err) { toast(err); return; }
-    toast('✓ Accesso effettuato!');
+    toast('Accesso effettuato!');
     navigate('/circoli');
   }
 
@@ -36,13 +37,13 @@ export default function LoginScreen() {
     const password = rgPwdRef.current?.value ?? '';
     const err = register(username, email, password);
     if (err) { toast(err); return; }
-    toast('✓ Account creato!');
+    toast('Account creato!');
     navigate('/circoli');
   }
 
   return (
     <div className="login-wrap">
-      <div className="login-logo">♠</div>
+      <div className="login-logo"><GameIcon icona="picche" size={64} /></div>
       <div className="login-title">Poker Tracker</div>
       <div className="login-sub">Organizza le serate di poker con i tuoi amici</div>
 

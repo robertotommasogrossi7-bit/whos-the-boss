@@ -2,6 +2,7 @@ import { suggerisciTorneo } from '../../utils/torneo';
 import type { TorneoSetupConfig } from '../../utils/torneo';
 import type { Livello } from '../../types';
 import { euro } from '../../utils/format';
+import { IconSettings, IconPause, IconClose } from '../icons';
 
 interface Props {
   config:        TorneoSetupConfig;
@@ -134,18 +135,18 @@ export default function ConfigTorneo({ config, buyIn, onBuyInChange, onChange }:
       {/* Info pill */}
       <div>
         <span className="torneo-info-pill">
-          🪑 {numTavoli} {numTavoli === 1 ? 'tavolo' : 'tavoli'} (max {numTavoli * 9})
+          {numTavoli} {numTavoli === 1 ? 'tavolo' : 'tavoli'} (max {numTavoli * 9})
         </span>
         <span className="torneo-info-pill">
-          ⏱ ~{Math.floor(totalMin / 60)}h{totalMin % 60 ? ` ${totalMin % 60}m` : ''}
+          ~{Math.floor(totalMin / 60)}h{totalMin % 60 ? ` ${totalMin % 60}m` : ''}
         </span>
         <span className="torneo-info-pill">
-          📝 Late reg {lateRegMin}min
+          Late reg {lateRegMin}min
         </span>
       </div>
 
       <button className="btn btn-outline btn-block btn-sm" onClick={rigeneraStruttura}>
-        ⚙ Suggerisci struttura automatica
+        <IconSettings size={15} className="ico-inline" /> Suggerisci struttura automatica
       </button>
 
       {/* Struttura livelli */}
@@ -168,7 +169,7 @@ export default function ConfigTorneo({ config, buyIn, onBuyInChange, onChange }:
           if (l.tipo === 'pausa') {
             return (
               <div key={i} className="blinds-row pausa">
-                <div className="lvl-num">⏸</div>
+                <div className="lvl-num"><IconPause size={14} /></div>
                 <div className="blinds-pausa-label">PAUSA</div>
                 <div>
                   <input
@@ -179,7 +180,7 @@ export default function ConfigTorneo({ config, buyIn, onBuyInChange, onChange }:
                   />
                 </div>
                 <div>
-                  <button className="lvl-del" onClick={() => rimuoviLivello(i)}>✕</button>
+                  <button className="lvl-del" onClick={() => rimuoviLivello(i)}><IconClose size={13} /></button>
                 </div>
               </div>
             );
@@ -206,7 +207,7 @@ export default function ConfigTorneo({ config, buyIn, onBuyInChange, onChange }:
                 />
               </div>
               <div>
-                <button className="lvl-del" onClick={() => rimuoviLivello(i)}>✕</button>
+                <button className="lvl-del" onClick={() => rimuoviLivello(i)}><IconClose size={13} /></button>
               </div>
             </div>
           );
@@ -251,7 +252,7 @@ export default function ConfigTorneo({ config, buyIn, onBuyInChange, onChange }:
             add_on: { ...config.add_on, abilitato: !config.add_on.abilitato },
           })}
         >
-          {config.add_on.abilitato ? '✓ Sì' : '✕ No'}
+          {config.add_on.abilitato ? 'Sì' : 'No'}
         </button>
       </div>
 

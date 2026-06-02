@@ -1,6 +1,7 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro } from '../../utils/format';
 import { calcolaMontepremi } from '../../utils/calc';
+import { IconPlay, IconPause, IconStop, IconSkip, IconLock, IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: OROLOGIO (torneo)
@@ -42,16 +43,16 @@ export default function SubOrologio({ clockStr }: Props) {
   let cardCls   = '';
   if (sess.stato === 'pre')       { statusLbl = 'PRE-TORNEO — premi START'; }
   else if (sess.stato === 'attivo') {
-    if (isPausa) { statusLbl = '🍕 PAUSA DI TORNEO'; cardCls = 'break'; }
+    if (isPausa) { statusLbl = 'PAUSA DI TORNEO'; cardCls = 'break'; }
     else         { statusLbl = `LIVELLO ${gameLvlNum} di ${totGameLevels}`; }
   }
-  else if (sess.stato === 'pausa')    { statusLbl = '⏸ PAUSA MANUALE'; cardCls = 'pausa'; }
-  else if (sess.stato === 'concluso') { statusLbl = '⏹ TORNEO CONCLUSO'; cardCls = 'concluso'; }
+  else if (sess.stato === 'pausa')    { statusLbl = 'PAUSA MANUALE'; cardCls = 'pausa'; }
+  else if (sess.stato === 'concluso') { statusLbl = 'TORNEO CONCLUSO'; cardCls = 'concluso'; }
 
   /* ── Blinds ── */
   let blindInfo: React.ReactNode = null;
   if (isPausa) {
-    blindInfo = <div className="timer-blinds">🍕 Break</div>;
+    blindInfo = <div className="timer-blinds">Break</div>;
   } else if (livello) {
     blindInfo = (
       <div className="timer-blinds">
@@ -80,26 +81,26 @@ export default function SubOrologio({ clockStr }: Props) {
   let controls: React.ReactNode = null;
   if (sess.stato === 'pre') {
     controls = (
-      <button className="tc-btn primary" onClick={() => avviaTorneo(lega.id)}>▶ Avvia torneo</button>
+      <button className="tc-btn primary" onClick={() => avviaTorneo(lega.id)}><IconPlay size={14} className="ico-inline" /> Avvia torneo</button>
     );
   } else if (sess.stato === 'attivo') {
     controls = (
       <>
-        <button className="tc-btn" onClick={() => pausaTorneo(lega.id)}>⏸ Pausa</button>
-        <button className="tc-btn" onClick={() => avanzaLivelloManuale(lega.id)}>⏭ Prossimo</button>
-        <button className="tc-btn" onClick={() => stopTorneo(lega.id)}>⏹ Stop</button>
+        <button className="tc-btn" onClick={() => pausaTorneo(lega.id)}><IconPause size={14} className="ico-inline" /> Pausa</button>
+        <button className="tc-btn" onClick={() => avanzaLivelloManuale(lega.id)}><IconSkip size={14} className="ico-inline" /> Prossimo</button>
+        <button className="tc-btn" onClick={() => stopTorneo(lega.id)}><IconStop size={14} className="ico-inline" /> Stop</button>
       </>
     );
   } else if (sess.stato === 'pausa') {
     controls = (
       <>
-        <button className="tc-btn primary" onClick={() => riprendiTorneo(lega.id)}>▶ Riprendi</button>
-        <button className="tc-btn" onClick={() => stopTorneo(lega.id)}>⏹ Stop</button>
+        <button className="tc-btn primary" onClick={() => riprendiTorneo(lega.id)}><IconPlay size={14} className="ico-inline" /> Riprendi</button>
+        <button className="tc-btn" onClick={() => stopTorneo(lega.id)}><IconStop size={14} className="ico-inline" /> Stop</button>
       </>
     );
   } else if (sess.stato === 'concluso') {
     controls = (
-      <span className="tc-concluso-note">Procedi alla chiusura ↓</span>
+      <span className="tc-concluso-note">Procedi alla chiusura</span>
     );
   }
 
@@ -122,7 +123,7 @@ export default function SubOrologio({ clockStr }: Props) {
       </div>
 
       <div className={`reg-banner${lateRegOpen ? '' : ' closed'}`}>
-        {lateRegOpen ? '📝' : '🔒'}
+        {lateRegOpen ? <IconCheck size={16} /> : <IconLock size={16} />}
         <span className="reg-banner-text">
           {lateRegOpen
             ? `Late reg aperta (fino a fine L${sess.late_reg.fino_a_livello})`

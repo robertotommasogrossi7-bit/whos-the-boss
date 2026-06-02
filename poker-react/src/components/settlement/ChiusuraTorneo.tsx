@@ -1,6 +1,7 @@
 import { useStore } from '../../store/useStore';
 import type { SettlementState } from '../../types';
 import { euro } from '../../utils/format';
+import { IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════
    CHIUSURA TORNEO — contenuto settlement torneo
@@ -105,7 +106,7 @@ export default function ChiusuraTorneo({ legaId }: Props) {
                   })}
                   <div className={`settle-remaining ${Math.abs(residuo) < 0.01 ? 'ok' : 'bad'}`}>
                     {Math.abs(residuo) < 0.01
-                      ? '✓ Bilanciato'
+                      ? <><IconCheck size={13} className="ico-inline" /> Bilanciato</>
                       : residuo > 0
                         ? `Residuo: −€${euro(residuo)}`
                         : `Eccesso: +€${euro(Math.abs(residuo))}`
@@ -132,7 +133,7 @@ export default function ChiusuraTorneo({ legaId }: Props) {
                 </div>
                 <div className="settle-info-txt">
                   {w.prize_pagato
-                    ? '✓ Già ricevuto'
+                    ? <><IconCheck size={13} className="ico-inline" /> Già ricevuto</>
                     : `Da ricevere €${euro(w.premio_residuo)} · Allocato €${euro(allocato)}`
                   }
                 </div>

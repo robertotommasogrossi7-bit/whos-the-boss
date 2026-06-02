@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro, getNome } from '../../utils/format';
+import { IconHistory, IconTrash, IconTrophy, IconCrown, IconChevronUp, IconChevronDown } from '../icons';
 
 export default function TabStorico() {
   const lega                = useStore(selectCurrentLega);
@@ -54,13 +55,13 @@ export default function TabStorico() {
           onChange={e => setStoricoTo(e.target.value)}
         />
         {(storicoFrom || storicoTo) && (
-          <button className="btn-reset" onClick={resetFiltri}>✕ Reset</button>
+          <button className="btn-reset" onClick={resetFiltri}>Reset</button>
         )}
       </div>
 
       {partite.length === 0 ? (
         <div className="empty">
-          <div className="eico">📋</div>
+          <div className="eico"><IconHistory size={46} /></div>
           <p>Nessuna partita nel periodo selezionato.</p>
         </div>
       ) : (
@@ -71,7 +72,7 @@ export default function TabStorico() {
             .slice()
             .sort((a, b) => b.netto_finale - a.netto_finale);
 
-          const tipo = partita.modalita === 'torneo' ? '🏆 Torneo' : '💰 Cash';
+          const tipo = partita.modalita === 'torneo' ? 'Torneo' : 'Cash';
           const vincitore = partita.giocatori.find(g => g.vincitore);
           const vincitoreNome = vincitore ? getNome(lega, vincitore.id_nome) : null;
 
@@ -103,16 +104,18 @@ export default function TabStorico() {
                     title="Elimina partita"
                     onClick={e => { e.stopPropagation(); doEliminaPartita(partita.id); }}
                   >
-                    🗑
+                    <IconTrash size={15} />
                   </button>
-                  <span className="storico-toggle">{isOpen ? '▲' : '▼'}</span>
+                  <span className="storico-toggle">
+                    {isOpen ? <IconChevronUp size={15} /> : <IconChevronDown size={15} />}
+                  </span>
                 </div>
               </div>
 
               {/* Barra vincitore */}
               {vincitoreNome && (
                 <div className="game-winner-bar">
-                  🏆 Vincitore: {vincitoreNome}
+                  <IconTrophy size={14} className="ico-inline" /> Vincitore: {vincitoreNome}
                 </div>
               )}
 
@@ -134,17 +137,12 @@ export default function TabStorico() {
                         {ranking.map((g, i) => (
                           <tr key={g.id_nome} className={rankClass(i)}>
                             <td>
-                              <span className="rank-pos">
-                                {i === 0 && <span className="medal">🥇</span>}
-                                {i === 1 && <span className="medal">🥈</span>}
-                                {i === 2 && <span className="medal">🥉</span>}
-                                {i > 2 && (i + 1)}
-                              </span>
+                              <span className="rank-pos">{i + 1}</span>
                             </td>
                             <td>
                               <span className={vincitore?.id_nome === g.id_nome ? 'name-with-crown' : ''}>
                                 {getNome(lega, g.id_nome)}
-                                {vincitore?.id_nome === g.id_nome && <span className="crown">👑</span>}
+                                {vincitore?.id_nome === g.id_nome && <span className="crown"><IconCrown size={15} className="ico-inline" /></span>}
                               </span>
                             </td>
                             <td>{euro(g.entrate)}</td>
@@ -168,7 +166,6 @@ export default function TabStorico() {
                             onClick={() => toggleSettlementPaid(lega!.id, partita.id, idx)}
                           >
                             {getNome(lega, s.from)} → {getNome(lega, s.to)} {euro(s.amount)}
-                            {s.pagato && ' ✓'}
                           </button>
                         ))}
                       </div>

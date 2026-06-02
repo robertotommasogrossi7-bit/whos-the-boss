@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { euro, euroSigned } from '../../utils/format';
+import { IconCheck, IconClose, IconWarning } from '../icons';
 import type { CashSettlementResult, Trasferimento } from '../../types';
 
 /* ══════════════════════════════════════════════════════
@@ -59,7 +60,7 @@ export default function ChiusuraCash({ legaId, cashResult, trasferimenti }: Prop
 
       {trasferimenti.length === 0 ? (
         <div className="cassa-no-transfer">
-          <div className="cassa-ok-icon">✓</div>
+          <div className="cassa-ok-icon"><IconCheck size={28} /></div>
           <p>Nessun contante da scambiare — il piatto si bilancia da solo.</p>
         </div>
       ) : (
@@ -83,7 +84,7 @@ export default function ChiusuraCash({ legaId, cashResult, trasferimenti }: Prop
                 onClick={() => removeTrasferimento(legaId, idx)}
                 title="Elimina"
               >
-                ✕
+                <IconClose size={15} />
               </button>
             </div>
           ))}
@@ -117,7 +118,7 @@ export default function ChiusuraCash({ legaId, cashResult, trasferimenti }: Prop
             onChange={e => setAddAmt(e.target.value)}
           />
           <button className="btn btn-green btn-sm" onClick={handleAdd}>OK</button>
-          <button className="btn btn-gray btn-sm" onClick={() => setShowAddForm(false)}>✕</button>
+          <button className="btn btn-gray btn-sm" onClick={() => setShowAddForm(false)}><IconClose size={15} /></button>
         </div>
       )}
 
@@ -132,7 +133,9 @@ export default function ChiusuraCash({ legaId, cashResult, trasferimenti }: Prop
               <span className="balance-name">{nomeDi(g.id_nome)}</span>
               <span className="balance-netto">netto {euroSigned(g.netto)}</span>
               <span className="balance-status">
-                {ok ? '✓' : `⚠ ${d > 0 ? '+' : ''}${euro(Math.abs(d))}`}
+                {ok
+                  ? <IconCheck size={14} className="ico-inline" />
+                  : <><IconWarning size={13} className="ico-inline" /> {d > 0 ? '+' : ''}{euro(Math.abs(d))}</>}
               </span>
             </div>
           );

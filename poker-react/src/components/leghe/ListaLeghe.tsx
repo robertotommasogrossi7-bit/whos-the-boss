@@ -1,17 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { euroSigned } from '../../utils/format';
+import { IconTrophy, GameIcon } from '../icons';
 import type { Lega } from '../../types';
 
 export default function ListaLeghe() {
   const navigate = useNavigate();
-  const leghe    = useStore(s => s.db.leghe);
+  const tutteLeghe = useStore(s => s.db.leghe);
+  const leghe    = tutteLeghe.filter(l => !l.personale); // il Personale è la Home, non una lega
   const utente   = useStore(s => s.utente);
   const setCurrentLega = useStore(s => s.setCurrentLega);
 
   function vaiAllaLega(legaId: number) {
     setCurrentLega(legaId);
-    navigate(`/app/${legaId}`);
+    navigate(`/leghe/${legaId}`);
   }
 
   function statsUtente(lega: Lega) {
@@ -35,13 +37,13 @@ export default function ListaLeghe() {
     return (
       <>
         <header className="app-header">
-          <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+          <button className="hdr-back" onClick={() => navigate('/')}>‹</button>
           <div className="hdr-center"><h1>Le tue leghe</h1></div>
           <div className="hdr-right" />
         </header>
         <div className="screen-body">
           <div className="empty">
-            <div className="eico">🏆</div>
+            <div className="eico"><IconTrophy size={46} /></div>
             <p>Non sei ancora in nessuna lega.<br />Creane una nuova!</p>
           </div>
           <button
@@ -58,7 +60,7 @@ export default function ListaLeghe() {
   return (
     <>
       <header className="app-header">
-        <button className="hdr-back" onClick={() => navigate('/circoli')}>‹</button>
+        <button className="hdr-back" onClick={() => navigate('/')}>‹</button>
         <div className="hdr-center"><h1>Le tue leghe</h1></div>
         <div className="hdr-right" />
       </header>
@@ -82,7 +84,7 @@ export default function ListaLeghe() {
                 <div className="lega-foto">
                   {lega.foto
                     ? <img src={lega.foto} alt={lega.nome} />
-                    : '♠'}
+                    : <GameIcon icona="picche" size={24} />}
                 </div>
                 <div className="lega-info">
                   <div className="lega-name">{lega.nome}</div>

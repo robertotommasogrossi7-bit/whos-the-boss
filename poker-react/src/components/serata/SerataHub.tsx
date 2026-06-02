@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { fmtData, euro } from '../../utils/format';
+import { IconPlus, GameIcon, IconLiveDot } from '../icons';
 
 export default function SerataHub() {
   const lega              = useStore(selectCurrentLega);
@@ -27,7 +28,7 @@ export default function SerataHub() {
     <div className="tab-content">
       {/* Hero nuova serata */}
       <div className="hero-card" onClick={vaiSetupSerata}>
-        <div className="h-ico">➕</div>
+        <div className="h-ico"><IconPlus size={26} /></div>
         <div className="h-text">
           <h3>Nuova serata</h3>
           <p>Cash game o torneo</p>
@@ -36,22 +37,22 @@ export default function SerataHub() {
 
       {tutte.length === 0 ? (
         <div className="empty">
-          <div className="eico">♠</div>
+          <div className="eico"><GameIcon icona="picche" size={48} /></div>
           <p>Nessuna serata in corso</p>
         </div>
       ) : (
         tutte.map(({ s, bgIdx }) => {
-          const tipo  = s.modalita === 'torneo' ? '🏆 Torneo' : '💰 Cash';
+          const tipo  = s.modalita === 'torneo' ? 'Torneo' : 'Cash';
           const nEnt  = (s.giocatori ?? []).filter(g => g.entrato).length;
-          const stato = s.stato === 'attivo' ? ' · ▶ In corso'
-                      : s.stato === 'pausa'  ? ' · ⏸ Pausa' : '';
+          const stato = s.stato === 'attivo' ? ' · In corso'
+                      : s.stato === 'pausa'  ? ' · In pausa' : '';
           return (
             <div
               key={bgIdx}
               className="serata-attiva-card"
               onClick={() => apriSerataAttiva(lega.id, bgIdx)}
             >
-              <div className="sac-dot">🔴</div>
+              <div className="sac-dot"><IconLiveDot size={14} className="dot-live" /></div>
               <div className="sac-info">
                 <h3>{tipo} · {fmtData(s.data ?? '')}</h3>
                 <p>{nEnt} giocatori · Buy-in €{euro(s.buy_in ?? 0)}{stato}</p>

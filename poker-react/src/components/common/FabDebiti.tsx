@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { contaDebitiAperti } from '../../utils/calc';
+import { IconCoins } from '../icons';
 
 interface Props { legaId: number; }
 
@@ -19,7 +20,7 @@ export default function FabDebiti({ legaId }: Props) {
       onClick={() => navigate('/debiti')}
       title="Debiti aperti"
     >
-      💳
+      <IconCoins size={26} />
       <span className="fab-count">{nDebiti}</span>
     </button>
   );

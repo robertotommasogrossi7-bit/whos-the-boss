@@ -1,5 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, getNome } from '../../utils/format';
+import { IconPlus, IconUsers } from '../icons';
 import TavoloView from './TavoloView';
 
 /* ══════════════════════════════════════════════════════
@@ -41,14 +42,14 @@ export default function SubGiocatoriCash() {
 
       {/* Bottone aggiungi giocatore alla serata */}
       <button className="add-player-card" onClick={handleAggiungi}>
-        <span className="api">➕</span>
+        <span className="api"><IconPlus size={22} /></span>
         <span className="apt">Aggiungi giocatore alla serata</span>
       </button>
 
       {/* Cards solo per i giocatori entrati (controlli entrata/versato) */}
       {entrati.length === 0 && sess.giocatori.length === 0 && (
         <div className="empty">
-          <div className="eico">👥</div>
+          <div className="eico"><IconUsers size={46} /></div>
           <p>Nessun giocatore nella serata</p>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { euro, euroSigned, getNome } from '../../utils/format';
 import { useComputeLive } from '../../hooks/useComputeLive';
+import { GameIcon, IconCrown, IconEdit, IconWarning } from '../icons';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: ATTIVI (cash) — nuovo modello versato
@@ -30,7 +31,7 @@ export default function SubAttivi() {
   if (!attivi.length) {
     return (
       <div className="empty">
-        <div className="eico">♠</div>
+        <div className="eico"><GameIcon icona="picche" size={46} /></div>
         <p>
           Nessuno è ancora entrato.<br />
           Vai sulla tab <b>Giocatori</b> per segnare gli ingressi.
@@ -73,7 +74,7 @@ export default function SubAttivi() {
             <div className="lc-head">
               <div className="lc-name">
                 {nome}
-                {isWinner && <span className="crown">👑</span>}
+                {isWinner && <span className="crown"><IconCrown size={18} className="ico-inline" /></span>}
               </div>
             </div>
 
@@ -96,8 +97,9 @@ export default function SubAttivi() {
                       <button
                         className="btn-edit"
                         onClick={() => handleModificaRicarica(c.id_nome, i, r.importo)}
+                        title="Modifica ricarica"
                       >
-                        ✎
+                        <IconEdit size={14} />
                       </button>
                     </div>
                   ))}
@@ -131,7 +133,7 @@ export default function SubAttivi() {
               {/* Mancante */}
               {mancante > 0.005 && (
                 <div className="mancante-badge">
-                  ⚠ Mancano €{euro(mancante)} da versare
+                  <IconWarning size={13} className="ico-inline" /> Mancano €{euro(mancante)} da versare
                 </div>
               )}
 
