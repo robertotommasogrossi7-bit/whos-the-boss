@@ -37,6 +37,9 @@ Partite_giocate/
 # Tutta la memoria del progetto (CONTESTO, DECISIONI, IDEE, *_SPEC, *_PROMPT,
 # *_MAP) vive nella cartella _processo/ (con _processo/archivio/ per gli spenti).
 /_processo/
-# Reti di sicurezza: ignora anche eventuali .md sparsi nella root (tranne README).
+# Reti di sicurezza: ignora anche eventuali .md sparsi nella root.
+# Eccezioni versionate: README (EN/IT) + METODO (mostra il processo di lavoro).
 /*.md
 !/README.md
+!/README.it.md
+!/METODO.md
