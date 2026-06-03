@@ -1788,3 +1788,37 @@ button.ui-listrow:active { transform: scale(.99); }
   border: 1.5px solid var(--border); border-radius: 6px;
 }
 .esito-pareggio.on .ep-box { border-color: var(--warn); color: var(--warn); }
+
+/* ═══ STORICO sessioni di gioco (M3) ═══ */
+.storico-sess {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.storico-sess-head {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; min-height: 56px; padding: 11px 13px;
+  background: none; border: none; cursor: pointer; text-align: left; color: var(--text);
+}
+.storico-sess-ico  { color: var(--accent); display: flex; flex-shrink: 0; }
+.storico-sess-body { flex: 1; min-width: 0; }
+.storico-sess-nome { font-size: 15px; font-weight: 700; }
+.storico-sess-sub  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.storico-sess-chevron { color: var(--text-muted); display: flex; flex-shrink: 0; }
+.storico-sess-det {
+  border-top: 1px solid var(--border); padding: 10px 13px 13px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.storico-partita {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  font-size: 13px;
+}
+.storico-partita-n   { font-weight: 700; }
+.storico-partita-ore { color: var(--text-muted); }
+.storico-partita-esito { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.storico-sess-del {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  margin-top: 4px; padding: 7px 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+}
+.storico-sess-del:active { color: var(--danger); }
