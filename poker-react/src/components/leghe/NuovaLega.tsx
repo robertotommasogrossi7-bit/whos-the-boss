@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import { migrateLega } from '../../utils/migrations';
 import { IconUsers, IconClose } from '../icons';
 import type { Lega } from '../../types';
 
@@ -61,6 +62,9 @@ export default function NuovaLega() {
       _nid: nid,
       _pid: 1,
     };
+    // Inizializza subito i campi multigioco (sessioniGioco/_sgid/personale),
+    // così la lega è pronta senza aspettare la migrazione al prossimo avvio.
+    migrateLega(nuovaLega);
 
     addLega(nuovaLega);
     setCurrentLega(nuovaLega.id);

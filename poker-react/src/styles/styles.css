@@ -1683,3 +1683,142 @@ button.ui-listrow:active { transform: scale(.99); }
   color: var(--text); background: var(--surface-2);
 }
 .hub-add-row input:focus { outline: none; border-color: var(--accent); }
+
+/* ═══ SCHERMATA COMUNE DEL GIOCO — "segna partita" (M3) ═══ */
+.gioco-screen { display: flex; flex-direction: column; gap: 12px; }
+.gioco-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--text-muted); font-size: 14px; font-weight: 600;
+  text-decoration: none; align-self: flex-start;
+}
+.gioco-back:active { color: var(--accent); }
+
+/* Intestazione gioco (Card) */
+.ui-card.gioco-head { display: flex; align-items: center; gap: 12px; padding: 14px; }
+.gioco-head-ico  { color: var(--accent); display: flex; flex-shrink: 0; }
+.gioco-head-body { flex: 1; min-width: 0; }
+.gioco-head-nome { font-size: 16px; font-weight: 800; }
+.gioco-head-sub  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* Giocatori della sessione (read-only) */
+.gioco-players { display: flex; flex-wrap: wrap; gap: 6px; }
+.gioco-player {
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 5px 11px; border-radius: 999px;
+}
+
+.gioco-del {
+  align-self: center; background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 8px;
+}
+.gioco-del:active { color: var(--danger); }
+
+/* Partita in corso */
+.ui-card.gioco-incorso { border-color: var(--accent); padding: 14px; }
+.gioco-incorso-top { display: flex; align-items: center; gap: 10px; }
+.gioco-incorso-ico { display: flex; }
+.gioco-incorso-titolo { font-size: 15px; font-weight: 700; }
+.gioco-incorso-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+.gioco-incorso-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+/* Lista partite chiuse */
+.gioco-partite { display: flex; flex-direction: column; gap: 8px; }
+.gioco-partita {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 11px 13px;
+}
+.gioco-partita-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.gioco-partita-n   { font-size: 14px; font-weight: 700; }
+.gioco-partita-ore { font-size: 12px; color: var(--text-muted); }
+.gioco-partita-esito { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 7px; }
+.gioco-partita-sub { font-size: 12px; color: var(--text-muted); }
+
+.gioco-chiudi {
+  width: 100%; min-height: 44px; margin-top: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.gioco-chiudi:active { border-color: var(--accent); }
+.gioco-chiudi:disabled { opacity: .5; cursor: default; }
+.gioco-hint { font-size: 12px; color: var(--text-muted); text-align: center; }
+
+/* ═══ Sheet "Nuova sessione" / "Esito partita" (M3) ═══ */
+.esito-sec { margin-bottom: 14px; }
+.esito-label { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.esito-hint  { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.esito-input {
+  width: 100%; padding: 11px 13px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 15px;
+  color: var(--text); background: var(--surface-2);
+}
+.esito-input:focus { outline: none; border-color: var(--accent); }
+.esito-actions { display: flex; gap: 10px; margin-top: 6px; }
+.esito-actions .ui-btn { flex: 1; }
+.nuova-add { margin-top: 10px; margin-bottom: 0; }
+
+/* Selezione partecipanti / vincitori (chip toccabili) */
+.pick-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.pick-chip {
+  min-height: 44px; padding: 8px 15px;
+  background: var(--surface-2); border: 1.5px solid var(--border);
+  border-radius: 999px; color: var(--text-muted);
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.pick-chip.selected {
+  background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
+}
+.pick-chip--win.selected {
+  background: var(--ok-soft); border-color: var(--ok); color: var(--ok);
+}
+
+/* Toggle pareggio */
+.esito-pareggio {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 44px; padding: 10px 14px; margin-bottom: 14px;
+  background: var(--surface-2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.esito-pareggio.on { border-color: var(--warn); color: var(--warn); }
+.esito-pareggio .ep-box {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 1.5px solid var(--border); border-radius: 6px;
+}
+.esito-pareggio.on .ep-box { border-color: var(--warn); color: var(--warn); }
+
+/* ═══ STORICO sessioni di gioco (M3) ═══ */
+.storico-sess {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.storico-sess-head {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; min-height: 56px; padding: 11px 13px;
+  background: none; border: none; cursor: pointer; text-align: left; color: var(--text);
+}
+.storico-sess-ico  { color: var(--accent); display: flex; flex-shrink: 0; }
+.storico-sess-body { flex: 1; min-width: 0; }
+.storico-sess-nome { font-size: 15px; font-weight: 700; }
+.storico-sess-sub  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.storico-sess-chevron { color: var(--text-muted); display: flex; flex-shrink: 0; }
+.storico-sess-det {
+  border-top: 1px solid var(--border); padding: 10px 13px 13px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.storico-partita {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  font-size: 13px;
+}
+.storico-partita-n   { font-weight: 700; }
+.storico-partita-ore { color: var(--text-muted); }
+.storico-partita-esito { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.storico-sess-del {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  margin-top: 4px; padding: 7px 4px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 13px; font-weight: 600;
+}
+.storico-sess-del:active { color: var(--danger); }
