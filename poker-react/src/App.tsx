@@ -5,7 +5,11 @@ import Toast from './components/common/Toast';
 import LoginScreen from './components/auth/LoginScreen';
 import NuovaLega from './components/leghe/NuovaLega';
 import ListaLeghe from './components/leghe/ListaLeghe';
-import HubLega from './components/leghe/HubLega';
+import LegaLayout from './components/leghe/LegaLayout';
+import LegaHome from './components/leghe/LegaHome';
+import LegaClassifica from './components/leghe/LegaClassifica';
+import LegaStorico from './components/leghe/LegaStorico';
+import SchermataGiocoLega from './components/leghe/SchermataGiocoLega';
 import AppLayout from './components/app/AppLayout';
 import TabPartecipanti from './components/giocatori/TabPartecipanti';
 import TabSerata from './components/serata/TabSerata';
@@ -70,7 +74,15 @@ export default function App() {
           <Route path="/classifica"  element={<ClassificaShell />} />
           <Route path="/storico"     element={<StoricoShell />} />
           <Route path="/leghe"       element={<ListaLeghe />} />
-          <Route path="/leghe/:legaId" element={<HubLega />} />
+        </Route>
+
+        {/* Sezione lega: nav propria a 4 schede (M3) */}
+        <Route path="/leghe/:legaId" element={<RequireAuth><LegaLayout /></RequireAuth>}>
+          <Route index               element={<LegaHome />} />
+          <Route path="classifica"   element={<LegaClassifica />} />
+          <Route path="storico"      element={<LegaStorico />} />
+          <Route path="giocatori"    element={<TabPartecipanti />} />
+          <Route path="g/:giocoId"   element={<SchermataGiocoLega />} />
         </Route>
 
         {/* Retrocompat vecchie route */}
