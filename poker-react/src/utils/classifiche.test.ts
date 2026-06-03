@@ -121,14 +121,14 @@ describe('classificaGioco', () => {
     const sess = [sessione(1, [A, B, C], [partita(1, [A]), partita(2, [A]), partita(3, [B])])];
     const righe = classificaGioco(gioco(), sess, nomiABC);
     expect(righe.map(r => r.idNome)).toEqual([A, B, C]);
-    expect(righe[0].stats.percVittorie).toBeGreaterThan(righe[1].stats.percVittorie);
+    expect(righe[0]!.stats.percVittorie).toBeGreaterThan(righe[1]!.stats.percVittorie);
   });
 
   it('marca il leader (primo con partite giocate)', () => {
     const sess = [sessione(1, [A, B], [partita(1, [A]), partita(2, [A])])];
     const righe = classificaGioco(gioco(), sess, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }]);
-    expect(righe[0].isLeader).toBe(true);
-    expect(righe[1].isLeader).toBe(false);
+    expect(righe[0]!.isLeader).toBe(true);
+    expect(righe[1]!.isLeader).toBe(false);
   });
 
   it('nessun leader se nessuna partita giocata da nessuno', () => {
@@ -243,8 +243,8 @@ describe('statsPersonaCrossContesto', () => {
     const sess = sessione(1, [A], [partita(1, [A])]);
     const legaP = mkLega(1, [{ id: A, nome: 'Alice' }], [sess], { personale: true, nome: 'Personale' });
     const result = statsPersonaCrossContesto('Alice', g, [legaP]);
-    expect(result.perContesto[0].personale).toBe(true);
-    expect(result.perContesto[0].legaNome).toBe('Personale');
+    expect(result.perContesto[0]!.personale).toBe(true);
+    expect(result.perContesto[0]!.legaNome).toBe('Personale');
   });
 
   it('sessioni non chiuse vengono ignorate (solo chiuse contano)', () => {
