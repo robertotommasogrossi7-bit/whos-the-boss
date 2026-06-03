@@ -1,21 +1,40 @@
+import { useNavigate } from 'react-router-dom';
+import { useStore } from '../../store/useStore';
 import { GameIcon } from '../icons';
-import { EmptyState } from '../ui';
+import { Button, EmptyState } from '../ui';
 import GameBar from './GameBar';
+import SchermataGioco from '../gioco/SchermataGioco';
 
 /* HOME — "Segna partita" (ambito Personale). MULTIGIOCO_SPEC §5.
-   In M2 è un GUSCIO: il flusso vero (crea sessione, segna partite)
-   arriva in M3. In cima la GameBar (ri-tema l'app). */
+   In cima la GameBar (ri-tema l'app). Il gioco selezionato apre il flusso
+   comune "segna partita" sui guest del Personale; il poker rimanda alla sua
+   schermata dedicata. */
 export default function Home() {
+  const giocoFiltro = useStore(s => s.giocoFiltro);
+  const personale   = useStore(s => s.db.leghe.find(l => l.personale));
+  const navigate    = useNavigate();
+
   return (
     <>
       <GameBar />
-      <div className="tab-content">
-        <EmptyState
-          icon={<GameIcon icona="mazzo" size={48} />}
-          title="Segna le tue partite"
-          hint="Qui aprirai una sessione e segnerai le partite con i tuoi amici. In arrivo nel prossimo aggiornamento."
-        />
-      </div>
+      {giocoFiltro === 'poker' ? (
+        <div className="tab-content">
+          <EmptyState
+            icon={<GameIcon icona="picche" size={48} />}
+            title="Poker"
+            hint="Il poker ha la sua schermata dedicata, con soldi, timer e settlement."
+            action={personale
+              ? <Button onClick={() => navigate(`/leghe/${personale.id}/poker`)}>Apri il Poker</Button>
+              : undefined}
+          />
+        </div>
+      ) : personale ? (
+        <SchermataGioco legaId={personale.id} giocoId={giocoFiltro} />
+      ) : (
+        <div className="tab-content">
+          <EmptyState title="Un attimo…" hint="Sto preparando il tuo spazio personale." />
+        </div>
+      )}
     </>
   );
 }
