@@ -6,6 +6,10 @@ import type {
 } from '../types';
 import { computeLive } from '../hooks/useComputeLive';
 import { migrateSessione, migratePartita, migrateLega } from '../utils/migrations';
+import {
+  nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
+  type EsitoPartitaInput,
+} from '../utils/sessioneGioco';
 import { creaLegaPersonale } from '../utils/personale';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
@@ -187,6 +191,15 @@ interface StoreActions {
   addTrasferimento:       (legaId: number, t: { from: number; to: number; importo: number }) => void;
   removeTrasferimento:    (legaId: number, idx: number) => void;
   confermaChiusura:       (legaId: number, oraFine: string) => void;
+
+  // Sessioni gioco (multigioco non-poker, M3) — su lega.sessioniGioco
+  creaSessioneGioco:    (legaId: number, giocoId: string, partecipanti: number[], data: string, ora: string) => number | null;
+  avviaSessioneGioco:   (legaId: number, sessId: number) => void;
+  aggiungiPartita:      (legaId: number, sessId: number) => number | null;
+  chiudiPartita:        (legaId: number, sessId: number, partitaId: number, esito: EsitoPartitaInput) => void;
+  annullaPartita:       (legaId: number, sessId: number, partitaId: number) => void;
+  chiudiSessioneGioco:  (legaId: number, sessId: number, esitoPareggio: boolean) => void;
+  eliminaSessioneGioco: (legaId: number, sessId: number) => void;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -1466,6 +1479,120 @@ export const useStore = create<PokerStore>()(
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
         });
+      },
+
+      /* ══════════════════════════════════════════════════════
+         SESSIONI GIOCO (multigioco non-poker, M3)
+         Ciclo Gioco → Sessione → Partita su lega.sessioniGioco (tipi M1).
+         NON tocca il poker (sessioneAttiva/serate_bg/partite restano suoi).
+      ══════════════════════════════════════════════════════ */
+      creaSessioneGioco: (legaId, giocoId, partecipanti, data, ora) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return null;
+        if (partecipanti.length === 0) { toast('Scegli almeno un partecipante'); return null; }
+        const sgid = lega._sgid ?? 1;
+        const sess = nuovaSessioneGioco(sgid, giocoId, partecipanti, data, ora);
+        saveLega({
+          ...lega,
+          sessioniGioco: [...(lega.sessioniGioco ?? []), sess],
+          _sgid: sgid + 1,
+        });
+        return sgid;
+      },
+
+      avviaSessioneGioco: (legaId, sessId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
+          s.id === sessId && s.stato === 'pre'
+            ? { ...s, stato: 'attiva' as const, ora_inizio: nowHHMM() }
+            : s,
+        );
+        saveLega({ ...lega, sessioniGioco });
+      },
+
+      aggiungiPartita: (legaId, sessId) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return null;
+        const sess = (lega.sessioniGioco ?? []).find(s => s.id === sessId);
+        if (!sess || sess.stato !== 'attiva') return null;
+        if (sess.partite.some(p => p.ora_fine === '')) {
+          toast('C\'è già una partita in corso'); return null;
+        }
+        const pid = prossimoIdPartita(sess);
+        const partita = nuovaPartitaGioco(pid, nowHHMM());
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
+          s.id === sessId ? { ...s, partite: [...s.partite, partita] } : s,
+        );
+        saveLega({ ...lega, sessioniGioco });
+        return pid;
+      },
+
+      chiudiPartita: (legaId, sessId, partitaId, esito) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const sess = (lega.sessioniGioco ?? []).find(s => s.id === sessId);
+        if (!sess) return;
+        // Override partecipanti solo se è un vero sottoinsieme diverso dalla sessione.
+        const sessPart = sess.partecipanti;
+        const eqSessione = !!esito.partecipanti
+          && esito.partecipanti.length === sessPart.length
+          && esito.partecipanti.every(x => sessPart.includes(x));
+        const override = esito.partecipanti && !eqSessione ? esito.partecipanti : undefined;
+        const effettivi = override ?? sessPart;
+        const vincitori = esito.pareggio ? [] : esito.vincitori.filter(v => effettivi.includes(v));
+        const nomeLibero = esito.nomeLibero?.trim() ? esito.nomeLibero.trim() : undefined;
+
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s => {
+          if (s.id !== sessId) return s;
+          const partite = s.partite.map(p =>
+            p.id === partitaId
+              ? { ...p, ora_fine: p.ora_fine || nowHHMM(), vincitori, pareggio: esito.pareggio, partecipanti: override, nomeLibero }
+              : p,
+          );
+          return { ...s, partite };
+        });
+        saveLega({ ...lega, sessioniGioco });
+      },
+
+      annullaPartita: (legaId, sessId, partitaId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
+          s.id === sessId ? { ...s, partite: s.partite.filter(p => p.id !== partitaId) } : s,
+        );
+        saveLega({ ...lega, sessioniGioco });
+      },
+
+      chiudiSessioneGioco: (legaId, sessId, esitoPareggio) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const sess = (lega.sessioniGioco ?? []).find(s => s.id === sessId);
+        if (!sess) return;
+        if (sess.partite.some(p => p.ora_fine === '')) {
+          toast('Chiudi prima la partita in corso'); return;
+        }
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
+          s.id === sessId
+            ? { ...s, stato: 'chiusa' as const, ora_fine: nowHHMM(), esitoPareggio: !!esitoPareggio }
+            : s,
+        );
+        saveLega({ ...lega, sessioniGioco });
+        toast('Sessione chiusa');
+      },
+
+      eliminaSessioneGioco: (legaId, sessId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        const sessioniGioco = (lega.sessioniGioco ?? []).filter(s => s.id !== sessId);
+        saveLega({ ...lega, sessioniGioco });
       },
 
       /* ── Migrations ── */

@@ -9,6 +9,16 @@ import type { SessioneGioco, PartitaGioco } from '../types';
    Il poker NON passa di qui (ha il suo modello).
 ══════════════════════════════════════════════════════ */
 
+/** Dati con cui si chiude una partita (input azione store `chiudiPartita`).
+    `partecipanti` = override opzionale (sottoinsieme); `pareggio` svuota i
+    vincitori. `nomeLibero` = gioco "una tantum" per la singola partita. */
+export interface EsitoPartitaInput {
+  vincitori: number[];
+  pareggio: boolean;
+  partecipanti?: number[];
+  nomeLibero?: string;
+}
+
 /** Nuova sessione programmabile (stato 'pre'). `ora` = ora programmata. */
 export function nuovaSessioneGioco(
   id: number,
