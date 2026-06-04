@@ -120,7 +120,8 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 4.6 **Layer-dati classifiche/storico** (ri-scopata 2026-06-04 (f)): SOLO utils testabili — espone il
    **poker in un modello-riga unificato** (col **netto €**) e la **logica filtri** (gioco + nome),
    **senza toccare la UI vecchia**. Sblocca "poker inline" + filtro-gioco-storico, ma la UI arriva col
-   #4.7 (che ci costruisce sopra → niente lavoro buttato). Test-first. Sonnet. Vedi `DECISIONI.md` (d)+(f).
+   #4.7 (che ci costruisce sopra → niente lavoro buttato). Test-first. Sonnet.
+   Prompt: `MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`. Vedi `DECISIONI.md` (d)+(f).
 4.7 **Componenti condivisi Classifica/Storico + nickname + normalizzazione** (2026-06-04 (e)+(f)):
    sul layer-dati del #4.6, **UN** componente Classifica + **UNO** Storico per TUTTI i contesti
    (Personale/lega/poker-pers/poker-lega), **parametrici sul tipo** (poker = netto+% ; altri = %).
