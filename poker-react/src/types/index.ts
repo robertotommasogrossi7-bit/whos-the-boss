@@ -201,6 +201,7 @@ export interface Lega {
   sessioniGioco?: SessioneGioco[];
   _sgid?: number;                 // auto-increment id sessione gioco
   monoGiocoId?: string;           // (predisposizione M2d) lega mono-gioco: id del solo gioco attivo (admin/post-backend)
+  adminIds?: number[];            // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
 }
 
 /* ─── DATABASE (localStorage) ─── */
