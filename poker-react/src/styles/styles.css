@@ -1982,3 +1982,24 @@ button.ui-listrow:active { transform: scale(.99); }
    specifico + più avanti nel file). */
 .cla-num.pos { color: var(--green); }
 .cla-num.neg { color: var(--red); }
+
+/* Box ricerca nome (FiltroNome) */
+.cla-search {
+  position: relative; display: flex; align-items: center; margin-bottom: 12px;
+}
+.cla-search-input {
+  flex: 1; min-height: 42px; padding: 9px 38px 9px 13px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 15px; color: var(--text); background: var(--surface-2);
+}
+.cla-search-input:focus { outline: none; border-color: var(--accent); }
+.cla-search-clear {
+  position: absolute; right: 8px; display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: none; border-radius: 999px;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.cla-search-clear:active { color: var(--text); }
+
+/* Match del filtro nome: evidenza SENZA nascondere (semantica (f)).
+   Bordo sinistro accentato, visibile anche sulla riga leader. */
+.cla-row--match { box-shadow: inset 3px 0 0 var(--accent); }

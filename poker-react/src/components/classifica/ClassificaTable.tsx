@@ -1,5 +1,5 @@
 import { euro } from '../../utils/format';
-import type { ClassificaU, RigaClassificaU } from '../../utils/classifiche';
+import { ordinaMatchInCima, rigaMatchaNome, type ClassificaU, type RigaClassificaU } from '../../utils/classifiche';
 import { Avatar } from '../ui';
 import { IconCrown } from '../icons';
 
@@ -10,10 +10,13 @@ import { IconCrown } from '../icons';
    - 'soldi' (poker):  # | Giocatore | Part. | Vitt. | % | Netto
    - 'punti' (giochi): # | Giocatore | % vinte | Sess.
    Solo presentazione: i dati e l'ordine arrivano già pronti dal layer-dati.
+   Filtro nome (#4.6 ordinaMatchInCima): porta i match in cima SENZA nasconderli
+   e SENZA falsare il numero di posizione (il # resta il rank reale per KPI).
 ══════════════════════════════════════════════════════ */
 
 interface Props {
   classifica: ClassificaU;
+  query?: string;
 }
 
 /** Una riga ha "giocato" qualcosa? (per stingere le righe a zero) */
@@ -23,9 +26,17 @@ function rigaHaDati(r: RigaClassificaU): boolean {
     : r.kpi.stats.partiteGiocate > 0;
 }
 
-export default function ClassificaTable({ classifica }: Props) {
+export default function ClassificaTable({ classifica, query = '' }: Props) {
   const { tipo, righe } = classifica;
   const soldi = tipo === 'soldi';
+
+  // Rank REALE = posizione nell'ordine per KPI (prima del match-in-cima).
+  const rankById = new Map<number, number>();
+  righe.forEach((r, i) => rankById.set(r.idNome, i + 1));
+
+  // Display order: match in cima (non nasconde nessuno). Query vuota → invariato.
+  const ordinate = ordinaMatchInCima(righe, query);
+  const haQuery  = query.trim().length > 0;
 
   return (
     <div className={`cla-table${soldi ? ' cla-table--soldi' : ''}`}>
@@ -47,16 +58,17 @@ export default function ClassificaTable({ classifica }: Props) {
         )}
       </div>
 
-      {righe.map((r, i) => (
+      {ordinate.map(r => (
         <div
           key={r.idNome}
           className={[
             'cla-row',
             r.isLeader     ? 'cla-row--leader' : '',
             !rigaHaDati(r) ? 'cla-row--zero'   : '',
+            haQuery && rigaMatchaNome(r, query) ? 'cla-row--match' : '',
           ].filter(Boolean).join(' ')}
         >
-          <div className="cla-pos">{i + 1}</div>
+          <div className="cla-pos">{rankById.get(r.idNome)}</div>
           <div className="cla-player">
             {r.isLeader
               ? <span className="cla-crown"><IconCrown size={14} /></span>
