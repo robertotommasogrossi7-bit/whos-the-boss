@@ -52,9 +52,10 @@ Il metodo (scritto in **[`METODO.md`](METODO.md)**) in breve:
 Così la storia dei commit non è solo codice — è il racconto di *come* è stato costruito. Per
 questo il processo fa parte del repo.
 
-> **Nota onesta:** l'implementazione è in gran parte scritta dall'AI; l'umano possiede
-> architettura, decisioni di prodotto, UX e review. Questo repo è uno studio di quel workflow,
-> non una pretesa di codice scritto a mano.
+> **Costruita apertamente con l'AI — e ne vado fiero.** L'implementazione è in gran parte scritta
+> dall'AI; io possiedo architettura, decisioni di prodotto, UX e review. Non lo nascondo, lo
+> sfoggio — la storia dei commit accredita perfino i co-autori AI. Questo repo parla tanto del
+> *metodo* quanto dell'app.
 
 ---
 

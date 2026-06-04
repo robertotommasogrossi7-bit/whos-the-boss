@@ -59,9 +59,10 @@ The method (written up in **[`METODO.md`](METODO.md)**) in a nutshell:
 So the commit history isn't just code — it's a record of *how* it was built. That's why the
 process is part of the repo.
 
-> **Honest note:** the implementation is largely AI-written; the human owns architecture,
-> product decisions, UX and review. This repo is a study of that workflow — not a claim of
-> hand-written code.
+> **Built openly with AI — and proud of it.** The implementation is largely AI-written; I own
+> the architecture, product decisions, UX and review. I'm not hiding it, I'm showcasing it —
+> the commit history even credits the AI co-authors. This repo is as much about *the method* as
+> about the app.
 
 ---
 
