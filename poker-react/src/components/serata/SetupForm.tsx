@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { oggi } from '../../utils/format';
+import { idBloccatiInclusi } from '../../utils/personale';
 import { suggerisciTorneo, nuovoGiocatoreSessione, creaSessione } from '../../utils/torneo';
 import type { TorneoSetupConfig } from '../../utils/torneo';
 import ConfigCash from './ConfigCash';
@@ -9,6 +10,7 @@ import { IconWarning, IconCoins, IconTrophy } from '../icons';
 
 export default function SetupForm() {
   const lega              = useStore(selectCurrentLega);
+  const utente            = useStore(s => s.utente);
   const setupModalita     = useStore(s => s.setupModalita);
   const setupPartIds      = useStore(s => s.setupPartIds);
   const setSetupModalita  = useStore(s => s.setSetupModalita);
@@ -56,14 +58,19 @@ export default function SetupForm() {
     );
   }
 
+  /* #4.5: nel Personale l'id "sei tu" è sempre incluso e non deselezionabile.
+     Lo uniamo a setupPartIds così resta spuntato anche se non è nel Set. */
+  const bloccati = idBloccatiInclusi(lega, utente?.username);
+  const isSel = (id: number) => setupPartIds.has(id) || bloccati.includes(id);
+
   function avvia() {
     if (!data)               { toast('Inserisci la data'); return; }
     if (!oraInizio)          { toast("Inserisci l'ora di inizio"); return; }
-    if (setupPartIds.size < 2) { toast('Seleziona almeno 2 partecipanti'); return; }
 
     const giocatori = lega!.nomi
-      .filter(n => setupPartIds.has(n.id))
+      .filter(n => isSel(n.id))
       .map(n => nuovoGiocatoreSessione(n.id));
+    if (giocatori.length < 2) { toast('Seleziona almeno 2 partecipanti'); return; }
 
     const sess = creaSessione(
       data, oraInizio, oraFine, buyIn,
@@ -150,15 +157,20 @@ export default function SetupForm() {
       <div className="card">
         <div className="card-title">Partecipanti alla serata</div>
         <div className="part-pill-grid">
-          {lega.nomi.map(n => (
-            <button
-              key={n.id}
-              className={`part-pill${setupPartIds.has(n.id) ? ' selected' : ''}`}
-              onClick={() => toggleSetupPartId(n.id)}
-            >
-              {n.nome}
-            </button>
-          ))}
+          {lega.nomi.map(n => {
+            const bloccato = bloccati.includes(n.id);
+            return (
+              <button
+                key={n.id}
+                className={`part-pill${isSel(n.id) ? ' selected' : ''}${bloccato ? ' part-pill--locked' : ''}`}
+                onClick={() => toggleSetupPartId(n.id)}
+                disabled={bloccato}
+                title={bloccato ? 'Sei tu — sempre incluso nel Personale' : undefined}
+              >
+                {n.nome}
+              </button>
+            );
+          })}
         </div>
         <p className="help-note">
           Tocca per selezionare chi è presente stasera (potrai aggiungere altri durante la serata).

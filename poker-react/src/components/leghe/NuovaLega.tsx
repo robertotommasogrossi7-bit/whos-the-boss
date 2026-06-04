@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { migrateLega } from '../../utils/migrations';
+import { normalizzaNome } from '../../utils/normalizzaNome';
 import { IconUsers, IconClose } from '../icons';
 import type { Lega } from '../../types';
 
@@ -11,6 +12,10 @@ export default function NuovaLega() {
   const dbLid    = useStore(s => s.db._lid);
   const addLega  = useStore(s => s.addLega);
   const setCurrentLega = useStore(s => s.setCurrentLega);
+  const utente   = useStore(s => s.utente);
+
+  // #4.5: il creatore è sempre incluso (e unico admin) della lega.
+  const tuoNome = utente?.username?.trim() ?? '';
 
   const [foto, setFoto] = useState('');
   const [nome, setNome] = useState('');
@@ -44,9 +49,15 @@ export default function NuovaLega() {
 
     const nomiList: Lega['nomi'] = [];
     let nid = 1;
+    // #4.5: tu sei sempre il primo giocatore (e l'unico admin) della lega.
+    let tuoId: number | null = null;
+    if (tuoNome) {
+      tuoId = nid;
+      nomiList.push({ id: nid++, nome: tuoNome });
+    }
     partecipanti.forEach(p => {
       const v = p.trim();
-      if (v && !nomiList.some(n => n.nome.toLowerCase() === v.toLowerCase())) {
+      if (v && !nomiList.some(n => normalizzaNome(n.nome) === normalizzaNome(v))) {
         nomiList.push({ id: nid++, nome: v });
       }
     });
@@ -61,6 +72,8 @@ export default function NuovaLega() {
       serate_bg: [],
       _nid: nid,
       _pid: 1,
+      // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
+      adminIds: tuoId != null ? [tuoId] : undefined,
     };
     // Inizializza subito i campi multigioco (sessioniGioco/_sgid/personale),
     // così la lega è pronta senza aspettare la migrazione al prossimo avvio.
@@ -115,6 +128,12 @@ export default function NuovaLega() {
 
         <div className="card">
           <div className="card-title">Partecipanti</div>
+          {tuoNome && (
+            <div className="nl-tu-row">
+              <span className="nl-tu-nome">{tuoNome}</span>
+              <span className="badge-sei-tu">sei tu</span>
+            </div>
+          )}
           {partecipanti.map((val, idx) => (
             <div className="nuovo-part-row" key={idx}>
               <input
@@ -140,6 +159,11 @@ export default function NuovaLega() {
           >
             + Aggiungi partecipante
           </button>
+          {tuoNome && (
+            <p className="help-note">
+              Crei tu la lega: sei incluso come admin. Potrai non partecipare alle singole serate.
+            </p>
+          )}
         </div>
 
         <button className="btn btn-green btn-block" onClick={creaLega}>

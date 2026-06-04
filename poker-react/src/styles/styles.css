@@ -1943,3 +1943,30 @@ button.ui-listrow:active { transform: scale(.99); }
 .cla-ctx-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
 .cla-ctx-stats span:first-child { font-size: 15px; font-weight: 800; color: var(--accent); }
 .cla-ctx-sub { font-size: 11px; color: var(--text-muted); }
+
+/* ─── "SEI TU" — utente-giocatore (#4.5) ─── */
+/* Badge accanto al nome che corrisponde all'utente loggato (bandierina rossa). */
+.badge-sei-tu {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; white-space: nowrap;
+  color: var(--danger); background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  padding: 2px 8px; border-radius: 999px; line-height: 1.5;
+}
+
+/* Chip/pill bloccati nel picker: spuntati e non deselezionabili (il tuo
+   record nel Personale). Restano col look "selected", solo non cliccabili. */
+.part-pill--locked,
+.pick-chip--locked { cursor: default; opacity: 1; }
+.part-pill:disabled,
+.pick-chip:disabled { cursor: default; }
+
+/* Riga "sei tu" in NuovaLega: creatore pre-incluso, non rimovibile. */
+.nl-tu-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 12px; margin-bottom: 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.nl-tu-nome { font-size: 15px; font-weight: 700; color: var(--text); }
