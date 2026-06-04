@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { sommaStats, classificaGioco, statsPersonaCrossContesto } from './classifiche';
+import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata, classificaPokerCrossContesto, rigaMatchaNome, ordinaMatchInCima, type RigaClassificaU } from './classifiche';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
-import type { GiocoLega, SessioneGioco, PartitaGioco, Lega, NomeGiocatore } from '../types';
+import type { GiocoLega, SessioneGioco, PartitaGioco, Lega, NomeGiocatore, Partita, GiocatorePartita } from '../types';
 
 const A = 1, B = 2, C = 3;
 
@@ -36,14 +36,33 @@ function mkLega(
   id: number,
   nomi: NomeGiocatore[],
   sessioni: SessioneGioco[],
-  opts: { personale?: boolean; nome?: string } = {},
+  opts: { personale?: boolean; nome?: string; partite?: Partita[] } = {},
 ): Lega {
   return {
     id, nome: opts.nome ?? `Lega ${id}`, foto: '', nomi,
-    partite: [], sessioneAttiva: undefined, serate_bg: [],
+    partite: opts.partite ?? [], sessioneAttiva: undefined, serate_bg: [],
     _nid: 10, _pid: 10,
     sessioniGioco: sessioni,
     personale: opts.personale ?? false,
+  };
+}
+
+/* ── builder poker (Partita / GiocatorePartita) ── */
+
+function gpok(id_nome: number, netto: number, vincitore = false): GiocatorePartita {
+  return {
+    id_nome, entrate: 0, ricarica_fatta: 0, extra: 0, soldi_ricevuti: 0,
+    fiches_finali: 0, netto_finale: netto, premio: 0, vincitore,
+    buy_in_pagato: true, extra_pagato: false, ricariche: [],
+    pagamenti_effettuati: [], pagamenti_ricevuti: [],
+    posizione_finale: null, add_on_fatto: false, add_on_pagato: false,
+  };
+}
+
+function ppok(id: number, data: string, giocatori: GiocatorePartita[]): Partita {
+  return {
+    id, buy_in: 25, data, ora_inizio: '21:00', ora_fine: '00:00',
+    modalita: 'cash', giocatori, settlements: [],
   };
 }
 
@@ -255,5 +274,248 @@ describe('statsPersonaCrossContesto', () => {
     // Solo la sessione chiusa conta
     expect(result.totale.sessioniGiocate).toBe(1);
     expect(result.totale.partiteGiocate).toBe(1);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   classificaPoker (#4.6) — estratta da TabClassifica
+══════════════════════════════════════════════════════ */
+
+describe('classificaPoker', () => {
+  const nomiABC = [
+    { id: A, nome: 'Alice' },
+    { id: B, nome: 'Bob' },
+    { id: C, nome: 'Carlo' },
+  ];
+
+  it('aggrega partite/vittorie/netto per id_nome', () => {
+    const partite = [
+      ppok(1, '2026-06-01', [gpok(A, 30, true), gpok(B, -30)]),
+      ppok(2, '2026-06-02', [gpok(A, -10), gpok(B, 10, true)]),
+    ];
+    const righe = classificaPoker(partite, nomiABC);
+    const rA = righe.find(r => r.idNome === A)!;
+    expect(rA.kpi).toEqual({ tipo: 'soldi', partiteGiocate: 2, partiteVinte: 1, percVittorie: 50, netto: 20 });
+    const rB = righe.find(r => r.idNome === B)!;
+    expect(rB.kpi.tipo === 'soldi' && rB.kpi.netto).toBe(-20);
+  });
+
+  it('ordina per netto desc; leader = primo (netto più alto)', () => {
+    const partite = [
+      ppok(1, '2026-06-01', [gpok(A, 5, true), gpok(B, 50, true), gpok(C, -55)]),
+    ];
+    const righe = classificaPoker(partite, nomiABC);
+    expect(righe.map(r => r.idNome)).toEqual([B, A, C]); // 50, 5, -55
+    expect(righe[0]!.isLeader).toBe(true);
+    expect(righe.filter(r => r.isLeader).length).toBe(1);
+  });
+
+  it('include solo chi ha giocato (non tutti i nomi della lega)', () => {
+    const partite = [ppok(1, '2026-06-01', [gpok(A, 10, true), gpok(B, -10)])];
+    const righe = classificaPoker(partite, nomiABC); // C non ha giocato
+    expect(righe.map(r => r.idNome).sort()).toEqual([A, B]);
+  });
+
+  it('netto negativo gestito (perdente in coda)', () => {
+    const partite = [ppok(1, '2026-06-01', [gpok(A, -100), gpok(B, 100, true)])];
+    const righe = classificaPoker(partite, nomiABC);
+    expect(righe[righe.length - 1]!.idNome).toBe(A);
+    const rA = righe.find(r => r.idNome === A)!;
+    expect(rA.kpi.tipo === 'soldi' && rA.kpi.netto).toBe(-100);
+  });
+
+  it('range data: filtra le partite fuori intervallo', () => {
+    const partite = [
+      ppok(1, '2026-05-01', [gpok(A, 100, true), gpok(B, -100)]),
+      ppok(2, '2026-06-15', [gpok(A, -20), gpok(B, 20, true)]),
+    ];
+    const righe = classificaPoker(partite, nomiABC, { from: '2026-06-01', to: '2026-06-30' });
+    const rA = righe.find(r => r.idNome === A)!;
+    expect(rA.kpi).toEqual({ tipo: 'soldi', partiteGiocate: 1, partiteVinte: 0, percVittorie: 0, netto: -20 });
+  });
+
+  it('lega senza partite poker → classifica vuota, nessun leader', () => {
+    const righe = classificaPoker([], nomiABC);
+    expect(righe).toEqual([]);
+  });
+
+  it('nome sconosciuto (id non in idNomi) → "?"', () => {
+    const partite = [ppok(1, '2026-06-01', [gpok(99, 10, true)])];
+    const righe = classificaPoker(partite, nomiABC);
+    expect(righe[0]!.nome).toBe('?');
+  });
+
+  it('percVittorie arrotondata a 1 decimale (1/3)', () => {
+    const partite = [
+      ppok(1, '2026-06-01', [gpok(A, 10, true)]),
+      ppok(2, '2026-06-02', [gpok(A, -5)]),
+      ppok(3, '2026-06-03', [gpok(A, -5)]),
+    ];
+    const righe = classificaPoker(partite, nomiABC);
+    expect(righe[0]!.kpi.tipo === 'soldi' && righe[0]!.kpi.percVittorie).toBe(33.3);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   classificaGiocoU + classificaUnificata (#4.6)
+══════════════════════════════════════════════════════ */
+
+describe('classificaGiocoU', () => {
+  it('wrappa classificaGioco: kpi punti con le stesse stats', () => {
+    const sess = [sessione(1, [A, B], [partita(1, [A]), partita(2, [A]), partita(3, [B])])];
+    const g = gioco();
+    const righeU = classificaGiocoU(g, sess, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }]);
+    const righe  = classificaGioco(g, sess, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }]);
+    // stesso ordine, stesso leader
+    expect(righeU.map(r => r.idNome)).toEqual(righe.map(r => r.idNome));
+    const uA = righeU.find(r => r.idNome === A)!;
+    expect(uA.kpi.tipo).toBe('punti');
+    expect(uA.kpi.tipo === 'punti' && uA.kpi.stats).toEqual(calcolaStatsGioco(g, sess, A));
+    expect(uA.isLeader).toBe(true);
+  });
+});
+
+describe('classificaUnificata (dispatcher poker/gioco)', () => {
+  it('giocoId "poker" → tipo soldi, righe da lega.partite', () => {
+    const partite = [ppok(1, '2026-06-01', [gpok(A, 40, true), gpok(B, -40)])];
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [], { partite });
+    const cl = classificaUnificata(lega, 'poker');
+    expect(cl.tipo).toBe('soldi');
+    expect(cl.righe[0]!.idNome).toBe(A);
+    expect(cl.righe[0]!.kpi.tipo).toBe('soldi');
+  });
+
+  it('giocoId di un gioco → tipo punti, solo sessioni chiuse di quel gioco', () => {
+    const sScopa = sessione(1, [A, B], [partita(1, [A]), partita(2, [A])], 'scopa');
+    const sBrisc = sessione(2, [A, B], [partita(3, [B])], 'briscola');
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [sScopa, sBrisc]);
+    const cl = classificaUnificata(lega, 'scopa');
+    expect(cl.tipo).toBe('punti');
+    const rA = cl.righe.find(r => r.idNome === A)!;
+    // solo scopa: A ha 2 partite giocate (la briscola non conta)
+    expect(rA.kpi.tipo === 'punti' && rA.kpi.stats.partiteGiocate).toBe(2);
+  });
+
+  it('giocoId sconosciuto → classifica punti vuota', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], []);
+    const cl = classificaUnificata(lega, 'gioco-inesistente');
+    expect(cl).toEqual({ tipo: 'punti', righe: [] });
+  });
+
+  it('poker senza partite → soldi, righe vuote', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], []);
+    const cl = classificaUnificata(lega, 'poker');
+    expect(cl.tipo).toBe('soldi');
+    expect(cl.righe).toEqual([]);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   classificaPokerCrossContesto (#4.6) — poker globale per nome
+══════════════════════════════════════════════════════ */
+
+describe('classificaPokerCrossContesto', () => {
+  it('aggrega netto/partite/vittorie su più leghe per nome', () => {
+    // Personale: Alice +30 (1 partita vinta)
+    const legaP = mkLega(10, [{ id: A, nome: 'Alice' }], [], {
+      personale: true, nome: 'Personale',
+      partite: [ppok(1, '2026-06-01', [gpok(A, 30, true)])],
+    });
+    // Lega amici: Alice -10 (1 partita persa) e +50 (vinta)
+    const legaL = mkLega(20, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [], {
+      partite: [
+        ppok(2, '2026-06-02', [gpok(A, -10), gpok(B, 10, true)]),
+        ppok(3, '2026-06-03', [gpok(A, 50, true), gpok(B, -50)]),
+      ],
+    });
+    const r = classificaPokerCrossContesto('Alice', [legaP, legaL]);
+    expect(r.perContesto.length).toBe(2);
+    expect(r.totale.partite).toBe(3);
+    expect(r.totale.vittorie).toBe(2);
+    expect(r.totale.netto).toBe(70); // 30 - 10 + 50
+    expect(r.totale.percVittorie).toBe(66.7); // 2/3
+  });
+
+  it('salta i contesti dove il nome è assente', () => {
+    const legaConAlice   = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 5, true)])] });
+    const legaSenzaAlice = mkLega(20, [{ id: B, nome: 'Bob' }], [], { partite: [ppok(2, '2026-06-02', [gpok(B, 5, true)])] });
+    const r = classificaPokerCrossContesto('Alice', [legaConAlice, legaSenzaAlice]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.totale.netto).toBe(5);
+  });
+
+  it('match per nome normalizzato (case + accenti)', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'josé' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 12, true)])] });
+    const r = classificaPokerCrossContesto('JOSE', [lega]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.totale.netto).toBe(12);
+  });
+
+  it('nome presente ma 0 partite poker → contesto incluso a zero', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [] });
+    const r = classificaPokerCrossContesto('Alice', [lega]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.perContesto[0]!.partite).toBe(0);
+    expect(r.totale.percVittorie).toBe(0);
+  });
+
+  it('lega personale etichettata "Personale"', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], [], { personale: true, nome: 'Personale', partite: [ppok(1, '2026-06-01', [gpok(A, 1, true)])] });
+    const r = classificaPokerCrossContesto('Alice', [lega]);
+    expect(r.perContesto[0]!.personale).toBe(true);
+    expect(r.perContesto[0]!.legaNome).toBe('Personale');
+  });
+
+  it('nome vuoto → totale a zero, perContesto vuoto', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 9, true)])] });
+    const r = classificaPokerCrossContesto('   ', [lega]);
+    expect(r.perContesto).toEqual([]);
+    expect(r.totale).toEqual({ netto: 0, partite: 0, vittorie: 0, percVittorie: 0 });
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   filtro per nome — CLASSIFICA (#4.6)
+══════════════════════════════════════════════════════ */
+
+function rigaU(idNome: number, nome: string): RigaClassificaU {
+  return { idNome, nome, isLeader: false, kpi: { tipo: 'punti', stats: mkStats() } };
+}
+
+describe('rigaMatchaNome', () => {
+  it('substring: "giuli" matcha "Giulia"', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Giulia'), 'giuli')).toBe(true);
+  });
+  it('accenti/maiuscole tollerati', () => {
+    expect(rigaMatchaNome(rigaU(A, 'José'), 'jose')).toBe(true);
+    expect(rigaMatchaNome(rigaU(A, 'ANNA'), 'ann')).toBe(true);
+  });
+  it('non-match → false', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), 'zelda')).toBe(false);
+  });
+  it('query vuota → true', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), '')).toBe(true);
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), '   ')).toBe(true);
+  });
+});
+
+describe('ordinaMatchInCima', () => {
+  it('porta i match in cima, partizione stabile (ordine preservato)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia'), rigaU(3, 'Gianni'), rigaU(4, 'Carla')];
+    const out = ordinaMatchInCima(righe, 'gi');
+    // match: Giulia(2), Gianni(3) nel loro ordine; poi Bob(1), Carla(4)
+    expect(out.map(r => r.idNome)).toEqual([2, 3, 1, 4]);
+  });
+  it('non nasconde nessuno (stessa lunghezza)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia')];
+    expect(ordinaMatchInCima(righe, 'gi').length).toBe(2);
+  });
+  it('query vuota → invariato (stesso riferimento)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia')];
+    expect(ordinaMatchInCima(righe, '')).toBe(righe);
+  });
+  it('nessun match → ordine invariato', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Carla')];
+    expect(ordinaMatchInCima(righe, 'zzz').map(r => r.idNome)).toEqual([1, 2]);
   });
 });
