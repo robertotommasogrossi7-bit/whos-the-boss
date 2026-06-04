@@ -1,17 +1,25 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { classificaGioco, statsPersonaCrossContesto, resolveGiocoGlobale, resolveGiocoLega } from '../../utils/classifiche';
+import {
+  classificaUnificata, classificaPokerCrossContesto, statsPersonaCrossContesto,
+  resolveGiocoGlobale, type ClassificaU,
+} from '../../utils/classifiche';
 import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
-import { GameIcon, IconCrown, IconTrophy, IconChevronDown, IconChevronUp } from '../icons';
-import { Avatar, Card, EmptyState } from '../ui';
+import { euroSigned } from '../../utils/format';
+import { GameIcon, IconTrophy, IconChevronDown, IconChevronUp, IconChevronRight } from '../icons';
+import { Card, EmptyState } from '../ui';
 import GameBar from './GameBar';
+import ClassificaTable from '../classifica/ClassificaTable';
+import FiltroNome from '../classifica/FiltroNome';
 
-/* CLASSIFICA globale / Personale (M4) — scheda "Classifica" della shell.
-   SPEC §5/§8 + DECISIONI 2026-06-04.
-   - GameBar in cima (filtro gioco persiste tra schermate).
-   - "La tua situazione": totale aggregato persona su Personale+leghe + breakdown.
-   - "Classifica Personale": standings nella lega Personale per quel gioco.
-   - Avviso identità per nome (pre-backend). Poker: nota separata. */
+/* CLASSIFICA globale / Personale (#4.7a) — scheda "Classifica" della shell.
+   Tutto PARAMETRICO sul gioco della GameBar (poker incluso, niente più
+   EmptyState di solo-rimando):
+   - "La tua situazione": poker → classificaPokerCrossContesto (netto+%+partite),
+     giochi → statsPersonaCrossContesto (%+partite+sess); breakdown per contesto.
+   - "Classifica Personale": classificaUnificata(Personale, gioco) → ClassificaTable.
+   - Filtro nome (match in cima), avviso identità, link rapido alla schermata poker. */
 export default function ClassificaShell() {
   const giocoFiltro = useStore(s => s.giocoFiltro);
   const utente      = useStore(s => s.utente);
@@ -19,30 +27,15 @@ export default function ClassificaShell() {
 
   const [persona,         setPersona]         = useState(utente?.username ?? '');
   const [breakdownAperto, setBreakdownAperto] = useState(false);
+  const [query,           setQuery]           = useState('');
 
-  const gioco = resolveGiocoGlobale(giocoFiltro);
+  const isPoker       = giocoFiltro === 'poker';
+  const gioco         = isPoker ? null : resolveGiocoGlobale(giocoFiltro);
   const legaPersonale = leghe.find(l => l.personale);
-
   const icona = (id: string) => GIOCHI_PREIMPOSTATI.find(g => g.id === id)?.icona ?? 'mazzo';
 
-  /* ── Poker selezionato: rimanda alla classifica di lega ── */
-  if (giocoFiltro === 'poker') {
-    return (
-      <>
-        <GameBar />
-        <div className="tab-content">
-          <EmptyState
-            icon={<IconTrophy size={48} />}
-            title="Classifica Poker"
-            hint="La classifica poker (per netto €) si trova nella scheda Classifica di ogni lega poker."
-          />
-        </div>
-      </>
-    );
-  }
-
-  /* ── Nessun gioco valido (non dovrebbe accadere) ── */
-  if (!gioco) {
+  /* ── Gioco non valido (e non poker) ── */
+  if (!isPoker && !gioco) {
     return (
       <>
         <GameBar />
@@ -53,23 +46,22 @@ export default function ClassificaShell() {
     );
   }
 
-  /* ── Sezione 1: totale aggregato della persona ── */
-  const { totale, perContesto } = persona.trim()
-    ? statsPersonaCrossContesto(persona.trim(), gioco, leghe)
-    : { totale: null, perContesto: [] };
+  const nomeGioco  = isPoker ? 'Poker' : gioco!.nome;
+  const iconaGioco = isPoker ? 'picche' : icona(gioco!.id);
 
-  /* ── Sezione 2: classifica Personale ── */
-  const sessPersonaleChiuse = legaPersonale
-    ? (legaPersonale.sessioniGioco ?? []).filter(s => s.stato === 'chiusa' && s.giocoId === gioco.id)
-    : [];
-  const righePersonale = legaPersonale
-    ? classificaGioco(
-        resolveGiocoLega(gioco.id, legaPersonale) ?? gioco,
-        sessPersonaleChiuse,
-        legaPersonale.nomi,
-      )
-    : [];
-  const haPersonale = righePersonale.some(r => r.stats.partiteGiocate > 0);
+  /* ── Sezione 1: La tua situazione (cross-contesto per nome) ── */
+  const personaTrim = persona.trim();
+  const pokerCross = isPoker && personaTrim ? classificaPokerCrossContesto(personaTrim, leghe) : null;
+  const giocoCross = !isPoker && personaTrim ? statsPersonaCrossContesto(personaTrim, gioco!, leghe) : null;
+  const haSituazione = (pokerCross?.perContesto.length ?? 0) > 0 || (giocoCross?.perContesto.length ?? 0) > 0;
+
+  /* ── Sezione 2: Classifica Personale (sul condiviso) ── */
+  const classificaPers: ClassificaU = legaPersonale
+    ? classificaUnificata(legaPersonale, isPoker ? 'poker' : gioco!.id)
+    : { tipo: isPoker ? 'soldi' : 'punti', righe: [] };
+  const haPersonale = classificaPers.righe.some(r =>
+    r.kpi.tipo === 'soldi' ? r.kpi.partiteGiocate > 0 : r.kpi.stats.partiteGiocate > 0,
+  );
 
   return (
     <>
@@ -90,60 +82,82 @@ export default function ClassificaShell() {
           />
         </div>
 
-        {totale && perContesto.length > 0 ? (
+        {haSituazione ? (
           <>
-            {/* Prima riga: totale aggregato */}
             <Card className="cla-totale-card">
               <div className="cla-totale-title">
-                <span className="cla-totale-ico"><GameIcon icona={icona(gioco.id)} size={18} /></span>
-                {gioco.nome} — tutti i contesti
+                <span className="cla-totale-ico"><GameIcon icona={iconaGioco} size={18} /></span>
+                {nomeGioco} — tutti i contesti
               </div>
               <div className="cla-totale-stats">
-                <div className="cla-totale-stat">
-                  <span className="cla-totale-val">{totale.percVittorie}%</span>
-                  <span className="cla-totale-lbl">% vinte</span>
-                </div>
-                <div className="cla-totale-stat">
-                  <span className="cla-totale-val">{totale.partiteGiocate}</span>
-                  <span className="cla-totale-lbl">partite</span>
-                </div>
-                <div className="cla-totale-stat">
-                  <span className="cla-totale-val">{totale.sessioniVinte}</span>
-                  <span className="cla-totale-lbl">sess. vinte</span>
-                </div>
+                {isPoker ? (
+                  <>
+                    <div className="cla-totale-stat">
+                      <span className={`cla-totale-val ${pokerCross!.totale.netto >= 0 ? 'pos' : 'neg'}`}>{euroSigned(pokerCross!.totale.netto)}</span>
+                      <span className="cla-totale-lbl">netto €</span>
+                    </div>
+                    <div className="cla-totale-stat">
+                      <span className="cla-totale-val">{pokerCross!.totale.percVittorie}%</span>
+                      <span className="cla-totale-lbl">% vinte</span>
+                    </div>
+                    <div className="cla-totale-stat">
+                      <span className="cla-totale-val">{pokerCross!.totale.partite}</span>
+                      <span className="cla-totale-lbl">partite</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="cla-totale-stat">
+                      <span className="cla-totale-val">{giocoCross!.totale.percVittorie}%</span>
+                      <span className="cla-totale-lbl">% vinte</span>
+                    </div>
+                    <div className="cla-totale-stat">
+                      <span className="cla-totale-val">{giocoCross!.totale.partiteGiocate}</span>
+                      <span className="cla-totale-lbl">partite</span>
+                    </div>
+                    <div className="cla-totale-stat">
+                      <span className="cla-totale-val">{giocoCross!.totale.sessioniVinte}</span>
+                      <span className="cla-totale-lbl">sess. vinte</span>
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
 
-            {/* Breakdown per contesto (collassabile) */}
-            <button
-              className="cla-breakdown-toggle"
-              onClick={() => setBreakdownAperto(o => !o)}
-            >
+            <button className="cla-breakdown-toggle" onClick={() => setBreakdownAperto(o => !o)}>
               <span>Dettaglio per contesto</span>
               {breakdownAperto ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
             </button>
 
             {breakdownAperto && (
               <div className="cla-breakdown">
-                {perContesto.map(ctx => (
-                  <div key={ctx.legaId} className="cla-ctx">
-                    <div className="cla-ctx-nome">
-                      {ctx.personale ? 'Personale' : ctx.legaNome}
-                    </div>
-                    <div className="cla-ctx-stats">
-                      <span>{ctx.stats.percVittorie}%</span>
-                      <span className="cla-ctx-sub">{ctx.stats.partiteGiocate} partite · {ctx.stats.sessioniVinte} sess. vinte</span>
-                    </div>
-                  </div>
-                ))}
+                {isPoker
+                  ? pokerCross!.perContesto.map(ctx => (
+                      <div key={ctx.legaId} className="cla-ctx">
+                        <div className="cla-ctx-nome">{ctx.personale ? 'Personale' : ctx.legaNome}</div>
+                        <div className="cla-ctx-stats">
+                          <span className={ctx.netto >= 0 ? 'pos' : 'neg'}>{euroSigned(ctx.netto)}</span>
+                          <span className="cla-ctx-sub">{ctx.partite} partite · {ctx.vittorie} vinte</span>
+                        </div>
+                      </div>
+                    ))
+                  : giocoCross!.perContesto.map(ctx => (
+                      <div key={ctx.legaId} className="cla-ctx">
+                        <div className="cla-ctx-nome">{ctx.personale ? 'Personale' : ctx.legaNome}</div>
+                        <div className="cla-ctx-stats">
+                          <span>{ctx.stats.percVittorie}%</span>
+                          <span className="cla-ctx-sub">{ctx.stats.partiteGiocate} partite · {ctx.stats.sessioniVinte} sess. vinte</span>
+                        </div>
+                      </div>
+                    ))}
               </div>
             )}
           </>
-        ) : persona.trim() ? (
+        ) : personaTrim ? (
           <EmptyState
             icon={<IconTrophy size={44} />}
             title={`"${persona}" non trovato`}
-            hint={`Nessuna partita a ${gioco.nome} trovata per questo nome. Controlla il nome o gioca qualche sessione.`}
+            hint={`Nessuna partita a ${nomeGioco} trovata per questo nome. Controlla il nome o gioca qualche ${isPoker ? 'serata' : 'sessione'}.`}
           />
         ) : (
           <EmptyState
@@ -153,53 +167,29 @@ export default function ClassificaShell() {
           />
         )}
 
-        {/* ── Sezione 2: classifica Personale ── */}
+        {/* ── Sezione 2: Classifica Personale ── */}
         <div className="sec-hdr sec-hdr--mt">
           <h2>Classifica Personale</h2>
-          <span>{gioco.nome}</span>
+          <span>{nomeGioco}</span>
         </div>
+
+        {isPoker && legaPersonale && (
+          <Link to={`/leghe/${legaPersonale.id}/poker/classifica`} className="cla-link-poker">
+            Apri schermata Poker <IconChevronRight size={16} />
+          </Link>
+        )}
 
         {!haPersonale ? (
           <EmptyState
             icon={<IconTrophy size={40} />}
             title="Nessuna partita Personale"
-            hint={`Gioca sessioni di ${gioco.nome} dalla Home e chiudile per vedere la classifica.`}
+            hint={`Gioca ${isPoker ? 'serate di poker' : `sessioni di ${nomeGioco}`} dalla Home e chiudile per vedere la classifica.`}
           />
         ) : (
-          <div className="cla-table">
-            <div className="cla-thead">
-              <span className="cla-th-pos">#</span>
-              <span className="cla-th-nome">Giocatore</span>
-              <span className="cla-th-num">% vinte</span>
-              <span className="cla-th-num">Sess.</span>
-            </div>
-
-            {righePersonale.map((r, i) => (
-              <div
-                key={r.idNome}
-                className={[
-                  'cla-row',
-                  r.isLeader ? 'cla-row--leader' : '',
-                  r.stats.partiteGiocate === 0 ? 'cla-row--zero' : '',
-                ].filter(Boolean).join(' ')}
-              >
-                <div className="cla-pos">{i + 1}</div>
-                <div className="cla-player">
-                  {r.isLeader
-                    ? <span className="cla-crown"><IconCrown size={14} /></span>
-                    : <span className="cla-crown-placeholder" />}
-                  <Avatar nome={r.nome} size="sm" />
-                  <span className="cla-nome">{r.nome}</span>
-                </div>
-                <div className="cla-num">
-                  {r.stats.partiteGiocate > 0 ? `${r.stats.percVittorie}%` : '—'}
-                </div>
-                <div className="cla-num">
-                  {r.stats.partiteGiocate > 0 ? r.stats.sessioniVinte : '—'}
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            <FiltroNome value={query} onChange={setQuery} />
+            <ClassificaTable classifica={classificaPers} query={query} />
+          </>
         )}
 
         {/* Avviso identità per nome (pre-backend) */}

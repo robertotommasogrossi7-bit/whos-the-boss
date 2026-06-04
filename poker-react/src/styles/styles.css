@@ -2010,3 +2010,10 @@ button.ui-listrow:active { transform: scale(.99); }
   margin: -2px 0 12px; padding: 6px 0;
   font-size: 13px; font-weight: 700; color: var(--accent); text-decoration: none;
 }
+
+/* Netto colorato in "La tua situazione" poker (card totale + breakdown).
+   Più specifico/avanti dei rispettivi default in --accent. */
+.cla-totale-val.pos { color: var(--green); }
+.cla-totale-val.neg { color: var(--red); }
+.cla-ctx-stats .pos { color: var(--green); }
+.cla-ctx-stats .neg { color: var(--red); }
