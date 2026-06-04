@@ -279,6 +279,23 @@
 - Prompt archiviato in `archivio/MULTIGIOCO_4_5_SEI_TU_PROMPT.md`.
 - **Prossima**: **#4.6** (layer-dati: poker nel modello-riga unificato + logica filtri gioco/nome).
 
+## 2026-06-04 (h) — #4.6 "layer-dati" mergiata (chat base review)
+
+- **#4.6 in `main`** (merge `3598a2e`, **138 test**, tsc+lint+build verdi). Review chat base OK
+  (lettura integrale + green check pre/post-merge). **Solo `utils/` toccati** (zero componenti), come da contratto.
+- Aggiunti (puri, testati): modello-riga unificato `RigaClassificaU`/`KpiClassifica`/`ClassificaU`
+  (discriminante **punti**=%/vittorie | **soldi**=netto); `classificaPoker` (estratta da `TabClassifica`,
+  ordina per netto), `classificaGiocoU`, `classificaUnificata` (dispatcher → **poker inline** di lega),
+  `classificaPokerCrossContesto` (poker globale per nome); `utils/storico.ts` con `VoceStorico` +
+  `vociStorico` (poker `Partita` + giochi `SessioneGioco` mescolati per data; `giocoId` assente = tutto);
+  filtri nome puri `ordinaMatchInCima` (classifica: match-in-cima) + `filtraStoricoPerNome` (storico: secco).
+- Tutto riusa `normalizzaNome` (#4.5) e `classificaGioco` (no duplicazione del calcolo).
+- **Follow-up per #4.7** (segnalato in review): allineare il **pre-esistente** `statsPersonaCrossContesto`
+  a `normalizzaNome` (oggi `.toLowerCase()`, niente accenti) — rientra nella "normalizzazione ovunque".
+- UI vecchia invariata: il "si vede" arriva col #4.7 (monta i componenti condivisi su questi dati).
+- Prompt archiviato in `archivio/MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`.
+- **Prossima**: **#4.7** (componenti condivisi + nickname). ⚠️ Grande → valutare **split** (4.7a/b/c) con l'utente.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

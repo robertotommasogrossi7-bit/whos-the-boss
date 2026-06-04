@@ -53,10 +53,10 @@ Su `main`: migrazione React (Fasi 1-5) + overlay + **settlement cash v2 +
 contributo↔premio) + **serata programmata** + **cleanup codice morto** +
 **feature tavoli COMPLETA** (T1+T2+T3) + **SPINA MULTIGIOCO COMPLETA**: M1 (modello+stats)
 → R/M2 (design system scuro + shell + Personale) → M3 (segna-partita + sezione lega a 4
-schede) → **M4** (classifiche: lega + globale persona-centrica) → **#4.5** (utente-giocatore "sei tu":
-auto-add Personale, lock partecipazione, badge, `adminIds`). Ultimo merge `6515bd5`.
+schede) → **M4** (classifiche) → **#4.5** (utente-giocatore "sei tu": auto-add Personale, lock, badge,
+`adminIds`) → **#4.6** (layer-dati: poker nel modello-riga unificato + filtri gioco/nome, puro). Ultimo merge `3598a2e`.
 Logica poker invariata, `vanillaCompatStorage` intatto.
-**95/95 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
+**138/138 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
 
 **Git ripulito (2026-05-31)**: i documenti di processo `.md` sono stati tolti dal
 versionamento (`git rm --cached`) e messi in `.gitignore`. Su GitHub ora restano
@@ -117,11 +117,11 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
    demo = un "tu" pulito), auto-add a Personale al login; nasce qui la util condivisa `normalizzaNome`
    (riusata da #4.7); creazione lega → `Lega.adminIds:[tuo id]` (solo marcatore, poteri = #7.5); il
    *tuo* nome = account/impostazioni → #8. Prompt in `archivio/MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. Vedi `DECISIONI.md` (b)+(f)+(g).
-4.6 **Layer-dati classifiche/storico** (ri-scopata 2026-06-04 (f)): SOLO utils testabili — espone il
+4.6 **Layer-dati classifiche/storico** — ✅ **FATTA e MERGIATA** (2026-06-04, merge `3598a2e`, **138 test**, ri-scopata (f)): SOLO utils testabili — espone il
    **poker in un modello-riga unificato** (col **netto €**) e la **logica filtri** (gioco + nome),
    **senza toccare la UI vecchia**. Sblocca "poker inline" + filtro-gioco-storico, ma la UI arriva col
    #4.7 (che ci costruisce sopra → niente lavoro buttato). Test-first. Sonnet.
-   Prompt: `MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`. Vedi `DECISIONI.md` (d)+(f).
+   Prompt in `archivio/MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`. Vedi `DECISIONI.md` (d)+(f)+(h).
 4.7 **Componenti condivisi Classifica/Storico + nickname + normalizzazione** (2026-06-04 (e)+(f)):
    sul layer-dati del #4.6, **UN** componente Classifica + **UNO** Storico per TUTTI i contesti
    (Personale/lega/poker-pers/poker-lega), **parametrici sul tipo** (poker = netto+% ; altri = %).
@@ -147,13 +147,13 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta** (chat base, 2026-06-04): **#4.5 sei tu FATTA e MERGIATA** (`6515bd5`,
-95 test, review chat base OK). Struttura rifiniture (DECISIONI (f)): **#4.6 = layer-dati**, **#4.7 = UI
-condivisa + nickname**. Esecuzione **una alla volta**, tutte **Sonnet** (per ognuna: prompt → chat di
-fase → review separata → merge `--no-ff`):
-1. ✅ **#4.5** (sei tu) — fatta, prompt in `archivio/`.
-2. **#4.6** (layer-dati: poker nel modello-riga unificato + filtri gioco/nome) ← **fase corrente**
-   → **#4.7** (componenti condivisi + nickname + normalizzazione).
+**Prossima azione concreta** (chat base, 2026-06-04): **#4.5 e #4.6 FATTE e MERGIATE** (`6515bd5`,
+`3598a2e`; 138 test; review chat base OK). Esecuzione **una alla volta**, tutte **Sonnet** (per ognuna:
+prompt → chat di fase → review separata → merge `--no-ff`):
+1. ✅ **#4.5** (sei tu) · ✅ **#4.6** (layer-dati) — fatte, prompt in `archivio/`.
+2. **#4.7** (componenti condivisi Classifica/Storico + filtro nome + nickname + normalizzazione) ←
+   **fase corrente**. ⚠️ Grande e UI-rischiosa (rimpiazza ~7 componenti su 4 contesti) → valutare
+   **split** in sub-fasi (4.7a classifica / 4.7b storico / 4.7c nickname). Da decidere con l'utente.
 3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
