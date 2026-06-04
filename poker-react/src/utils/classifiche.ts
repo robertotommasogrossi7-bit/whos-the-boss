@@ -29,6 +29,31 @@ export interface CrossContextoResult {
   perContesto: ContextoStats[];
 }
 
+/* ══════════════════════════════════════════════════════
+   MODELLO-RIGA UNIFICATO (Card Tracker #4.6) — layer-dati
+   Una sola forma di "riga classifica" per TUTTI i contesti, così il #4.7
+   monta UN componente parametrico sul tipo:
+   - 'punti'  → giochi non-poker: KPI = StatsGiocatore (%/vittorie)
+   - 'soldi'  → poker: KPI = netto € (+ partite/vittorie/% derivate)
+   Le righe escono GIÀ ordinate dal produttore (netto desc | %→sessVinte→partite).
+══════════════════════════════════════════════════════ */
+
+export type KpiClassifica =
+  | { tipo: 'punti'; stats: StatsGiocatore }
+  | { tipo: 'soldi'; partiteGiocate: number; partiteVinte: number; percVittorie: number; netto: number };
+
+export interface RigaClassificaU {
+  idNome:   number;
+  nome:     string;
+  isLeader: boolean;
+  kpi:      KpiClassifica;
+}
+
+export interface ClassificaU {
+  tipo:  'punti' | 'soldi'; // come ordinare + quali colonne mostra il #4.7
+  righe: RigaClassificaU[];  // GIÀ ordinate dal produttore
+}
+
 const ZERO_STATS: StatsGiocatore = {
   sessioniGiocate: 0, sessioniVinte: 0, sessioniPerse: 0, sessioniPareggio: 0,
   partiteGiocate:  0, partiteVinte:  0, partitePerse:  0, partitePareggio:  0,
