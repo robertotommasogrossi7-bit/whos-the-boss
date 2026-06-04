@@ -1,6 +1,7 @@
 import type { GiocoLega, SessioneGioco, Lega, Partita } from '../types';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import { GIOCHI_PREIMPOSTATI } from './giochi';
+import { normalizzaNome } from './normalizzaNome';
 
 /* ══════════════════════════════════════════════════════
    CLASSIFICHE (Card Tracker M4) — funzioni pure
@@ -290,4 +291,68 @@ export function classificaUnificata(lega: Lega, giocoId: string): ClassificaU {
     s => s.stato === 'chiusa' && s.giocoId === giocoId,
   );
   return { tipo: 'punti', righe: classificaGiocoU(gioco, sessioniChiuse, lega.nomi) };
+}
+
+/* ── Poker globale "La tua situazione" (#4.6), gemello soldi di
+   statsPersonaCrossContesto. Identità per NOME normalizzato (#4.5). ── */
+
+export interface ContestoPoker {
+  legaId:    number;
+  legaNome:  string;
+  personale: boolean;
+  netto:     number;
+  partite:   number;
+  vittorie:  number;
+}
+
+export interface CrossContextoPokerResult {
+  totale:      { netto: number; partite: number; vittorie: number; percVittorie: number };
+  perContesto: ContestoPoker[];
+}
+
+/**
+ * Aggrega il poker di una persona su TUTTE le leghe, matchando per
+ * `normalizzaNome` (best-effort, pre-backend). Salta i contesti dove il nome
+ * è assente; include un contesto trovato anche con 0 partite (come il gemello
+ * non-poker). La % del totale è ricalcolata sui conteggi sommati. Pura.
+ */
+export function classificaPokerCrossContesto(
+  nome:  string,
+  leghe: Lega[],
+): CrossContextoPokerResult {
+  const target = normalizzaNome(nome);
+  const perContesto: ContestoPoker[] = [];
+  let netto = 0, partite = 0, vittorie = 0;
+
+  if (target) {
+    for (const lega of leghe) {
+      const giocatore = lega.nomi.find(n => normalizzaNome(n.nome) === target);
+      if (!giocatore) continue;
+
+      let cNetto = 0, cPartite = 0, cVittorie = 0;
+      for (const p of lega.partite) {
+        for (const g of p.giocatori) {
+          if (g.id_nome !== giocatore.id) continue;
+          cPartite++;
+          if (g.vincitore) cVittorie++;
+          cNetto += g.netto_finale;
+        }
+      }
+
+      perContesto.push({
+        legaId:    lega.id,
+        legaNome:  lega.personale ? 'Personale' : lega.nome,
+        personale: lega.personale ?? false,
+        netto:     cNetto,
+        partite:   cPartite,
+        vittorie:  cVittorie,
+      });
+      netto += cNetto; partite += cPartite; vittorie += cVittorie;
+    }
+  }
+
+  return {
+    totale: { netto, partite, vittorie, percVittorie: perc1(vittorie, partite) },
+    perContesto,
+  };
 }

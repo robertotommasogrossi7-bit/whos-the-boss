@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata } from './classifiche';
+import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata, classificaPokerCrossContesto } from './classifiche';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import type { GiocoLega, SessioneGioco, PartitaGioco, Lega, NomeGiocatore, Partita, GiocatorePartita } from '../types';
 
@@ -407,5 +407,69 @@ describe('classificaUnificata (dispatcher poker/gioco)', () => {
     const cl = classificaUnificata(lega, 'poker');
     expect(cl.tipo).toBe('soldi');
     expect(cl.righe).toEqual([]);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   classificaPokerCrossContesto (#4.6) — poker globale per nome
+══════════════════════════════════════════════════════ */
+
+describe('classificaPokerCrossContesto', () => {
+  it('aggrega netto/partite/vittorie su più leghe per nome', () => {
+    // Personale: Alice +30 (1 partita vinta)
+    const legaP = mkLega(10, [{ id: A, nome: 'Alice' }], [], {
+      personale: true, nome: 'Personale',
+      partite: [ppok(1, '2026-06-01', [gpok(A, 30, true)])],
+    });
+    // Lega amici: Alice -10 (1 partita persa) e +50 (vinta)
+    const legaL = mkLega(20, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [], {
+      partite: [
+        ppok(2, '2026-06-02', [gpok(A, -10), gpok(B, 10, true)]),
+        ppok(3, '2026-06-03', [gpok(A, 50, true), gpok(B, -50)]),
+      ],
+    });
+    const r = classificaPokerCrossContesto('Alice', [legaP, legaL]);
+    expect(r.perContesto.length).toBe(2);
+    expect(r.totale.partite).toBe(3);
+    expect(r.totale.vittorie).toBe(2);
+    expect(r.totale.netto).toBe(70); // 30 - 10 + 50
+    expect(r.totale.percVittorie).toBe(66.7); // 2/3
+  });
+
+  it('salta i contesti dove il nome è assente', () => {
+    const legaConAlice   = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 5, true)])] });
+    const legaSenzaAlice = mkLega(20, [{ id: B, nome: 'Bob' }], [], { partite: [ppok(2, '2026-06-02', [gpok(B, 5, true)])] });
+    const r = classificaPokerCrossContesto('Alice', [legaConAlice, legaSenzaAlice]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.totale.netto).toBe(5);
+  });
+
+  it('match per nome normalizzato (case + accenti)', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'josé' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 12, true)])] });
+    const r = classificaPokerCrossContesto('JOSE', [lega]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.totale.netto).toBe(12);
+  });
+
+  it('nome presente ma 0 partite poker → contesto incluso a zero', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [] });
+    const r = classificaPokerCrossContesto('Alice', [lega]);
+    expect(r.perContesto.length).toBe(1);
+    expect(r.perContesto[0]!.partite).toBe(0);
+    expect(r.totale.percVittorie).toBe(0);
+  });
+
+  it('lega personale etichettata "Personale"', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], [], { personale: true, nome: 'Personale', partite: [ppok(1, '2026-06-01', [gpok(A, 1, true)])] });
+    const r = classificaPokerCrossContesto('Alice', [lega]);
+    expect(r.perContesto[0]!.personale).toBe(true);
+    expect(r.perContesto[0]!.legaNome).toBe('Personale');
+  });
+
+  it('nome vuoto → totale a zero, perContesto vuoto', () => {
+    const lega = mkLega(10, [{ id: A, nome: 'Alice' }], [], { partite: [ppok(1, '2026-06-01', [gpok(A, 9, true)])] });
+    const r = classificaPokerCrossContesto('   ', [lega]);
+    expect(r.perContesto).toEqual([]);
+    expect(r.totale).toEqual({ netto: 0, partite: 0, vittorie: 0, percVittorie: 0 });
   });
 });
