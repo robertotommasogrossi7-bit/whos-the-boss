@@ -211,6 +211,24 @@
   `resolveGiocoLega/resolveGiocoGlobale` escludono il poker (ritornano null): rivedere per
   mostrarne i dati inline. Piccola rifinitura M4/storico, **Sonnet**. Roadmap **#4.6**.
 
+## 2026-06-04 (e) — unificazione Classifica/Storico + normalizzazione nomi (refactor + feature)
+
+> Osservazione utente: "ogni cosa sta da 4 parti" (Personale, lega, poker-personale, poker-lega).
+> Classifica e Storico vanno resi COMPONENTI CONDIVISI e coerenti: una modifica deve valere ovunque.
+
+- **Componenti CONDIVISI** per **Classifica** e **Storico**, usati in TUTTI i contesti (Personale,
+  lega, poker-personale, poker-lega). Stesse **KPI**, stesso look, stesso comportamento.
+- **Filtro di ricerca per NOME ovunque** (oggi manca in lega / poker): in ogni classifica e storico.
+- **Normalizzazione del nome definita UNA volta e condivisa**: digitando "giuliA" trovi "Giulia"
+  (case-insensitive + accenti + spazi). Cambiandola in un punto vale in tutti (è un'unica funzione).
+- **Classifica personale** = "sei tu" + **tutte le leghe**: mostra le leghe dove **ci sei** e quelle
+  dove **sei stato** (con segnalazione "non ci sei più"). Dipende da #4.5.
+- **Tutto facilmente filtrabile.**
+- È in parte un **refactor DRY** (eliminare le 4 duplicazioni) + feature. Fase **Sonnet** (UI + utils condivise).
+- **Ordine**: #4.5 (sei tu) → #4.6 (storico filtro + poker inline) → #4.7 (questa unificazione).
+- Nota: oggi la classifica combinata Personale+leghe NON si "vede" perché l'utente non è un
+  giocatore (→ #4.5 la popola con "La tua situazione").
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

@@ -114,6 +114,12 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 4.6 **Rifinitura storico/classifiche** (richiesta utente 2026-06-04): manca il **filtro gioco
    nello Storico** di lega; il **poker** dev'essere visibile **inline** in Classifica/Storico
    filtrati per poker (oltre al redirect alla sottosezione, che piace). Sonnet. Vedi `DECISIONI.md` (d).
+4.7 **Unificazione Classifica/Storico + normalizzazione** (richiesta utente 2026-06-04):
+   componenti **CONDIVISI** per classifica e storico in tutti i contesti (Personale/lega/
+   poker-pers/poker-lega), stesse **KPI**; **filtro ricerca per nome OVUNQUE** con
+   **normalizzazione condivisa** (giuliA→Giulia, case/accenti/spazi, definita una volta → vale
+   ovunque); la classifica personale mostra le leghe dove **ci sei** + dove **sei stato** ("non
+   ci sei più"). Refactor DRY + feature. Sonnet. Vedi `DECISIONI.md` 2026-06-04 (e).
 5. **Soldi d'uscita** (poker, logica soldi — chat Opus): funzione pura `saldoUscita`
    + esempi-test (`USCITA_CASH_SPEC §6`) → modello/store → azioni. Primo pezzo del
    blocco poker-live (sblocca l'azione "esce" del tavolo).
@@ -131,17 +137,28 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta**: **Utente-giocatore ("sei tu")** (#4.5 — ⭐ importante): il nome
-di login diventa un giocatore reale, auto-inserito + "sei tu" (badge), bloccato-incluso nel
-Personale, membro non rimovibile nelle leghe che crei. Fase **Sonnet** (UI + store). Vedi
-`DECISIONI.md` 2026-06-04 (b). **Poi** il blocco **poker-live** (#5 soldi d'uscita → #6 tavolo
-live). Prompt #4.5 da scrivere quando dai il via.
+**Prossima azione concreta**: 🔄 **PASSAGGIO DI TESTIMONE a una chat base NUOVA** (questa si
+ritira: chat lunga, milestone multigioco chiuso). La nuova chat base:
+1. **Ri-controlla progettazione + GitHub** (repo pubblico `whos-the-boss`): `main` verde e
+   allineato, `_processo` pubblicato, README/METODO ok.
+2. Esegue le **rifiniture multigioco IN ORDINE, una alla volta**: **#4.5** (sei tu) → **#4.6**
+   (storico filtro + poker inline) → **#4.7** (unificazione classifica/storico + normalizzazione).
+   Tutte **Sonnet**; per ognuna: scrive il prompt → chat di fase → review separata → merge `--no-ff`.
+3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri**
+   → **#8 backend**.
+**Non implementare**: prima conferma il piano all'utente.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
 - **`nuovoGiocoCustom` usa id `custom-${Date.now()}`** → collisione possibile (teorica).
   Irrobustire (contatore/uuid) **quando nasce la UI giochi custom → M5** (prima nessun chiamante).
 - ~~`NuovaLega` non inizializza i campi multigioco~~ → **risolto in M3** (chiama `migrateLega`).
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
+
+## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
+- **Screenshot README**: si fanno **quando si arriva al backend** (app "tutto pronto"). Guida in
+  `docs/screenshots/README.md`. La chat base **lo ricorda** all'utente al momento giusto.
+- **Showcase aggiornato**: `_processo/` è pubblico/tracciato → committare+pushare le modifiche ai
+  doc alla chiusura di ogni fase (così GitHub resta allineato).
 
 ## Workflow del progetto
 - Branch per ogni fase (es. `multigioco-m1`), cancellato dopo il merge (il codice
