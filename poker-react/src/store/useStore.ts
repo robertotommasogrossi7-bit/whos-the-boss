@@ -10,7 +10,8 @@ import {
   nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
   type EsitoPartitaInput,
 } from '../utils/sessioneGioco';
-import { creaLegaPersonale } from '../utils/personale';
+import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
+import { èSeiTu } from '../utils/normalizzaNome';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
@@ -228,6 +229,16 @@ function readUtente(): User | null {
   }
 }
 
+/* ── #4.5: assicura che l'utente loggato sia un giocatore reale del Personale.
+   Chiamata a login/register riusciti. Difensiva: se il Personale non esiste
+   ancora (runMigrations lo crea al boot) salta senza crashare. ── */
+function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, username: string): void {
+  const personale = db.leghe.find(l => l.personale);
+  if (!personale) return;
+  const aggiornata = assicuraGiocatorePersonale(personale, username);
+  if (aggiornata !== personale) saveLega(aggiornata);
+}
+
 /* ══════════════════════════════════════════════════════
    STORAGE ADAPTER — retrocompatibile col formato vanilla
    ─────────────────────────────────────────────────────
@@ -328,6 +339,8 @@ export const useStore = create<PokerStore>()(
         const utente: User = { username: u };
         sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
         set({ utente });
+        // #4.5: "tu" diventi un giocatore reale del Personale
+        assicuraTuNelPersonale(get().db, get().saveLega, u);
         return null;
       },
 
@@ -339,6 +352,8 @@ export const useStore = create<PokerStore>()(
         const utente: User = { username: u, email: e };
         sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
         set({ utente });
+        // #4.5: "tu" diventi un giocatore reale del Personale
+        assicuraTuNelPersonale(get().db, get().saveLega, u);
         return null;
       },
 
@@ -358,6 +373,9 @@ export const useStore = create<PokerStore>()(
       setSetupModalita: (m) => set({ setupModalita: m }),
       toggleSetupPartId: (id) =>
         set(s => {
+          // #4.5: l'id "sei tu" nel Personale è bloccato-incluso → toggle no-op
+          const lega = s.db.leghe.find(l => l.id === s.db._currentLegaId);
+          if (lega && idBloccatiInclusi(lega, s.utente?.username).includes(id)) return s;
           const next = new Set(s.setupPartIds);
           if (next.has(id)) next.delete(id); else next.add(id);
           return { setupPartIds: next };
@@ -506,6 +524,13 @@ export const useStore = create<PokerStore>()(
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 'Lega non trovata';
+        // #4.5: non puoi rimuovere te stesso dal Personale
+        if (lega.personale) {
+          const rec = lega.nomi.find(n => n.id === idNome);
+          if (rec && èSeiTu(rec.nome, get().utente?.username)) {
+            return 'Non puoi rimuovere te stesso dal Personale';
+          }
+        }
         const inUso = lega.partite.some(p =>
           p.giocatori.some(g => g.id_nome === idNome),
         );
