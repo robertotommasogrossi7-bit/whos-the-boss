@@ -1,4 +1,4 @@
-import type { GiocoLega, SessioneGioco, Lega } from '../types';
+import type { GiocoLega, SessioneGioco, Lega, Partita } from '../types';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import { GIOCHI_PREIMPOSTATI } from './giochi';
 
@@ -185,4 +185,72 @@ export function resolveGiocoGlobale(giocoId: string): GiocoLega | null {
     attivo: true,
     pareggioComeVittoria: true,
   };
+}
+
+/* ══════════════════════════════════════════════════════
+   POKER NEL MODELLO-RIGA UNIFICATO (#4.6) — produttori puri
+   Estrae la logica oggi inline in components/classifica/TabClassifica.tsx
+   (aggrega lega.partite per id_nome: partite, vittorie, netto €). La UI
+   vecchia resta com'è: la rimpiazza il #4.7 leggendo da qui.
+══════════════════════════════════════════════════════ */
+
+/** Arrotonda una % a 1 decimale (0..100), come altrove (statsGiochi/sommaStats). */
+function perc1(num: number, den: number): number {
+  return den === 0 ? 0 : Math.round((num / den) * 1000) / 10;
+}
+
+/**
+ * Classifica poker per netto (modello-riga unificato, KPI 'soldi').
+ * Aggrega `partite` per `id_nome`: partiteGiocate, partiteVinte (g.vincitore),
+ * netto = Σ g.netto_finale. Ordina per netto desc; leader = primo con partite>0.
+ * `range` opzionale (preserva il filtro-data del poker). Pura.
+ */
+export function classificaPoker(
+  partite: Partita[],
+  idNomi:  Array<{ id: number; nome: string }>,
+  range?:  { from?: string; to?: string },
+): RigaClassificaU[] {
+  const nomeById = (id: number) => idNomi.find(n => n.id === id)?.nome ?? '?';
+
+  const filtrate = partite.filter(p => {
+    if (range?.from && p.data < range.from) return false;
+    if (range?.to   && p.data > range.to)   return false;
+    return true;
+  });
+
+  const agg = new Map<number, { partite: number; vittorie: number; netto: number }>();
+  for (const p of filtrate) {
+    for (const g of p.giocatori) {
+      const prev = agg.get(g.id_nome) ?? { partite: 0, vittorie: 0, netto: 0 };
+      agg.set(g.id_nome, {
+        partite:  prev.partite  + 1,
+        vittorie: prev.vittorie + (g.vincitore ? 1 : 0),
+        netto:    prev.netto    + g.netto_finale,
+      });
+    }
+  }
+
+  const righe: RigaClassificaU[] = [...agg.entries()].map(([idNome, a]) => ({
+    idNome,
+    nome: nomeById(idNome),
+    isLeader: false,
+    kpi: {
+      tipo: 'soldi',
+      partiteGiocate: a.partite,
+      partiteVinte:   a.vittorie,
+      percVittorie:   perc1(a.vittorie, a.partite),
+      netto:          a.netto,
+    },
+  }));
+
+  righe.sort((x, y) => {
+    const nx = x.kpi.tipo === 'soldi' ? x.kpi.netto : 0;
+    const ny = y.kpi.tipo === 'soldi' ? y.kpi.netto : 0;
+    return ny - nx;
+  });
+
+  const leaderIdx = righe.findIndex(
+    r => r.kpi.tipo === 'soldi' && r.kpi.partiteGiocate > 0,
+  );
+  return righe.map((r, i) => ({ ...r, isLeader: i === leaderIdx }));
 }
