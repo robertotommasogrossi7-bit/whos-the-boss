@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { oggi, nowHHMM } from '../../utils/format';
+import { idBloccatiInclusi } from '../../utils/personale';
 import { Sheet, Button } from '../ui';
 import { IconPlus } from '../icons';
 import type { Lega } from '../../types';
@@ -19,13 +20,18 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
   const creaSessioneGioco  = useStore(s => s.creaSessioneGioco);
   const avviaSessioneGioco = useStore(s => s.avviaSessioneGioco);
   const aggiungiGiocatore  = useStore(s => s.aggiungiGiocatore);
+  const utente             = useStore(s => s.utente);
   const toast              = useStore(s => s.toast);
 
   const [selected, setSelected] = useState<number[]>(lega.nomi.map(n => n.id));
   const [newName, setNewName]   = useState('');
   const [data, setData]         = useState(oggi());
 
+  // #4.5: nel Personale l'id "sei tu" è incluso e non deselezionabile.
+  const bloccati = idBloccatiInclusi(lega, utente?.username);
+
   function toggle(id: number) {
+    if (bloccati.includes(id)) return; // "sei tu" non deselezionabile
     setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   }
 
@@ -59,15 +65,20 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
           <p className="esito-hint">Aggiungi i giocatori qui sotto.</p>
         ) : (
           <div className="pick-grid">
-            {lega.nomi.map(n => (
-              <button
-                key={n.id}
-                className={`pick-chip${selected.includes(n.id) ? ' selected' : ''}`}
-                onClick={() => toggle(n.id)}
-              >
-                {n.nome}
-              </button>
-            ))}
+            {lega.nomi.map(n => {
+              const bloccato = bloccati.includes(n.id);
+              return (
+                <button
+                  key={n.id}
+                  className={`pick-chip${selected.includes(n.id) ? ' selected' : ''}${bloccato ? ' pick-chip--locked' : ''}`}
+                  onClick={() => toggle(n.id)}
+                  disabled={bloccato}
+                  title={bloccato ? 'Sei tu — sempre incluso nel Personale' : undefined}
+                >
+                  {n.nome}
+                </button>
+              );
+            })}
           </div>
         )}
         <div className="hub-add-row nuova-add">

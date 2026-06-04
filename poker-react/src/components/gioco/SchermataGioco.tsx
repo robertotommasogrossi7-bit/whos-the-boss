@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
 import { fmtRelativeData } from '../../utils/format';
+import { idBloccatiInclusi } from '../../utils/personale';
 import { esitoSessione, partitaInCorso } from '../../utils/sessioneGioco';
 import { GameIcon, IconChevronLeft, IconPlus, IconCheck, IconClock } from '../icons';
 import { Button, Card, Chip, EmptyState, Sheet } from '../ui';
@@ -23,6 +24,7 @@ interface Props {
 
 export default function SchermataGioco({ legaId, giocoId, backTo }: Props) {
   const lega                 = useStore(s => s.db.leghe.find(l => l.id === legaId));
+  const utente               = useStore(s => s.utente);
   const aggiungiPartita      = useStore(s => s.aggiungiPartita);
   const chiudiPartita        = useStore(s => s.chiudiPartita);
   const annullaPartita       = useStore(s => s.annullaPartita);
@@ -41,6 +43,8 @@ export default function SchermataGioco({ legaId, giocoId, backTo }: Props) {
   const nomeGioco = gioco?.nome ?? 'Gioco';
   const icona     = gioco?.icona ?? 'mazzo';
   const nome      = (id: number) => lega.nomi.find(n => n.id === id)?.nome ?? '?';
+  // #4.5: nel Personale l'id "sei tu" è sempre fra i partecipanti (non deselezionabile).
+  const bloccati  = idBloccatiInclusi(lega, utente?.username);
 
   const corrente = (lega.sessioniGioco ?? [])
     .filter(s => s.giocoId === giocoId && s.stato !== 'chiusa')
@@ -182,6 +186,7 @@ export default function SchermataGioco({ legaId, giocoId, backTo }: Props) {
         <SheetEsitoPartita
           partecipantiSessione={corrente.partecipanti}
           nome={nome}
+          bloccati={bloccati}
           onClose={() => setEsitoPartitaId(null)}
           onConfirm={(e) => { chiudiPartita(legaId, corrente.id, esitoPartitaId, e); setEsitoPartitaId(null); }}
         />

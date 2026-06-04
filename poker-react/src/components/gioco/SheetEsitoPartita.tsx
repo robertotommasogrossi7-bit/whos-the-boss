@@ -9,17 +9,19 @@ import type { EsitoPartitaInput } from '../../utils/sessioneGioco';
 interface Props {
   partecipantiSessione: number[];
   nome: (id: number) => string;
+  bloccati?: number[]; // #4.5: id "sei tu" non deselezionabili dai partecipanti
   onClose: () => void;
   onConfirm: (esito: EsitoPartitaInput) => void;
 }
 
-export default function SheetEsitoPartita({ partecipantiSessione, nome, onClose, onConfirm }: Props) {
+export default function SheetEsitoPartita({ partecipantiSessione, nome, bloccati = [], onClose, onConfirm }: Props) {
   const [parts, setParts]           = useState<number[]>(partecipantiSessione);
   const [winners, setWinners]       = useState<number[]>([]);
   const [pareggio, setPareggio]     = useState(false);
   const [nomeLibero, setNomeLibero] = useState('');
 
   function togglePart(id: number) {
+    if (bloccati.includes(id)) return; // #4.5: "sei tu" sempre fra i partecipanti
     setParts(prev => {
       const has = prev.includes(id);
       if (has) setWinners(w => w.filter(x => x !== id)); // chi non gioca non può vincere
@@ -56,15 +58,20 @@ export default function SheetEsitoPartita({ partecipantiSessione, nome, onClose,
       <div className="esito-sec">
         <div className="esito-label">Chi ha giocato</div>
         <div className="pick-grid">
-          {partecipantiSessione.map(id => (
-            <button
-              key={id}
-              className={`pick-chip${parts.includes(id) ? ' selected' : ''}`}
-              onClick={() => togglePart(id)}
-            >
-              {nome(id)}
-            </button>
-          ))}
+          {partecipantiSessione.map(id => {
+            const bloccato = bloccati.includes(id);
+            return (
+              <button
+                key={id}
+                className={`pick-chip${parts.includes(id) ? ' selected' : ''}${bloccato ? ' pick-chip--locked' : ''}`}
+                onClick={() => togglePart(id)}
+                disabled={bloccato}
+                title={bloccato ? 'Sei tu — sempre fra i partecipanti' : undefined}
+              >
+                {nome(id)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
