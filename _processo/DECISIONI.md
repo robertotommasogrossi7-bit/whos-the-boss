@@ -229,6 +229,40 @@
 - Nota: oggi la classifica combinata Personale+leghe NON si "vede" perché l'utente non è un
   giocatore (→ #4.5 la popola con "La tua situazione").
 
+## 2026-06-04 (f) — handoff: audit nuova chat base (struttura 4.6/4.7, nickname, beta "sei tu")
+
+> La nuova chat base ha ri-letto il codice prima di partire. Decisioni prese con l'utente.
+
+- **Identità = id stabile per-lega** (`NomeGiocatore {id,nome}`, `_nid`): gameplay/storico/classifica
+  riferiscono per **id**, il `nome` è solo etichetta risolta a display. Ne discende:
+  - **Soprannome/nickname (per-lega) = si fa ORA**: editare `nome` è **cosmetico**, l'**id non cambia**,
+    si propaga da solo. Serve azione store `rinominaGiocatore` + campo editabile in Giocatori
+    (`TabPartecipanti`, condiviso lega+poker). Scopo: **comodità di filtro/disambiguazione**
+    ("Giulio X / Giulio Y"). **Framing UI = "soprannome"**, non "rinomina identità". → collocato in **#4.7**.
+  - **Il TUO nome ("sei tu") NON è un nickname libero**: è **account-level**, si cambia nelle
+    **impostazioni account → backend (#8)**; pre-backend segue lo username di login.
+  - **Identità cross-lega/cross-device** (stessa persona, robusta a rename) = **backend (#8)**.
+    Pre-backend = match per **nome normalizzato** (best-effort), reso tollerante dalla normalizzazione condivisa.
+- **#4.6 = SOLO layer-dati**: utils testabili che espongono il **poker in un modello-riga unificato**
+  (col **netto €**) + la **logica filtri** (gioco/nome), **senza toccare la UI vecchia**. **#4.7** ci
+  costruisce sopra i **componenti condivisi** Classifica/Storico. Evita di ritoccare-e-poi-riscrivere
+  i 3+ componenti attuali. Test-first, fasi piccole. (Rimpiazza il vecchio scope UI di (d).)
+- **Classifica condivisa = parametrica sul tipo**: poker = **netto + %**, altri = **%/vittorie**.
+  "Stesse KPI" vale a parità di tipo.
+- **Filtro nome (semantica confermata)**: in **classifica** non nasconde — KPI + **match in cima**
+  (resto in ordine normale); in **storico** = **filtro secco** (via le partite senza quel nome). Identico ovunque.
+- **`normalizzaNome` condivisa nasce in #4.5** (primo a matchare: username→record Personale).
+  Definita **una volta** in utils, riusata da #4.7 ovunque (no duplicazione).
+- **#4.5 e la beta** (login accetta qualunque username; `utente` in **sessionStorage**, effimero):
+  "sei tu" è **CALCOLATO** da `normalizzaNome(username)` (niente flag stored → niente da corrompere;
+  i nomi sono già unici per-lega). Auto-add del tuo record a Personale **al login** (aggancia se il
+  nome esiste, sennò crea). Ogni login demo con nome diverso = **un "tu" pulito** (accettato, vedi (b)).
+  Locks: Personale **sempre incluso/non deselezionabile**; in **creazione lega** incluso e **bloccato
+  durante la creazione** (poi deselezionabile), entri come **unico admin** → marcatore `Lega.adminIds:[tuo id]`
+  (nessun potere/azione: solo dato).
+- **#4.5 ↔ #7.5 separati**: #4.5 pianta **solo il marcatore** creatore=admin. Poteri
+  (nomina/revoca/espulsione) = **#7.5** (che definirà il modello sopra `adminIds`).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

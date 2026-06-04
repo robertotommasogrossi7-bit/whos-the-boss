@@ -29,24 +29,32 @@ npx tsc -b      # build TS
 
 ## Entry point e routing
 
-`src/main.tsx` monta `<App />`. `src/App.tsx` dichiara le route:
+`src/main.tsx` monta `<App />`. `src/App.tsx` dichiara le route (aggiornato post R/M2→M4):
 
-| Route                           | Componente            | Note |
-|---------------------------------|-----------------------|------|
-| `/login`                        | `LoginScreen`         | auth |
-| `/circoli`                      | `CircoliHome`         | richiede auth |
-| `/nuova-lega`                   | `NuovaLega`           |  |
-| `/leghe`                        | `ListaLeghe`          |  |
-| `/app/:legaId`                  | `AppLayout` (annida)  | layout principale |
-| `/app/:legaId/serata`           | `TabSerata`           | tab serata |
-| `/app/:legaId/partecipanti`     | `TabPartecipanti`     | tab partecipanti |
-| `/app/:legaId/storico`          | `TabStorico`          | tab storico |
-| `/app/:legaId/classifica`       | `TabClassifica`       | tab classifica |
-| `/debiti`                       | `DebitiScreen`        | debiti aperti |
+| Route                                | Componente              | Note |
+|--------------------------------------|-------------------------|------|
+| `/login`                             | `LoginScreen`           | auth (demo: accetta qualunque username; `utente` in sessionStorage) |
+| `/`                                  | `Home`                  | shell multigioco (bottom nav 4 voci) |
+| `/classifica`                        | `ClassificaShell`       | globale, persona-centrica |
+| `/storico`                           | `StoricoShell`          | globale |
+| `/leghe`                             | `ListaLeghe`            |  |
+| `/nuova-lega`                        | `NuovaLega`             |  |
+| `/leghe/:legaId`                     | `LegaLayout`→`LegaHome` | sezione lega, nav 4 schede |
+| `/leghe/:legaId/classifica`          | `LegaClassifica`        |  |
+| `/leghe/:legaId/storico`             | `LegaStorico`           |  |
+| `/leghe/:legaId/giocatori`           | `TabPartecipanti`       | rubrica (componente condiviso col poker) |
+| `/leghe/:legaId/g/:giocoId`          | `SchermataGiocoLega`    | segna-partita gioco |
+| `/leghe/:legaId/poker`               | `AppLayout` (annida)    | app poker, nav propria — logica INVARIATA |
+| `/leghe/:legaId/poker/serata`        | `TabSerata`             |  |
+| `/leghe/:legaId/poker/partecipanti`  | `TabPartecipanti`       |  |
+| `/leghe/:legaId/poker/storico`       | `TabStorico`            |  |
+| `/leghe/:legaId/poker/classifica`    | `TabClassifica`         |  |
+| `/debiti`                            | `DebitiScreen`          |  |
+| `/circoli` · `/app/:legaId/*`        | redirect                | retrocompat → `/` · → `/leghe/:id/poker` |
 
-`AppLayout` contiene la `BottomNav` + l'`<Outlet />` per i tab e
-l'`<PartitaOverlay />` a tutto schermo. La `FabPartiteAttive` (badge
-basso-sx) è renderizzata fuori dall'overlay.
+Layout annidati: **`ShellLayout`** (`GlobalNav` 4 voci + `GameBar` + `<Outlet/>`) per le route
+globali; **`LegaLayout`** (`LegaNav` 4 schede + `<Outlet/>`) per la sezione lega; **`AppLayout`**
+(poker: `BottomNav` + `<Outlet/>` + `<PartitaOverlay/>` + FAB) sotto `/leghe/:id/poker`.
 
 ---
 
@@ -238,6 +246,8 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 ## Utility chiave
 
 - **`format.ts`**: `oggi()`, `fmtData(s)`, `euro(n)`, `euroSigned(n)`, `esc(s)`, `getNome(lega, id)`, `numVal(el)`.
+  - ⚠️ *Debito minore*: `getNome` è re-implementato **inline** in ≈3 punti dello store
+    (`lega.nomi.find(n => n.id === …)?.nome ?? '?'`) → preferire la util. Cleanup **assorbito da #4.7**.
 - **`calc.ts`**: `calcolaPremi`, `calcolaMontepremi`, `calcolaMontepremiIncassato`, `calcolaPremiPagati`, `consolidaPremiSeNecessario` (torneo).
 - **`torneo.ts`**: `suggerisciTorneo`, `creaSessione`, `nuovoGiocatoreSessione`, `assegnaPostiCasuali`, `roundChipVal`.
 - **`migrations.ts`**: `migrateSessione`, `migratePartita`, `migrateLega` (default campi
@@ -272,6 +282,8 @@ Singleton store: tutto lo stato UI + il `db` persistito.
 
 ## Roadmap
 
-Vedi `CONTESTO.md` per il piano in corso. Fatto: migrazione React, settlement cash v2 +
-torneo, serata programmata, tavoli T1–T3, **M1 multigioco** (modello + stats).
-Prossimo: **R/M2** (design system + shell + Personale).
+Vedi `CONTESTO.md` per il piano in corso. Fatto: migrazione React, settlement cash v2 + torneo,
+serata programmata, tavoli T1–T3, **spina multigioco M1→M4** (modello+stats, design system+shell+
+Personale, segna-partita, classifiche). Prossimo: **rifiniture #4.5 (sei tu) → #4.6 (layer-dati
+classifiche/storico) → #4.7 (UI condivisa + nickname + normalizzazione)**, poi **poker-live**
+(#5 soldi d'uscita → #6 tavolo live).

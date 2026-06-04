@@ -110,16 +110,23 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
    CREI una lega**: non deselezionabile *durante la creazione*, **dopo** sì; entri come **unico
    admin** (i poteri multi-livello sono la fase #7.5). **Lega/sessioni** in generale:
    deselezionabile (segnapunti). Popola da sola "La tua situazione". UI + store → **Sonnet**.
-   Testabile anche col login demo (funzioni pure + browser con nome nuovo). Vedi `DECISIONI.md` 2026-06-04 (b).
-4.6 **Rifinitura storico/classifiche** (richiesta utente 2026-06-04): manca il **filtro gioco
-   nello Storico** di lega; il **poker** dev'essere visibile **inline** in Classifica/Storico
-   filtrati per poker (oltre al redirect alla sottosezione, che piace). Sonnet. Vedi `DECISIONI.md` (d).
-4.7 **Unificazione Classifica/Storico + normalizzazione** (richiesta utente 2026-06-04):
-   componenti **CONDIVISI** per classifica e storico in tutti i contesti (Personale/lega/
-   poker-pers/poker-lega), stesse **KPI**; **filtro ricerca per nome OVUNQUE** con
-   **normalizzazione condivisa** (giuliA→Giulia, case/accenti/spazi, definita una volta → vale
-   ovunque); la classifica personale mostra le leghe dove **ci sei** + dove **sei stato** ("non
-   ci sei più"). Refactor DRY + feature. Sonnet. Vedi `DECISIONI.md` 2026-06-04 (e).
+   Testabile anche col login demo (funzioni pure + browser con nome nuovo). **Impl. (f)**: "sei tu"
+   **calcolato** da `normalizzaNome(username)` (niente flag stored → robusto alla beta; ogni login
+   demo = un "tu" pulito), auto-add a Personale al login; nasce qui la util condivisa `normalizzaNome`
+   (riusata da #4.7); creazione lega → `Lega.adminIds:[tuo id]` (solo marcatore, poteri = #7.5); il
+   *tuo* nome = account/impostazioni → #8. Prompt: `MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. Vedi `DECISIONI.md` (b)+(f).
+4.6 **Layer-dati classifiche/storico** (ri-scopata 2026-06-04 (f)): SOLO utils testabili — espone il
+   **poker in un modello-riga unificato** (col **netto €**) e la **logica filtri** (gioco + nome),
+   **senza toccare la UI vecchia**. Sblocca "poker inline" + filtro-gioco-storico, ma la UI arriva col
+   #4.7 (che ci costruisce sopra → niente lavoro buttato). Test-first. Sonnet. Vedi `DECISIONI.md` (d)+(f).
+4.7 **Componenti condivisi Classifica/Storico + nickname + normalizzazione** (2026-06-04 (e)+(f)):
+   sul layer-dati del #4.6, **UN** componente Classifica + **UNO** Storico per TUTTI i contesti
+   (Personale/lega/poker-pers/poker-lega), **parametrici sul tipo** (poker = netto+% ; altri = %).
+   **Filtro nome OVUNQUE** con `normalizzaNome` condivisa (nata in #4.5): in **classifica** porta i
+   **match in cima** + KPI (NON nasconde); in **storico** **filtro secco**. Qui anche il **soprannome/
+   nickname** per-lega (`rinominaGiocatore` + campo editabile in Giocatori; edita `nome`, **id stabile**,
+   cosmetico per comodità di filtro). Classifica personale mostra leghe dove **ci sei** / **sei stato**.
+   Refactor DRY + feature. **Dipende da #4.5.** Sonnet. Vedi `DECISIONI.md` (e)+(f).
 5. **Soldi d'uscita** (poker, logica soldi — chat Opus): funzione pura `saldoUscita`
    + esempi-test (`USCITA_CASH_SPEC §6`) → modello/store → azioni. Primo pezzo del
    blocco poker-live (sblocca l'azione "esce" del tavolo).
@@ -137,20 +144,21 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta**: 🔄 **PASSAGGIO DI TESTIMONE a una chat base NUOVA** (questa si
-ritira: chat lunga, milestone multigioco chiuso). La nuova chat base:
-1. **Ri-controlla progettazione + GitHub** (repo pubblico `whos-the-boss`): `main` verde e
-   allineato, `_processo` pubblicato, README/METODO ok.
-2. Esegue le **rifiniture multigioco IN ORDINE, una alla volta**: **#4.5** (sei tu) → **#4.6**
-   (storico filtro + poker inline) → **#4.7** (unificazione classifica/storico + normalizzazione).
-   Tutte **Sonnet**; per ognuna: scrive il prompt → chat di fase → review separata → merge `--no-ff`.
-3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri**
-   → **#8 backend**.
-**Non implementare**: prima conferma il piano all'utente.
+**Prossima azione concreta** (chat base NUOVA, operativa dal 2026-06-04): audit fatto — codice
+ri-letto, GitHub verificato (`whos-the-boss` **pubblico**, `main` verde/allineato, `_processo`
+pubblicato). Struttura rifiniture **aggiornata in DECISIONI (f)**: **#4.6 = layer-dati**, **#4.7 = UI
+condivisa + nickname**. Esecuzione **una alla volta**, tutte **Sonnet** (per ognuna: prompt → chat di
+fase → review separata → merge `--no-ff`):
+1. **#4.5** (sei tu) — prompt scritto: `MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. ← **fase corrente**.
+2. **#4.6** (layer-dati poker+filtri) → **#4.7** (componenti condivisi + nickname + normalizzazione).
+3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
 - **`nuovoGiocoCustom` usa id `custom-${Date.now()}`** → collisione possibile (teorica).
   Irrobustire (contatore/uuid) **quando nasce la UI giochi custom → M5** (prima nessun chiamante).
+- **`getNome` re-implementato inline** in alcuni punti dello store (`lega.nomi.find(n => n.id === …)?.nome
+  ?? '?'`, ≈3 punti) invece di chiamare `getNome(lega, id)` da `format.ts`. Cleanup banale, basso rischio
+  → **assorbito da #4.7** (passa comunque su nomi/lookup; non aprire un task a sé). Scansione 2026-06-04 (f).
 - ~~`NuovaLega` non inizializza i campi multigioco~~ → **risolto in M3** (chiama `migrateLega`).
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
@@ -184,5 +192,6 @@ npx tsc -b      # build TS
 ```
 
 ## Repo
-GitHub privato: `https://github.com/robertotommasogrossi7-bit/poker-tracker`
-(Su GitHub: solo app + `_legacy/` + README + LICENSE. I `.md` di processo sono locali.)
+GitHub **pubblico**: `https://github.com/robertotommasogrossi7-bit/whos-the-boss`
+(Su GitHub: app `poker-react/` + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del
+processo AI) + README + LICENSE. Default branch `main`.)
