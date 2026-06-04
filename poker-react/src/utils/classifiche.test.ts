@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata, classificaPokerCrossContesto } from './classifiche';
+import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata, classificaPokerCrossContesto, rigaMatchaNome, ordinaMatchInCima, type RigaClassificaU } from './classifiche';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import type { GiocoLega, SessioneGioco, PartitaGioco, Lega, NomeGiocatore, Partita, GiocatorePartita } from '../types';
 
@@ -471,5 +471,51 @@ describe('classificaPokerCrossContesto', () => {
     const r = classificaPokerCrossContesto('   ', [lega]);
     expect(r.perContesto).toEqual([]);
     expect(r.totale).toEqual({ netto: 0, partite: 0, vittorie: 0, percVittorie: 0 });
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   filtro per nome — CLASSIFICA (#4.6)
+══════════════════════════════════════════════════════ */
+
+function rigaU(idNome: number, nome: string): RigaClassificaU {
+  return { idNome, nome, isLeader: false, kpi: { tipo: 'punti', stats: mkStats() } };
+}
+
+describe('rigaMatchaNome', () => {
+  it('substring: "giuli" matcha "Giulia"', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Giulia'), 'giuli')).toBe(true);
+  });
+  it('accenti/maiuscole tollerati', () => {
+    expect(rigaMatchaNome(rigaU(A, 'José'), 'jose')).toBe(true);
+    expect(rigaMatchaNome(rigaU(A, 'ANNA'), 'ann')).toBe(true);
+  });
+  it('non-match → false', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), 'zelda')).toBe(false);
+  });
+  it('query vuota → true', () => {
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), '')).toBe(true);
+    expect(rigaMatchaNome(rigaU(A, 'Bob'), '   ')).toBe(true);
+  });
+});
+
+describe('ordinaMatchInCima', () => {
+  it('porta i match in cima, partizione stabile (ordine preservato)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia'), rigaU(3, 'Gianni'), rigaU(4, 'Carla')];
+    const out = ordinaMatchInCima(righe, 'gi');
+    // match: Giulia(2), Gianni(3) nel loro ordine; poi Bob(1), Carla(4)
+    expect(out.map(r => r.idNome)).toEqual([2, 3, 1, 4]);
+  });
+  it('non nasconde nessuno (stessa lunghezza)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia')];
+    expect(ordinaMatchInCima(righe, 'gi').length).toBe(2);
+  });
+  it('query vuota → invariato (stesso riferimento)', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Giulia')];
+    expect(ordinaMatchInCima(righe, '')).toBe(righe);
+  });
+  it('nessun match → ordine invariato', () => {
+    const righe = [rigaU(1, 'Bob'), rigaU(2, 'Carla')];
+    expect(ordinaMatchInCima(righe, 'zzz').map(r => r.idNome)).toEqual([1, 2]);
   });
 });

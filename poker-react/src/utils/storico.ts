@@ -1,4 +1,5 @@
 import type { Lega, Partita, SessioneGioco } from '../types';
+import { normalizzaNome } from './normalizzaNome';
 
 /* ══════════════════════════════════════════════════════
    STORICO UNIFICATO (Card Tracker #4.6) — layer-dati, funzioni pure
@@ -57,4 +58,46 @@ export function vociStorico(
   }
 
   return voci.sort((a, b) => b.data.localeCompare(a.data));
+}
+
+/* ══════════════════════════════════════════════════════
+   FILTRO PER NOME — STORICO (#4.6, semantica (f))
+   Nello storico il filtro è SECCO: rimuove le voci dove il nome non compare
+   fra i partecipanti. Match per `normalizzaNome` (#4.5) come substring.
+══════════════════════════════════════════════════════ */
+
+/**
+ * True se un partecipante della voce matcha la query.
+ * - poker → `partita.giocatori[].id_nome`.
+ * - gioco → `sessione.partecipanti` ∪ eventuali `partita.partecipanti` (override).
+ * `nomeById` risolve id → nome (la lega lo fornisce). Query vuota → true.
+ */
+export function voceCoinvolgeNome(
+  voce:    VoceStorico,
+  query:   string,
+  nomeById: (id: number) => string,
+): boolean {
+  const q = normalizzaNome(query);
+  if (!q) return true;
+  const idMatcha = (id: number) => normalizzaNome(nomeById(id)).includes(q);
+
+  if (voce.kind === 'poker') {
+    return voce.partita.giocatori.some(g => idMatcha(g.id_nome));
+  }
+  const ids = new Set<number>(voce.sessione.partecipanti);
+  for (const p of voce.sessione.partite) {
+    if (p.partecipanti) for (const id of p.partecipanti) ids.add(id);
+  }
+  for (const id of ids) if (idMatcha(id)) return true;
+  return false;
+}
+
+/** Filtro secco: tiene solo le voci che coinvolgono il nome. Query vuota → tutte. */
+export function filtraStoricoPerNome(
+  voci:    VoceStorico[],
+  query:   string,
+  nomeById: (id: number) => string,
+): VoceStorico[] {
+  if (!normalizzaNome(query)) return voci;
+  return voci.filter(v => voceCoinvolgeNome(v, query, nomeById));
 }

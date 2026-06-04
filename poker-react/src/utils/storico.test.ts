@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { vociStorico } from './storico';
+import { vociStorico, voceCoinvolgeNome, filtraStoricoPerNome, type VoceStorico } from './storico';
 import type { Lega, Partita, GiocatorePartita, SessioneGioco, PartitaGioco, NomeGiocatore } from '../types';
 
 const A = 1, B = 2;
@@ -138,5 +138,61 @@ describe('vociStorico', () => {
 
   it('lega completamente vuota → []', () => {
     expect(vociStorico(mkLega(nomi, [], []))).toEqual([]);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   filtro per nome — STORICO (#4.6, filtro secco)
+══════════════════════════════════════════════════════ */
+
+const nomeById = (id: number) => nomi.find(n => n.id === id)?.nome ?? '?';
+
+describe('voceCoinvolgeNome', () => {
+  it('poker: matcha un giocatore della partita (per id_nome)', () => {
+    const voce: VoceStorico = { kind: 'poker', data: '2026-06-01', partita: ppok(1, '2026-06-01', [gpok(A, 10, true), gpok(B, -10)]) };
+    expect(voceCoinvolgeNome(voce, 'alice', nomeById)).toBe(true);
+    expect(voceCoinvolgeNome(voce, 'carla', nomeById)).toBe(false);
+  });
+
+  it('gioco: matcha un partecipante della sessione', () => {
+    const voce: VoceStorico = { kind: 'gioco', data: '2026-06-01', giocoId: 'scopa', sessione: sgioco(1, '2026-06-01', 'scopa', [A], [pgioco(1, [A])]) };
+    expect(voceCoinvolgeNome(voce, 'alice', nomeById)).toBe(true);
+    expect(voceCoinvolgeNome(voce, 'bob', nomeById)).toBe(false);
+  });
+
+  it('gioco: matcha anche un partecipante presente solo nell\'override di una partita', () => {
+    // sessione coi soli [A]; una partita ha override partecipanti [A, B]
+    const voce: VoceStorico = { kind: 'gioco', data: '2026-06-01', giocoId: 'scopa', sessione: sgioco(1, '2026-06-01', 'scopa', [A], [pgioco(1, [A], [A, B])]) };
+    expect(voceCoinvolgeNome(voce, 'bob', nomeById)).toBe(true);
+  });
+
+  it('query vuota → true', () => {
+    const voce: VoceStorico = { kind: 'poker', data: '2026-06-01', partita: ppok(1, '2026-06-01', [gpok(A)]) };
+    expect(voceCoinvolgeNome(voce, '', nomeById)).toBe(true);
+  });
+});
+
+describe('filtraStoricoPerNome', () => {
+  const voci: VoceStorico[] = [
+    { kind: 'poker', data: '2026-06-05', partita: ppok(1, '2026-06-05', [gpok(A, 10, true), gpok(B, -10)]) },
+    { kind: 'gioco', data: '2026-06-03', giocoId: 'scopa', sessione: sgioco(1, '2026-06-03', 'scopa', [B], [pgioco(1, [B])]) },
+  ];
+
+  it('filtro secco: tiene solo le voci col nome', () => {
+    const out = filtraStoricoPerNome(voci, 'alice', nomeById);
+    expect(out.length).toBe(1);
+    expect(out[0]!.kind).toBe('poker');
+  });
+
+  it('"bob" compare in entrambe', () => {
+    expect(filtraStoricoPerNome(voci, 'bob', nomeById).length).toBe(2);
+  });
+
+  it('query vuota → tutte le voci (stesso riferimento)', () => {
+    expect(filtraStoricoPerNome(voci, '   ', nomeById)).toBe(voci);
+  });
+
+  it('nessun match → []', () => {
+    expect(filtraStoricoPerNome(voci, 'zelda', nomeById)).toEqual([]);
   });
 });

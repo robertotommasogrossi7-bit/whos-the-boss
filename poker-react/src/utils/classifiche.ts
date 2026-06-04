@@ -356,3 +356,33 @@ export function classificaPokerCrossContesto(
     perContesto,
   };
 }
+
+/* ══════════════════════════════════════════════════════
+   FILTRO PER NOME — CLASSIFICA (#4.6, semantica (f))
+   In classifica il filtro NON nasconde: porta i match in cima (+ KPI). La UI
+   (#4.7) evidenzia i match; qui forniamo solo i predicati/ordinamenti puri.
+   Match per `normalizzaNome` (#4.5) come SUBSTRING ("giuli" trova "Giulia").
+══════════════════════════════════════════════════════ */
+
+/** True se il nome della riga contiene la query (normalizzati). Query vuota → true. */
+export function rigaMatchaNome(riga: RigaClassificaU, query: string): boolean {
+  const q = normalizzaNome(query);
+  if (!q) return true;
+  return normalizzaNome(riga.nome).includes(q);
+}
+
+/**
+ * Porta i match in cima senza nasconderne nessuno: partizione STABILE
+ * (prima i match nel loro ordine, poi i non-match nel loro ordine).
+ * Query vuota → array invariato (stesso riferimento).
+ */
+export function ordinaMatchInCima(righe: RigaClassificaU[], query: string): RigaClassificaU[] {
+  const q = normalizzaNome(query);
+  if (!q) return righe;
+  const match:    RigaClassificaU[] = [];
+  const nonMatch: RigaClassificaU[] = [];
+  for (const r of righe) {
+    (normalizzaNome(r.nome).includes(q) ? match : nonMatch).push(r);
+  }
+  return [...match, ...nonMatch];
+}
