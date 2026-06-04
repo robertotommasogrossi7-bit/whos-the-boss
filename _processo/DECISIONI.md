@@ -263,6 +263,22 @@
 - **#4.5 ↔ #7.5 separati**: #4.5 pianta **solo il marcatore** creatore=admin. Poteri
   (nomina/revoca/espulsione) = **#7.5** (che definirà il modello sopra `adminIds`).
 
+## 2026-06-04 (g) — #4.5 "sei tu" mergiata (chat base review)
+
+- **#4.5 in `main`** (merge `6515bd5`, **95 test**, tsc+lint+build verdi). Review chat base OK (codice
+  letto per intero, green check pre e post-merge, niente merge alla cieca).
+- Implementato come da prompt: `normalizzaNome`/`èSeiTu` (util condivisa, riusata da #4.7),
+  `assicuraGiocatorePersonale`/`idBloccatiInclusi` (puri, con test), auto-add "sei tu" a login/register,
+  lock partecipazione (Personale: poker `SetupForm` + non-poker `SheetNuovaSessione`/`SheetEsitoPartita`/
+  `SchermataGioco`), blocco auto-eliminazione, `NuovaLega` creatore pre-incluso+lock+`adminIds`, badge
+  (CSS `.badge-sei-tu`, **niente inline**).
+- **"sei tu" CALCOLATO** (no flag salvato) come da (f) → robusto alla beta (login demo = un "tu" pulito).
+- Plus di review: idempotenza **per-riferimento** in `assicuraGiocatorePersonale` (no save inutili);
+  lock di creazione lega ottenuto renderizzando il creatore **fuori** dalla lista editabile (non rimovibile);
+  `NuovaLega` ha adottato `normalizzaNome` per il dedup. Poker/settlement/`vanillaCompatStorage` intatti.
+- Prompt archiviato in `archivio/MULTIGIOCO_4_5_SEI_TU_PROMPT.md`.
+- **Prossima**: **#4.6** (layer-dati: poker nel modello-riga unificato + logica filtri gioco/nome).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

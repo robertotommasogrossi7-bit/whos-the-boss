@@ -53,9 +53,10 @@ Su `main`: migrazione React (Fasi 1-5) + overlay + **settlement cash v2 +
 contributo↔premio) + **serata programmata** + **cleanup codice morto** +
 **feature tavoli COMPLETA** (T1+T2+T3) + **SPINA MULTIGIOCO COMPLETA**: M1 (modello+stats)
 → R/M2 (design system scuro + shell + Personale) → M3 (segna-partita + sezione lega a 4
-schede) → **M4** (classifiche: lega + globale persona-centrica). Ultimo merge `d032dca`.
+schede) → **M4** (classifiche: lega + globale persona-centrica) → **#4.5** (utente-giocatore "sei tu":
+auto-add Personale, lock partecipazione, badge, `adminIds`). Ultimo merge `6515bd5`.
 Logica poker invariata, `vanillaCompatStorage` intatto.
-**75/75 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
+**95/95 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
 
 **Git ripulito (2026-05-31)**: i documenti di processo `.md` sono stati tolti dal
 versionamento (`git rm --cached`) e messi in `.gitignore`. Su GitHub ora restano
@@ -104,7 +105,8 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
    **centrata sulla persona** (prima riga = totale aggregato Personale + tutte le leghe;
    breakdown per contesto a scomparsa; classifica Personale; avviso identità). Prompt in
    `archivio/MULTIGIOCO_M4_PROMPT.md`. Poker invariato.
-4.5 **Utente-giocatore ("sei tu")** — ⭐ **IMPORTANTE** (richiesta utente 2026-06-04): il nome
+4.5 **Utente-giocatore ("sei tu")** — ✅ **FATTA e MERGIATA** (2026-06-04, merge `6515bd5`, **95 test**).
+   ⭐ Richiesta utente: il nome
    di login diventa un **giocatore reale**, auto-inserito nel Personale e marcato **"sei tu"**
    (badge, es. bandierina rossa). **Personale**: sempre incluso, **non deselezionabile**. **Quando
    CREI una lega**: non deselezionabile *durante la creazione*, **dopo** sì; entri come **unico
@@ -114,7 +116,7 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
    **calcolato** da `normalizzaNome(username)` (niente flag stored → robusto alla beta; ogni login
    demo = un "tu" pulito), auto-add a Personale al login; nasce qui la util condivisa `normalizzaNome`
    (riusata da #4.7); creazione lega → `Lega.adminIds:[tuo id]` (solo marcatore, poteri = #7.5); il
-   *tuo* nome = account/impostazioni → #8. Prompt: `MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. Vedi `DECISIONI.md` (b)+(f).
+   *tuo* nome = account/impostazioni → #8. Prompt in `archivio/MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. Vedi `DECISIONI.md` (b)+(f)+(g).
 4.6 **Layer-dati classifiche/storico** (ri-scopata 2026-06-04 (f)): SOLO utils testabili — espone il
    **poker in un modello-riga unificato** (col **netto €**) e la **logica filtri** (gioco + nome),
    **senza toccare la UI vecchia**. Sblocca "poker inline" + filtro-gioco-storico, ma la UI arriva col
@@ -144,13 +146,13 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta** (chat base NUOVA, operativa dal 2026-06-04): audit fatto — codice
-ri-letto, GitHub verificato (`whos-the-boss` **pubblico**, `main` verde/allineato, `_processo`
-pubblicato). Struttura rifiniture **aggiornata in DECISIONI (f)**: **#4.6 = layer-dati**, **#4.7 = UI
+**Prossima azione concreta** (chat base, 2026-06-04): **#4.5 sei tu FATTA e MERGIATA** (`6515bd5`,
+95 test, review chat base OK). Struttura rifiniture (DECISIONI (f)): **#4.6 = layer-dati**, **#4.7 = UI
 condivisa + nickname**. Esecuzione **una alla volta**, tutte **Sonnet** (per ognuna: prompt → chat di
 fase → review separata → merge `--no-ff`):
-1. **#4.5** (sei tu) — prompt scritto: `MULTIGIOCO_4_5_SEI_TU_PROMPT.md`. ← **fase corrente**.
-2. **#4.6** (layer-dati poker+filtri) → **#4.7** (componenti condivisi + nickname + normalizzazione).
+1. ✅ **#4.5** (sei tu) — fatta, prompt in `archivio/`.
+2. **#4.6** (layer-dati: poker nel modello-riga unificato + filtri gioco/nome) ← **fase corrente**
+   → **#4.7** (componenti condivisi + nickname + normalizzazione).
 3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
