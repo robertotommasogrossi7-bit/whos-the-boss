@@ -32,11 +32,9 @@ Partite_giocate/
 # Config locale Claude Code
 .claude/
 
-# ── Documenti di processo / memoria AI (restano LOCALI) ──
-# Su GitHub deve apparire solo l'app + README + LICENSE.
-# Tutta la memoria del progetto (CONTESTO, DECISIONI, IDEE, *_SPEC, *_PROMPT,
-# *_MAP) vive nella cartella _processo/ (con _processo/archivio/ per gli spenti).
-/_processo/
+# ── Documenti di processo / memoria AI — ORA PUBBLICI (2026-06-04) ──
+# Il processo (CONTESTO, DECISIONI, *_SPEC, *_PROMPT, *_MAP, archivio/) in `_processo/`
+# è parte del valore del progetto → si versiona e si MOSTRA. (NON più ignorato.)
 # Reti di sicurezza: ignora anche eventuali .md sparsi nella root.
 # Eccezioni versionate: README (EN/IT) + METODO (mostra il processo di lavoro).
 /*.md

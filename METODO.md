@@ -1,8 +1,10 @@
 Prompt per iniziare la chat: "Leggi METODO.md sul desktop e _processo/CONTESTO.md del progetto, sei operativa"
 
 > Tutti i file di processo (CONTESTO, DECISIONI, *_SPEC, *_PROMPT, *_MAP, IDEE) vivono
-> nella cartella **`_processo/`** del progetto (gli spenti in `_processo/archivio/`),
-> gitignorata. Sulla root del repo resta solo `README.md`. Vedi "Convenzioni file".
+> nella cartella **`_processo/`** del progetto (gli spenti in `_processo/archivio/`).
+> **Di default** `_processo/` è gitignorata (memoria locale); ma **si può pubblicare per
+> sfoggiare il processo** — è ciò che fa questo progetto (*who's-the-boss*, dal 2026-06-04).
+> Le indicazioni "gitignorato/locale" più sotto sono quindi il **default, sovrascrivibile**.
 
 # Metodo di lavoro AI — progetti software
 
