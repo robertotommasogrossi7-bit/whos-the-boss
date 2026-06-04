@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker } from './classifiche';
+import { sommaStats, classificaGioco, statsPersonaCrossContesto, classificaPoker, classificaGiocoU, classificaUnificata } from './classifiche';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import type { GiocoLega, SessioneGioco, PartitaGioco, Lega, NomeGiocatore, Partita, GiocatorePartita } from '../types';
 
@@ -353,5 +353,59 @@ describe('classificaPoker', () => {
     ];
     const righe = classificaPoker(partite, nomiABC);
     expect(righe[0]!.kpi.tipo === 'soldi' && righe[0]!.kpi.percVittorie).toBe(33.3);
+  });
+});
+
+/* ══════════════════════════════════════════════════════
+   classificaGiocoU + classificaUnificata (#4.6)
+══════════════════════════════════════════════════════ */
+
+describe('classificaGiocoU', () => {
+  it('wrappa classificaGioco: kpi punti con le stesse stats', () => {
+    const sess = [sessione(1, [A, B], [partita(1, [A]), partita(2, [A]), partita(3, [B])])];
+    const g = gioco();
+    const righeU = classificaGiocoU(g, sess, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }]);
+    const righe  = classificaGioco(g, sess, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }]);
+    // stesso ordine, stesso leader
+    expect(righeU.map(r => r.idNome)).toEqual(righe.map(r => r.idNome));
+    const uA = righeU.find(r => r.idNome === A)!;
+    expect(uA.kpi.tipo).toBe('punti');
+    expect(uA.kpi.tipo === 'punti' && uA.kpi.stats).toEqual(calcolaStatsGioco(g, sess, A));
+    expect(uA.isLeader).toBe(true);
+  });
+});
+
+describe('classificaUnificata (dispatcher poker/gioco)', () => {
+  it('giocoId "poker" → tipo soldi, righe da lega.partite', () => {
+    const partite = [ppok(1, '2026-06-01', [gpok(A, 40, true), gpok(B, -40)])];
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [], { partite });
+    const cl = classificaUnificata(lega, 'poker');
+    expect(cl.tipo).toBe('soldi');
+    expect(cl.righe[0]!.idNome).toBe(A);
+    expect(cl.righe[0]!.kpi.tipo).toBe('soldi');
+  });
+
+  it('giocoId di un gioco → tipo punti, solo sessioni chiuse di quel gioco', () => {
+    const sScopa = sessione(1, [A, B], [partita(1, [A]), partita(2, [A])], 'scopa');
+    const sBrisc = sessione(2, [A, B], [partita(3, [B])], 'briscola');
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }, { id: B, nome: 'Bob' }], [sScopa, sBrisc]);
+    const cl = classificaUnificata(lega, 'scopa');
+    expect(cl.tipo).toBe('punti');
+    const rA = cl.righe.find(r => r.idNome === A)!;
+    // solo scopa: A ha 2 partite giocate (la briscola non conta)
+    expect(rA.kpi.tipo === 'punti' && rA.kpi.stats.partiteGiocate).toBe(2);
+  });
+
+  it('giocoId sconosciuto → classifica punti vuota', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], []);
+    const cl = classificaUnificata(lega, 'gioco-inesistente');
+    expect(cl).toEqual({ tipo: 'punti', righe: [] });
+  });
+
+  it('poker senza partite → soldi, righe vuote', () => {
+    const lega = mkLega(1, [{ id: A, nome: 'Alice' }], []);
+    const cl = classificaUnificata(lega, 'poker');
+    expect(cl.tipo).toBe('soldi');
+    expect(cl.righe).toEqual([]);
   });
 });

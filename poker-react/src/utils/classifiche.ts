@@ -254,3 +254,40 @@ export function classificaPoker(
   );
   return righe.map((r, i) => ({ ...r, isLeader: i === leaderIdx }));
 }
+
+/**
+ * Classifica di un gioco non-poker nel modello-riga unificato (KPI 'punti').
+ * Wrappa `classificaGioco` (riusa il calcolo, non lo duplica) e mappa ogni
+ * riga a `{…, kpi:{tipo:'punti', stats}}`. Già ordinata come classificaGioco.
+ */
+export function classificaGiocoU(
+  gioco:          GiocoLega,
+  sessioniChiuse: SessioneGioco[],
+  idNomi:         Array<{ id: number; nome: string }>,
+): RigaClassificaU[] {
+  return classificaGioco(gioco, sessioniChiuse, idNomi).map(r => ({
+    idNome:   r.idNome,
+    nome:     r.nome,
+    isLeader: r.isLeader,
+    kpi:      { tipo: 'punti', stats: r.stats },
+  }));
+}
+
+/**
+ * Dispatcher classifica di lega nel modello unificato — il "poker inline".
+ * - giocoId 'poker' → classificaPoker su lega.partite (tipo 'soldi').
+ * - altro gioco     → risolve il gioco (resolveGiocoLega) + classificaGiocoU
+ *                     sulle sessioniGioco chiuse di quel gioco (tipo 'punti').
+ * Gioco non risolvibile → classifica 'punti' vuota.
+ */
+export function classificaUnificata(lega: Lega, giocoId: string): ClassificaU {
+  if (giocoId === 'poker') {
+    return { tipo: 'soldi', righe: classificaPoker(lega.partite, lega.nomi) };
+  }
+  const gioco = resolveGiocoLega(giocoId, lega);
+  if (!gioco) return { tipo: 'punti', righe: [] };
+  const sessioniChiuse = (lega.sessioniGioco ?? []).filter(
+    s => s.stato === 'chiusa' && s.giocoId === giocoId,
+  );
+  return { tipo: 'punti', righe: classificaGiocoU(gioco, sessioniChiuse, lega.nomi) };
+}
