@@ -134,7 +134,10 @@ export default function ClassificaShell() {
                 {isPoker
                   ? pokerCross!.perContesto.map(ctx => (
                       <div key={ctx.legaId} className="cla-ctx">
-                        <div className="cla-ctx-nome">{ctx.personale ? 'Personale' : ctx.legaNome}</div>
+                        <div className="cla-ctx-nome">
+                          {ctx.personale ? 'Personale' : ctx.legaNome}
+                          <span className="cla-ctx-cisei">ci sei</span>
+                        </div>
                         <div className="cla-ctx-stats">
                           <span className={ctx.netto >= 0 ? 'pos' : 'neg'}>{euroSigned(ctx.netto)}</span>
                           <span className="cla-ctx-sub">{ctx.partite} partite · {ctx.vittorie} vinte</span>
@@ -143,7 +146,10 @@ export default function ClassificaShell() {
                     ))
                   : giocoCross!.perContesto.map(ctx => (
                       <div key={ctx.legaId} className="cla-ctx">
-                        <div className="cla-ctx-nome">{ctx.personale ? 'Personale' : ctx.legaNome}</div>
+                        <div className="cla-ctx-nome">
+                          {ctx.personale ? 'Personale' : ctx.legaNome}
+                          <span className="cla-ctx-cisei">ci sei</span>
+                        </div>
                         <div className="cla-ctx-stats">
                           <span>{ctx.stats.percVittorie}%</span>
                           <span className="cla-ctx-sub">{ctx.stats.partiteGiocate} partite · {ctx.stats.sessioniVinte} sess. vinte</span>

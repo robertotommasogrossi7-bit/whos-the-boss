@@ -1973,11 +1973,16 @@ button.ui-listrow:active { transform: scale(.99); }
 
 /* ─── CLASSIFICA CONDIVISA (#4.7a) ─── */
 /* Variante poker (soldi): 6 colonne # | Giocatore | Part | Vitt | % | Netto.
-   minmax(0,1fr) sul nome così non sfonda la riga su mobile (ellissi). */
+   Colonne numeriche compatte + padding/gap ridotti così il nome (minmax 0,1fr)
+   resta leggibile anche a 375px (mobile-first). */
 .cla-table--soldi .cla-thead,
 .cla-table--soldi .cla-row {
-  grid-template-columns: 28px minmax(0, 1fr) 40px 36px 42px 62px;
+  grid-template-columns: 24px minmax(0, 1fr) 30px 30px 38px 58px;
+  padding-left: 10px; padding-right: 10px; column-gap: 2px;
 }
+.cla-table--soldi .cla-num { font-size: 12px; }
+.cla-table--soldi .cla-pos { width: auto; }
+.cla-table--soldi .cla-player { gap: 6px; }
 /* Netto colorato: vince su .cla-num e su .cla-row--leader .cla-num (più
    specifico + più avanti nel file). */
 .cla-num.pos { color: var(--green); }
@@ -2017,3 +2022,12 @@ button.ui-listrow:active { transform: scale(.99); }
 .cla-totale-val.neg { color: var(--red); }
 .cla-ctx-stats .pos { color: var(--green); }
 .cla-ctx-stats .neg { color: var(--red); }
+
+/* Marker "ci sei" sui contesti del breakdown (sei in lega.nomi). Il
+   "non ci sei più" è deferito al backend (decisione (i)). */
+.cla-ctx-cisei {
+  margin-left: 8px; font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
+  color: var(--ok); background: var(--ok-soft);
+  padding: 1px 6px; border-radius: 999px; vertical-align: middle;
+}
