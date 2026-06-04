@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
+import { èSeiTu } from '../../utils/normalizzaNome';
 import { IconUser, IconTrash } from '../icons';
 
 export default function TabPartecipanti() {
   const lega               = useStore(selectCurrentLega);
+  const utente             = useStore(s => s.utente);
   const aggiungiGiocatore  = useStore(s => s.aggiungiGiocatore);
   const eliminaGiocatore   = useStore(s => s.eliminaGiocatore);
   const toast              = useStore(s => s.toast);
@@ -62,21 +64,26 @@ export default function TabPartecipanti() {
         ) : (
           lega.nomi.map(nm => {
             const np = nPartite(nm.id);
+            const seiTu = èSeiTu(nm.nome, utente?.username);
+            const bloccato = lega.personale && seiTu; // tu nel Personale: non rimovibile
             return (
               <div key={nm.id} className="player-row">
                 <div className="pr-left">
                   <span className="pr-name">{nm.nome}</span>
+                  {seiTu && <span className="badge-sei-tu">sei tu</span>}
                   {np > 0 && (
                     <span className="pr-games">{np} {np === 1 ? 'partita' : 'partite'}</span>
                   )}
                 </div>
-                <button
-                  className="btn btn-sm btn-red"
-                  onClick={() => elimina(nm.id, nm.nome)}
-                  title="Elimina"
-                >
-                  <IconTrash size={16} />
-                </button>
+                {!bloccato && (
+                  <button
+                    className="btn btn-sm btn-red"
+                    onClick={() => elimina(nm.id, nm.nome)}
+                    title="Elimina"
+                  >
+                    <IconTrash size={16} />
+                  </button>
+                )}
               </div>
             );
           })
