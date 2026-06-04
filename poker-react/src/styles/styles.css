@@ -1970,3 +1970,15 @@ button.ui-listrow:active { transform: scale(.99); }
   border-radius: var(--radius-sm);
 }
 .nl-tu-nome { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* ─── CLASSIFICA CONDIVISA (#4.7a) ─── */
+/* Variante poker (soldi): 6 colonne # | Giocatore | Part | Vitt | % | Netto.
+   minmax(0,1fr) sul nome così non sfonda la riga su mobile (ellissi). */
+.cla-table--soldi .cla-thead,
+.cla-table--soldi .cla-row {
+  grid-template-columns: 28px minmax(0, 1fr) 40px 36px 42px 62px;
+}
+/* Netto colorato: vince su .cla-num e su .cla-row--leader .cla-num (più
+   specifico + più avanti nel file). */
+.cla-num.pos { color: var(--green); }
+.cla-num.neg { color: var(--red); }
