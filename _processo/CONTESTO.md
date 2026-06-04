@@ -122,14 +122,19 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
    **senza toccare la UI vecchia**. Sblocca "poker inline" + filtro-gioco-storico, ma la UI arriva col
    #4.7 (che ci costruisce sopra → niente lavoro buttato). Test-first. Sonnet.
    Prompt in `archivio/MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`. Vedi `DECISIONI.md` (d)+(f)+(h).
-4.7 **Componenti condivisi Classifica/Storico + nickname + normalizzazione** (2026-06-04 (e)+(f)):
-   sul layer-dati del #4.6, **UN** componente Classifica + **UNO** Storico per TUTTI i contesti
-   (Personale/lega/poker-pers/poker-lega), **parametrici sul tipo** (poker = netto+% ; altri = %).
-   **Filtro nome OVUNQUE** con `normalizzaNome` condivisa (nata in #4.5): in **classifica** porta i
-   **match in cima** + KPI (NON nasconde); in **storico** **filtro secco**. Qui anche il **soprannome/
-   nickname** per-lega (`rinominaGiocatore` + campo editabile in Giocatori; edita `nome`, **id stabile**,
-   cosmetico per comodità di filtro). Classifica personale mostra leghe dove **ci sei** / **sei stato**.
-   Refactor DRY + feature. **Dipende da #4.5.** Sonnet. Vedi `DECISIONI.md` (e)+(f).
+4.7 **Componenti condivisi Classifica/Storico + nickname** — **SPLIT in sub-fasi** (deciso (i):
+   fase grande/UI su 4 contesti). Sul layer-dati del #4.6, tutte **Sonnet**, una alla volta:
+   - **4.7a — Classifica condivisa** ← **fase corrente**: UN componente tabella per tutti i contesti
+     (Personale/lega/poker), **KPI parametriche** (poker = **netto + %**; giochi = **% + sess.**),
+     **filtro nome** (`ordinaMatchInCima`, match in cima), **poker inline** in LegaClassifica +
+     ClassificaShell ("La tua situazione" poker via `classificaPokerCrossContesto`; il redirect alla
+     schermata poker resta come accesso rapido). "ci sei/sei stato" = best-effort (vedi (i)).
+     Prompt: `MULTIGIOCO_4_7A_CLASSIFICA_PROMPT.md`.
+   - **4.7b — Storico condiviso**: UN componente su `vociStorico`, **filtro gioco** (poker inline) +
+     **filtro nome secco** (`filtraStoricoPerNome`).
+   - **4.7c — Nickname + normalizzazione**: `rinominaGiocatore` + campo editabile in Giocatori (edita
+     `nome`, id stabile, cosmetico); **`normalizzaNome` ovunque** (allinea `statsPersonaCrossContesto`).
+   **Dipende da #4.5/#4.6.** Vedi `DECISIONI.md` (e)+(f)+(i).
 5. **Soldi d'uscita** (poker, logica soldi — chat Opus): funzione pura `saldoUscita`
    + esempi-test (`USCITA_CASH_SPEC §6`) → modello/store → azioni. Primo pezzo del
    blocco poker-live (sblocca l'azione "esce" del tavolo).
@@ -151,9 +156,8 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 `3598a2e`; 138 test; review chat base OK). Esecuzione **una alla volta**, tutte **Sonnet** (per ognuna:
 prompt → chat di fase → review separata → merge `--no-ff`):
 1. ✅ **#4.5** (sei tu) · ✅ **#4.6** (layer-dati) — fatte, prompt in `archivio/`.
-2. **#4.7** (componenti condivisi Classifica/Storico + filtro nome + nickname + normalizzazione) ←
-   **fase corrente**. ⚠️ Grande e UI-rischiosa (rimpiazza ~7 componenti su 4 contesti) → valutare
-   **split** in sub-fasi (4.7a classifica / 4.7b storico / 4.7c nickname). Da decidere con l'utente.
+2. **#4.7 SPLITtata** (deciso (i)): **4.7a classifica** ← **fase corrente** (prompt
+   `MULTIGIOCO_4_7A_CLASSIFICA_PROMPT.md`) → **4.7b storico** → **4.7c nickname + normalizzazione**.
 3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)

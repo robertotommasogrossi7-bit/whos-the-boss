@@ -296,6 +296,26 @@
 - Prompt archiviato in `archivio/MULTIGIOCO_4_6_LAYER_DATI_PROMPT.md`.
 - **Prossima**: **#4.7** (componenti condivisi + nickname). ⚠️ Grande → valutare **split** (4.7a/b/c) con l'utente.
 
+## 2026-06-04 (i) — #4.7 split in sub-fasi (deciso con l'utente)
+
+- **#4.7 è grande e UI-rischiosa** (rimpiazza ~7 componenti classifica+storico su 4 contesti
+  Personale/lega/poker-pers/poker-lega, + filtro nome ovunque + nickname). **Split** in 3 sub-fasi
+  Sonnet, una alla volta (prompt → fase → review → merge `--no-ff`):
+  - **4.7a — Classifica condivisa**: UN componente tabella parametrico (KPI **soldi**=poker netto+% |
+    **punti**=giochi %+sess), filtro nome (`ordinaMatchInCima`), **poker inline** in LegaClassifica +
+    ClassificaShell ("La tua situazione" poker via `classificaPokerCrossContesto`; il redirect alla
+    schermata poker dedicata **resta** come accesso rapido, (d)). Rimpiazza il rendering di
+    TabClassifica/LegaClassifica/ClassificaShell col condiviso.
+  - **4.7b — Storico condiviso**: UN componente su `vociStorico`, filtro gioco (poker inline) + filtro
+    nome **secco** (`filtraStoricoPerNome`). Rimpiazza TabStorico/LegaStorico/StoricoShell/StoricoSessioni.
+  - **4.7c — Nickname + normalizzazione**: `rinominaGiocatore` + campo editabile in `TabPartecipanti`
+    (edita `nome`, **id stabile**, cosmetico per il filtro); `normalizzaNome` **ovunque** (allinea
+    `statsPersonaCrossContesto` e ogni `.toLowerCase()` residuo). Dipende da #4.5.
+- **"ci sei / sei stato"** (classifica personale, (e)): **best-effort/deferito**. Pre-backend è quasi
+  irraggiungibile (auto-rimozione dal Personale e rimozione di giocatori con partite sono **bloccate**
+  → chi ha storico è sempre membro). 4.7a mostra i contesti dove **ci sei**; il "non ci sei più" diventa
+  reale col **backend (#8)**. Niente over-engineering ora.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
