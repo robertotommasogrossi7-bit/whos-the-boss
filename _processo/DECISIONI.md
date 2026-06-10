@@ -331,6 +331,21 @@
 - Prompt archiviato in `archivio/MULTIGIOCO_4_7A_CLASSIFICA_PROMPT.md`.
 - **Prossima**: **4.7b** (storico condiviso su `vociStorico`), poi **4.7c** (nickname + normalizzazione) → 4.x chiusi.
 
+## 2026-06-04 (k) — #4.7b "storico condiviso" mergiata (chat base review)
+
+- **#4.7b in `main`** (merge `e64d9e9`, 138 test, tsc+lint verdi). Review chat base OK (diff letto +
+  green check pre/post; **nessun import residuo** di StoricoSessioni). Fase UI: browser dei 3 contesti dalla chat di fase.
+- Nuovo `components/storico/StoricoLista.tsx` — card **parametrica** su `voce.kind`: 'poker' (ranking
+  netto + settlement, identica a TabStorico) | 'gioco' (sessione + esiti, identica a StoricoSessioni);
+  filtro nome **secco** (`filtraStoricoPerNome`); espandi/collassa locale con chiave `${kind}:${id}`.
+- `TabStorico`/`LegaStorico`/`StoricoShell` rifatti sul condiviso. **`StoricoSessioni` RIMOSSO** (assorbito).
+- **Poker inline**: LegaStorico ha ora il **selettore gioco** (Tutti/Poker/giochi → colma la lacuna (d));
+  StoricoShell mostra il poker inline (niente più EmptyState di rimando) + link rapido. Filtro data poker preservato.
+- Nota minore (cleanup opzionale): commento in `utils/storico.ts` cita ancora "StoricoSessioni / UI vecchia
+  resta com'è" → ora superato (lo può ripulire #4.7c, che tocca le utils).
+- Prompt archiviato in `archivio/MULTIGIOCO_4_7B_STORICO_PROMPT.md`.
+- **Prossima**: **4.7c** (nickname + normalizzazione) → **ultima sub-fase, poi i 4.x sono chiusi**.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

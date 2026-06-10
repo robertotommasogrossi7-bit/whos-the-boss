@@ -54,8 +54,8 @@ contributo↔premio) + **serata programmata** + **cleanup codice morto** +
 **feature tavoli COMPLETA** (T1+T2+T3) + **SPINA MULTIGIOCO COMPLETA**: M1 (modello+stats)
 → R/M2 (design system scuro + shell + Personale) → M3 (segna-partita + sezione lega a 4
 schede) → **M4** (classifiche) → **#4.5** (utente-giocatore "sei tu": auto-add Personale, lock, badge,
-`adminIds`) → **#4.6** (layer-dati: poker nel modello-riga unificato + filtri) → **#4.7a** (classifica
-condivisa: poker inline + filtro nome). Ultimo merge `8da1854`.
+`adminIds`) → **#4.6** (layer-dati) → **#4.7a** (classifica condivisa) → **#4.7b** (storico condiviso:
+poker inline + filtro gioco/nome). Ultimo merge `e64d9e9`.
 Logica poker invariata, `vanillaCompatStorage` intatto.
 **138/138 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
 
@@ -131,10 +131,13 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
      ClassificaShell ("La tua situazione" poker via `classificaPokerCrossContesto`; il redirect alla
      schermata poker resta come accesso rapido). "ci sei/sei stato" = best-effort (vedi (i)).
      Prompt in `archivio/MULTIGIOCO_4_7A_CLASSIFICA_PROMPT.md`. Review: DECISIONI (j).
-   - **4.7b — Storico condiviso** ← **fase corrente**: UN componente su `vociStorico`, **filtro gioco**
-     (poker inline) + **filtro nome secco** (`filtraStoricoPerNome`). Prompt: `MULTIGIOCO_4_7B_STORICO_PROMPT.md`.
-   - **4.7c — Nickname + normalizzazione**: `rinominaGiocatore` + campo editabile in Giocatori (edita
-     `nome`, id stabile, cosmetico); **`normalizzaNome` ovunque** (allinea `statsPersonaCrossContesto`).
+   - **4.7b — Storico condiviso** — ✅ **FATTA e MERGIATA** (merge `e64d9e9`, 138 test): UN componente
+     `StoricoLista` su `vociStorico`, **filtro gioco** in LegaStorico (Tutti/poker/giochi, colma (d)) +
+     **filtro nome secco**; poker inline (no redirect); `StoricoSessioni` rimosso. Prompt in
+     `archivio/MULTIGIOCO_4_7B_STORICO_PROMPT.md`. Review: DECISIONI (k).
+   - **4.7c — Nickname + normalizzazione** ← **fase corrente**: `rinominaGiocatore` + campo editabile in
+     Giocatori (edita `nome`, id stabile, cosmetico, **NON** sul "sei tu"); **`normalizzaNome` ovunque**
+     (allinea `statsPersonaCrossContesto` + dedup). Prompt: `MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`.
    **Dipende da #4.5/#4.6.** Vedi `DECISIONI.md` (e)+(f)+(i).
 5. **Soldi d'uscita** (poker, logica soldi — chat Opus): funzione pura `saldoUscita`
    + esempi-test (`USCITA_CASH_SPEC §6`) → modello/store → azioni. Primo pezzo del
@@ -153,13 +156,12 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta** (chat base, 2026-06-04): **#4.5, #4.6, #4.7a FATTE e MERGIATE**
-(`6515bd5`, `3598a2e`, `8da1854`; 138 test; review chat base OK). Esecuzione **una alla volta**, tutte
-**Sonnet** (per ognuna: prompt → chat di fase → review separata → merge `--no-ff`):
-1. ✅ **#4.5** (sei tu) · ✅ **#4.6** (layer-dati) · ✅ **#4.7a** (classifica condivisa) — prompt in `archivio/`.
-2. **#4.7 (resto)**: **4.7b storico** ← **fase corrente** (prompt `MULTIGIOCO_4_7B_STORICO_PROMPT.md`)
-   → **4.7c nickname + normalizzazione**. Poi i **4.x sono chiusi**.
-3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
+**Prossima azione concreta** (chat base, 2026-06-04): **#4.5, #4.6, #4.7a, #4.7b FATTE e MERGIATE**
+(`6515bd5`, `3598a2e`, `8da1854`, `e64d9e9`; 138 test; review chat base OK). Esecuzione **una alla volta**,
+tutte **Sonnet** (per ognuna: prompt → chat di fase → review separata → merge `--no-ff`):
+1. ✅ **#4.5** · ✅ **#4.6** · ✅ **#4.7a** · ✅ **#4.7b** — prompt in `archivio/`.
+2. **#4.7c nickname + normalizzazione** ← **fase corrente** (prompt `MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`).
+   **Ultima sub-fase: con questa i 4.x sono CHIUSI.**
 3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
