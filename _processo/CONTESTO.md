@@ -53,11 +53,11 @@ Su `main`: migrazione React (Fasi 1-5) + overlay + **settlement cash v2 +
 contributo↔premio) + **serata programmata** + **cleanup codice morto** +
 **feature tavoli COMPLETA** (T1+T2+T3) + **SPINA MULTIGIOCO COMPLETA**: M1 (modello+stats)
 → R/M2 (design system scuro + shell + Personale) → M3 (segna-partita + sezione lega a 4
-schede) → **M4** (classifiche) → **#4.5** (utente-giocatore "sei tu": auto-add Personale, lock, badge,
-`adminIds`) → **#4.6** (layer-dati) → **#4.7a** (classifica condivisa) → **#4.7b** (storico condiviso:
-poker inline + filtro gioco/nome). Ultimo merge `e64d9e9`.
+schede) → **M4** (classifiche) → ✅ **RIFINITURE 4.x COMPLETE**: #4.5 (utente-giocatore "sei tu") +
+#4.6 (layer-dati) + #4.7a (classifica condivisa) + #4.7b (storico condiviso) + #4.7c (soprannome +
+normalizzazione ovunque). Ultimo merge `c242c1c`.
 Logica poker invariata, `vanillaCompatStorage` intatto.
-**138/138 test verdi**, TSC + lint + build verdi. Solo branch `main` (+ i `claude/*` ambiente).
+**147/147 test verdi**, TSC + lint + **build di produzione verdi** (vite build ok). Solo branch `main` (+ i `claude/*` ambiente).
 
 **Git ripulito (2026-05-31)**: i documenti di processo `.md` sono stati tolti dal
 versionamento (`git rm --cached`) e messi in `.gitignore`. Su GitHub ora restano
@@ -135,10 +135,12 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
      `StoricoLista` su `vociStorico`, **filtro gioco** in LegaStorico (Tutti/poker/giochi, colma (d)) +
      **filtro nome secco**; poker inline (no redirect); `StoricoSessioni` rimosso. Prompt in
      `archivio/MULTIGIOCO_4_7B_STORICO_PROMPT.md`. Review: DECISIONI (k).
-   - **4.7c — Nickname + normalizzazione** ← **fase corrente**: `rinominaGiocatore` + campo editabile in
-     Giocatori (edita `nome`, id stabile, cosmetico, **NON** sul "sei tu"); **`normalizzaNome` ovunque**
-     (allinea `statsPersonaCrossContesto` + dedup). Prompt: `MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`.
-   **Dipende da #4.5/#4.6.** Vedi `DECISIONI.md` (e)+(f)+(i).
+   - **4.7c — Nickname + normalizzazione** — ✅ **FATTA e MERGIATA** (merge `c242c1c`, **147 test**):
+     `rinominaGiocatore` (`validaRinomina` puro: dedup normalizzato, blocco sul "sei tu") + edit soprannome
+     inline in Giocatori (id stabile, cosmetico, **NON** sul "sei tu"); **`normalizzaNome` ovunque**
+     (`statsPersonaCrossContesto`, dedup `aggiungiGiocatore`, serata/SheetNuovaSessione/ListaLeghe). Prompt in
+     `archivio/MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`. Review: DECISIONI (l).
+   ✅ **#4.7 COMPLETA (a+b+c).** **Dipendeva da #4.5/#4.6.** Vedi `DECISIONI.md` (e)+(f)+(i)+(j)+(k)+(l).
 5. **Soldi d'uscita** (poker, logica soldi — chat Opus): funzione pura `saldoUscita`
    + esempi-test (`USCITA_CASH_SPEC §6`) → modello/store → azioni. Primo pezzo del
    blocco poker-live (sblocca l'azione "esce" del tavolo).
@@ -156,13 +158,16 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 8. **(Post-backend, Supabase)**: ruoli/permessi per-gioco, dati personali
    cross-device, spettatori del tavolo. Vedi `archivio/IDEE.md`.
 
-**Prossima azione concreta** (chat base, 2026-06-04): **#4.5, #4.6, #4.7a, #4.7b FATTE e MERGIATE**
-(`6515bd5`, `3598a2e`, `8da1854`, `e64d9e9`; 138 test; review chat base OK). Esecuzione **una alla volta**,
-tutte **Sonnet** (per ognuna: prompt → chat di fase → review separata → merge `--no-ff`):
-1. ✅ **#4.5** · ✅ **#4.6** · ✅ **#4.7a** · ✅ **#4.7b** — prompt in `archivio/`.
-2. **#4.7c nickname + normalizzazione** ← **fase corrente** (prompt `MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`).
-   **Ultima sub-fase: con questa i 4.x sono CHIUSI.**
-3. Poi **poker-live** (#5 soldi d'uscita [Opus] → #6 tavolo live) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
+**Prossima azione concreta** (chat base, 2026-06-04): ✅ **RIFINITURE 4.x TUTTE CHIUSE** — #4.5, #4.6,
+#4.7a/b/c FATTE e MERGIATE (da `6515bd5` a `c242c1c`; **147 test**, tsc+lint+**build di produzione** verdi;
+review chat base OK). Controllo generale fatto (build prod ok, `main` allineato/pulito, branch di fase cancellati).
+**Prossimo blocco = poker-live**:
+1. **#5 — Soldi d'uscita** (`saldoUscita`): **logica di soldi → chat OPUS** (NON Sonnet), con SPEC +
+   esempi-test PRIMA del codice. Contratto già pronto in `USCITA_CASH_SPEC.md` (§6 esempi-test). Funzione
+   pura → modello/store → azioni.
+2. **#6 — Tavolo live** (`TAVOLO_LIVE_SPEC`, estende `TavoloView.tsx`) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
+> Promemoria fine-feature: la **spina multigioco** è completa → valutare l'estrazione nella **libreria
+> feature cross-progetto** (`_LIBRERIA_FEATURE/`, vedi METODO) prima di tuffarsi nel poker-live.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
 - **`nuovoGiocoCustom` usa id `custom-${Date.now()}`** → collisione possibile (teorica).

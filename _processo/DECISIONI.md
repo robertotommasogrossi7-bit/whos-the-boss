@@ -346,6 +346,22 @@
 - Prompt archiviato in `archivio/MULTIGIOCO_4_7B_STORICO_PROMPT.md`.
 - **Prossima**: **4.7c** (nickname + normalizzazione) → **ultima sub-fase, poi i 4.x sono chiusi**.
 
+## 2026-06-04 (l) — #4.7c "nickname + normalizzazione" mergiata → RIFINITURE 4.x CHIUSE
+
+- **#4.7c in `main`** (merge `c242c1c`, **147 test**, tsc+lint+**build di produzione** verdi). Review chat base OK.
+- Nuovo `utils/giocatori.ts::validaRinomina` (puro, 8 test): vuoto/assente/sei-tu/dedup normalizzato
+  (esclude sé per id → ritocco case/accenti del proprio record ok). L'azione store `rinominaGiocatore`
+  la usa. UI: edit **soprannome inline** in `TabPartecipanti` (icona matita; **niente** sul "sei tu").
+- **`normalizzaNome` OVUNQUE**: `statsPersonaCrossContesto` (era `.toLowerCase()`), dedup
+  `aggiungiGiocatore`, lookup nomi in serata/torneo, `SheetNuovaSessione`, `ListaLeghe` (via `èSeiTu`).
+  Un solo criterio di match nome in tutta l'app. Commento stantio in `storico.ts` ripulito.
+- **MILESTONE: rifiniture 4.x TUTTE chiuse** (#4.5 sei-tu, #4.6 layer-dati, #4.7a classifica, #4.7b storico,
+  #4.7c nickname). Spina multigioco + rifiniture **complete**. Controllo generale: build prod ok, `main`
+  allineato/pulito, branch di fase cancellati.
+- Prompt archiviato in `archivio/MULTIGIOCO_4_7C_NICKNAME_PROMPT.md`.
+- **Prossimo blocco = poker-live**: **#5 soldi d'uscita** (`saldoUscita`) → **chat OPUS** (logica soldi,
+  SPEC `USCITA_CASH_SPEC` + esempi-test prima del codice) → #6 tavolo live. + valutare estrazione **libreria feature**.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
