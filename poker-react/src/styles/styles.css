@@ -1970,3 +1970,64 @@ button.ui-listrow:active { transform: scale(.99); }
   border-radius: var(--radius-sm);
 }
 .nl-tu-nome { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* ─── CLASSIFICA CONDIVISA (#4.7a) ─── */
+/* Variante poker (soldi): 6 colonne # | Giocatore | Part | Vitt | % | Netto.
+   Colonne numeriche compatte + padding/gap ridotti così il nome (minmax 0,1fr)
+   resta leggibile anche a 375px (mobile-first). */
+.cla-table--soldi .cla-thead,
+.cla-table--soldi .cla-row {
+  grid-template-columns: 24px minmax(0, 1fr) 30px 30px 38px 58px;
+  padding-left: 10px; padding-right: 10px; column-gap: 2px;
+}
+.cla-table--soldi .cla-num { font-size: 12px; }
+.cla-table--soldi .cla-pos { width: auto; }
+.cla-table--soldi .cla-player { gap: 6px; }
+/* Netto colorato: vince su .cla-num e su .cla-row--leader .cla-num (più
+   specifico + più avanti nel file). */
+.cla-num.pos { color: var(--green); }
+.cla-num.neg { color: var(--red); }
+
+/* Box ricerca nome (FiltroNome) */
+.cla-search {
+  position: relative; display: flex; align-items: center; margin-bottom: 12px;
+}
+.cla-search-input {
+  flex: 1; min-height: 42px; padding: 9px 38px 9px 13px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 15px; color: var(--text); background: var(--surface-2);
+}
+.cla-search-input:focus { outline: none; border-color: var(--accent); }
+.cla-search-clear {
+  position: absolute; right: 8px; display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: none; border-radius: 999px;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.cla-search-clear:active { color: var(--text); }
+
+/* Match del filtro nome: evidenza SENZA nascondere (semantica (f)).
+   Bordo sinistro accentato, visibile anche sulla riga leader. */
+.cla-row--match { box-shadow: inset 3px 0 0 var(--accent); }
+
+/* Link rapido alla schermata poker dedicata (LegaClassifica / ClassificaShell) */
+.cla-link-poker {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: -2px 0 12px; padding: 6px 0;
+  font-size: 13px; font-weight: 700; color: var(--accent); text-decoration: none;
+}
+
+/* Netto colorato in "La tua situazione" poker (card totale + breakdown).
+   Più specifico/avanti dei rispettivi default in --accent. */
+.cla-totale-val.pos { color: var(--green); }
+.cla-totale-val.neg { color: var(--red); }
+.cla-ctx-stats .pos { color: var(--green); }
+.cla-ctx-stats .neg { color: var(--red); }
+
+/* Marker "ci sei" sui contesti del breakdown (sei in lega.nomi). Il
+   "non ci sei più" è deferito al backend (decisione (i)). */
+.cla-ctx-cisei {
+  margin-left: 8px; font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .04em; white-space: nowrap;
+  color: var(--ok); background: var(--ok-soft);
+  padding: 1px 6px; border-radius: 999px; vertical-align: middle;
+}

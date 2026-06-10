@@ -1,114 +1,98 @@
 import { useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { classificaGioco, resolveGiocoLega } from '../../utils/classifiche';
+import { classificaUnificata, resolveGiocoLega } from '../../utils/classifiche';
 import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
-import { GameIcon, IconCrown, IconTrophy } from '../icons';
-import { Avatar, EmptyState } from '../ui';
+import { GameIcon, IconTrophy, IconChevronRight } from '../icons';
+import { EmptyState } from '../ui';
+import ClassificaTable from '../classifica/ClassificaTable';
+import FiltroNome from '../classifica/FiltroNome';
 
-/* CLASSIFICA di LEGA (M4) — scheda Classifica della sezione lega.
-   Selettore gioco (solo giochi con sessioni chiuse), standings dei
-   giocatori della lega (% vinte, sessioni vinte, corona al leader).
-   SPEC §8 + DECISIONI 2026-06-04. Il poker è invariato (TabClassifica). */
+/* CLASSIFICA di LEGA (#4.7a) — scheda Classifica della sezione lega, sul
+   componente condiviso ClassificaTable (#4.6 data-layer). Il selettore gioco
+   ora INCLUDE il poker (se la lega ha partite): switch gioco↔poker cambia le
+   colonne. Filtro nome (match in cima). Per il poker, oltre ai dati inline,
+   un link rapido alla schermata poker dedicata (il redirect "piace", (d)). */
 export default function LegaClassifica() {
-  const { legaId }   = useParams<{ legaId: string }>();
-  const idNum        = Number(legaId);
-  const lega         = useStore(s => s.db.leghe.find(l => l.id === idNum));
+  const { legaId } = useParams<{ legaId: string }>();
+  const idNum      = Number(legaId);
+  const lega       = useStore(s => s.db.leghe.find(l => l.id === idNum));
   const [selId, setSelId] = useState<string>('');
+  const [query, setQuery] = useState('');
 
   if (!lega) return <Navigate to="/leghe" replace />;
 
-  /* Giochi con almeno una sessione chiusa (no poker) */
-  const sessChiuse   = (lega.sessioniGioco ?? []).filter(s => s.stato === 'chiusa');
-  const giochiIds    = [...new Set(sessChiuse.map(s => s.giocoId))].filter(id => id !== 'poker');
-  const giochi       = giochiIds.flatMap(id => {
-    const g = resolveGiocoLega(id, lega);
-    return g ? [{ id, g }] : [];
-  });
+  const icona   = (id: string) => GIOCHI_PREIMPOSTATI.find(g => g.id === id)?.icona ?? 'mazzo';
+  const nomeCat = (id: string) => GIOCHI_PREIMPOSTATI.find(g => g.id === id)?.nome  ?? id;
 
-  const giocoAttivoId = selId || (giochi[0]?.id ?? '');
-  const giocoAttivo   = giochi.find(x => x.id === giocoAttivoId)?.g ?? null;
+  /* Opzioni del selettore: poker (se ci sono partite) + giochi con sessioni chiuse. */
+  const sessChiuse = (lega.sessioniGioco ?? []).filter(s => s.stato === 'chiusa');
+  const giochiIds  = [...new Set(sessChiuse.map(s => s.giocoId))].filter(id => id !== 'poker');
+  const opzioni = [
+    ...(lega.partite.length > 0 ? [{ id: 'poker', nome: nomeCat('poker') }] : []),
+    ...giochiIds.flatMap(id => {
+      const g = resolveGiocoLega(id, lega);
+      return g ? [{ id, nome: g.nome }] : [];
+    }),
+  ];
 
-  const righe = giocoAttivo
-    ? classificaGioco(giocoAttivo, sessChiuse.filter(s => s.giocoId === giocoAttivo.id), lega.nomi)
-    : [];
-
-  const icona = (id: string) => GIOCHI_PREIMPOSTATI.find(g => g.id === id)?.icona ?? 'mazzo';
-
-  /* ── Nessun gioco ancora giocato ── */
-  if (giochi.length === 0) {
+  /* ── Nessun gioco né poker ── */
+  if (opzioni.length === 0) {
     return (
       <div className="tab-content">
         <EmptyState
           icon={<IconTrophy size={48} />}
           title="Nessuna partita giocata"
-          hint="Gioca alcune sessioni e chiudile: qui comparirà la classifica per gioco."
+          hint="Gioca alcune partite (o serate di poker) e chiudile: qui comparirà la classifica."
         />
       </div>
     );
   }
 
-  const haPartite = righe.some(r => r.stats.partiteGiocate > 0);
+  const giocoAttivoId = (selId && opzioni.some(o => o.id === selId)) ? selId : opzioni[0]!.id;
+  const isPoker       = giocoAttivoId === 'poker';
+  const nomeAttivo    = opzioni.find(o => o.id === giocoAttivoId)?.nome ?? 'questo gioco';
+
+  const classifica = classificaUnificata(lega, giocoAttivoId);
+  const haDati = classifica.righe.some(r =>
+    r.kpi.tipo === 'soldi' ? r.kpi.partiteGiocate > 0 : r.kpi.stats.partiteGiocate > 0,
+  );
 
   return (
     <div className="tab-content">
 
-      {/* Selettore gioco */}
+      {/* Selettore gioco (poker incluso) */}
       <div className="cla-gioco-sel">
-        {giochi.map(({ id, g }) => (
+        {opzioni.map(o => (
           <button
-            key={id}
-            className={`cla-gioco-pill${id === giocoAttivoId ? ' selected' : ''}`}
-            onClick={() => setSelId(id)}
+            key={o.id}
+            className={`cla-gioco-pill${o.id === giocoAttivoId ? ' selected' : ''}`}
+            onClick={() => { setSelId(o.id); setQuery(''); }}
           >
-            <span className="cla-gioco-pill-ico"><GameIcon icona={icona(id)} size={16} /></span>
-            {g.nome}
+            <span className="cla-gioco-pill-ico"><GameIcon icona={icona(o.id)} size={16} /></span>
+            {o.nome}
           </button>
         ))}
       </div>
 
-      {/* Standings */}
-      {!haPartite ? (
+      {/* Poker: link rapido alla schermata dedicata (oltre ai dati inline) */}
+      {isPoker && (
+        <Link to={`/leghe/${lega.id}/poker/classifica`} className="cla-link-poker">
+          Apri schermata Poker <IconChevronRight size={16} />
+        </Link>
+      )}
+
+      {!haDati ? (
         <EmptyState
           icon={<IconTrophy size={44} />}
-          title={`Nessuna partita a ${giocoAttivo?.nome ?? 'questo gioco'}`}
-          hint="Gioca e chiudi sessioni per vedere la classifica."
+          title={`Nessuna partita a ${nomeAttivo}`}
+          hint="Gioca e chiudi qualche partita per vedere la classifica."
         />
       ) : (
-        <div className="cla-table">
-          <div className="cla-thead">
-            <span className="cla-th-pos">#</span>
-            <span className="cla-th-nome">Giocatore</span>
-            <span className="cla-th-num">% vinte</span>
-            <span className="cla-th-num">Sess.</span>
-          </div>
-
-          {righe.map((r, i) => (
-            <div
-              key={r.idNome}
-              className={[
-                'cla-row',
-                r.isLeader              ? 'cla-row--leader' : '',
-                r.stats.partiteGiocate === 0 ? 'cla-row--zero' : '',
-              ].filter(Boolean).join(' ')}
-            >
-              <div className="cla-pos">{i + 1}</div>
-              <div className="cla-player">
-                {r.isLeader
-                  ? <span className="cla-crown"><IconCrown size={14} /></span>
-                  : <span className="cla-crown-placeholder" />}
-                <Avatar nome={r.nome} size="sm" />
-                <span className="cla-nome">{r.nome}</span>
-              </div>
-              <div className="cla-num">
-                {r.stats.partiteGiocate > 0 ? `${r.stats.percVittorie}%` : '—'}
-              </div>
-              <div className="cla-num">
-                {r.stats.partiteGiocate > 0 ? r.stats.sessioniVinte : '—'}
-              </div>
-            </div>
-          ))}
-        </div>
+        <>
+          <FiltroNome value={query} onChange={setQuery} />
+          <ClassificaTable classifica={classifica} query={query} />
+        </>
       )}
     </div>
   );
