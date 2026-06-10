@@ -2037,3 +2037,30 @@ button.ui-listrow:active { transform: scale(.99); }
    gioco (.storico-sess), che da sole hanno spaziature diverse. */
 .storico-lista { display: flex; flex-direction: column; gap: 12px; }
 .storico-lista .game-card { margin-bottom: 0; }
+
+/* ─── SOPRANNOME / edit inline giocatore (#4.7c) ─── */
+.player-row .pr-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* Bottone "modifica soprannome" (neutro, accanto al cestino) */
+.pr-edit-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer;
+}
+.pr-edit-btn:active { color: var(--text); }
+
+/* Editing inline: input che sostituisce il nome + conferma/annulla */
+.pr-edit { display: flex; align-items: center; gap: 6px; width: 100%; }
+.pr-edit-input {
+  flex: 1; min-width: 0; min-height: 38px; padding: 7px 11px;
+  border: 1.5px solid var(--accent); border-radius: 8px;
+  background: var(--surface-2); color: var(--text); font-size: 15px; font-weight: 600;
+}
+.pr-edit-input:focus { outline: none; }
+.pr-edit-ok, .pr-edit-cancel {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px; border: none; cursor: pointer; flex-shrink: 0;
+}
+.pr-edit-ok     { background: var(--ok-soft);     color: var(--ok); }
+.pr-edit-cancel { background: var(--danger-soft); color: var(--danger); }

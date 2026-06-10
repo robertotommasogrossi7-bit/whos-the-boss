@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
 import { èSeiTu } from '../../utils/normalizzaNome';
-import { IconUser, IconTrash } from '../icons';
+import { IconUser, IconTrash, IconEdit, IconCheck, IconClose } from '../icons';
 
 export default function TabPartecipanti() {
   const lega               = useStore(selectCurrentLega);
   const utente             = useStore(s => s.utente);
   const aggiungiGiocatore  = useStore(s => s.aggiungiGiocatore);
   const eliminaGiocatore   = useStore(s => s.eliminaGiocatore);
+  const rinominaGiocatore  = useStore(s => s.rinominaGiocatore);
   const toast              = useStore(s => s.toast);
   const [nuovoNome, setNuovoNome] = useState('');
+  const [editId, setEditId]       = useState<number | null>(null);
+  const [editVal, setEditVal]     = useState('');
 
   if (!lega) return null;
 
@@ -31,6 +34,21 @@ export default function TabPartecipanti() {
     if (!confirm(`Eliminare ${nome}?`)) return;
     const err = eliminaGiocatore(lega!.id, idNome);
     if (err) toast(err);
+  }
+
+  function apriEdit(idNome: number, nome: string) {
+    setEditId(idNome);
+    setEditVal(nome);
+  }
+  function annullaEdit() {
+    setEditId(null);
+    setEditVal('');
+  }
+  function confermaEdit(idNome: number) {
+    const err = rinominaGiocatore(lega!.id, idNome, editVal);
+    if (err) { toast(err); return; }
+    annullaEdit();
+    toast('Soprannome aggiornato');
   }
 
   return (
@@ -63,9 +81,40 @@ export default function TabPartecipanti() {
           </div>
         ) : (
           lega.nomi.map(nm => {
-            const np = nPartite(nm.id);
-            const seiTu = èSeiTu(nm.nome, utente?.username);
+            const np       = nPartite(nm.id);
+            const seiTu    = èSeiTu(nm.nome, utente?.username);
             const bloccato = lega.personale && seiTu; // tu nel Personale: non rimovibile
+            const inEdit   = editId === nm.id;
+
+            if (inEdit) {
+              return (
+                <div key={nm.id} className="player-row">
+                  <div className="pr-edit">
+                    <input
+                      className="pr-edit-input"
+                      type="text"
+                      maxLength={25}
+                      autoCapitalize="words"
+                      autoFocus
+                      placeholder="Soprannome"
+                      value={editVal}
+                      onChange={e => setEditVal(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') confermaEdit(nm.id);
+                        else if (e.key === 'Escape') annullaEdit();
+                      }}
+                    />
+                    <button className="pr-edit-ok" onClick={() => confermaEdit(nm.id)} title="Salva soprannome">
+                      <IconCheck size={16} />
+                    </button>
+                    <button className="pr-edit-cancel" onClick={annullaEdit} title="Annulla">
+                      <IconClose size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={nm.id} className="player-row">
                 <div className="pr-left">
@@ -75,15 +124,23 @@ export default function TabPartecipanti() {
                     <span className="pr-games">{np} {np === 1 ? 'partita' : 'partite'}</span>
                   )}
                 </div>
-                {!bloccato && (
-                  <button
-                    className="btn btn-sm btn-red"
-                    onClick={() => elimina(nm.id, nm.nome)}
-                    title="Elimina"
-                  >
-                    <IconTrash size={16} />
-                  </button>
-                )}
+                <div className="pr-actions">
+                  {/* Soprannome: cosmetico, id stabile. NON sul "sei tu" (nome account-level). */}
+                  {!seiTu && (
+                    <button className="pr-edit-btn" onClick={() => apriEdit(nm.id, nm.nome)} title="Soprannome">
+                      <IconEdit size={16} />
+                    </button>
+                  )}
+                  {!bloccato && (
+                    <button
+                      className="btn btn-sm btn-red"
+                      onClick={() => elimina(nm.id, nm.nome)}
+                      title="Elimina"
+                    >
+                      <IconTrash size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })
