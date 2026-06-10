@@ -12,6 +12,7 @@ import {
 } from '../utils/sessioneGioco';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
 import { èSeiTu } from '../utils/normalizzaNome';
+import { validaRinomina } from '../utils/giocatori';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
@@ -139,6 +140,7 @@ interface StoreActions {
   // Giocatori
   aggiungiGiocatore: (legaId: number, nome: string) => string | null;
   eliminaGiocatore: (legaId: number, idNome: number) => string | null;
+  rinominaGiocatore: (legaId: number, idNome: number, nuovoNome: string) => string | null;
 
   // Partite
   eliminaPartita: (legaId: number, partitaId: number) => void;
@@ -536,6 +538,18 @@ export const useStore = create<PokerStore>()(
         );
         if (inUso) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
         saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
+        return null;
+      },
+
+      // #4.7c: rinomina (soprannome) — cosmetico, id stabile, si propaga ovunque.
+      rinominaGiocatore: (legaId, idNome, nuovoNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return 'Lega non trovata';
+        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.username);
+        if (err) return err;
+        const n = nuovoNome.trim();
+        saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? { ...x, nome: n } : x)) });
         return null;
       },
 
