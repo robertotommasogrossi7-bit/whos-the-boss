@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { euroSigned } from '../../utils/format';
+import { èSeiTu } from '../../utils/normalizzaNome';
 import { IconTrophy, GameIcon } from '../icons';
 import type { Lega } from '../../types';
 
@@ -17,9 +18,8 @@ export default function ListaLeghe() {
   }
 
   function statsUtente(lega: Lega) {
-    const usernameLC = utente?.username?.toLowerCase() ?? '';
-    if (!usernameLC) return { rendimento: 0, vittorie: 0 };
-    const meId = lega.nomi.find(n => n.nome.toLowerCase() === usernameLC)?.id;
+    // #4.7c: trova il MIO record per nome normalizzato (èSeiTu condiviso)
+    const meId = lega.nomi.find(n => èSeiTu(n.nome, utente?.username))?.id;
     if (meId === undefined) return { rendimento: 0, vittorie: 0 };
     let rendimento = 0;
     let vittorie   = 0;

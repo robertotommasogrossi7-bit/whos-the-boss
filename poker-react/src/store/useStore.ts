@@ -11,7 +11,8 @@ import {
   type EsitoPartitaInput,
 } from '../utils/sessioneGioco';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
-import { èSeiTu } from '../utils/normalizzaNome';
+import { èSeiTu, normalizzaNome } from '../utils/normalizzaNome';
+import { validaRinomina } from '../utils/giocatori';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
 import { nowHHMM } from '../utils/format';
@@ -139,6 +140,7 @@ interface StoreActions {
   // Giocatori
   aggiungiGiocatore: (legaId: number, nome: string) => string | null;
   eliminaGiocatore: (legaId: number, idNome: number) => string | null;
+  rinominaGiocatore: (legaId: number, idNome: number, nuovoNome: string) => string | null;
 
   // Partite
   eliminaPartita: (legaId: number, partitaId: number) => void;
@@ -510,7 +512,7 @@ export const useStore = create<PokerStore>()(
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 'Lega non trovata';
-        if (lega.nomi.some(nm => nm.nome.toLowerCase() === n.toLowerCase()))
+        if (lega.nomi.some(nm => normalizzaNome(nm.nome) === normalizzaNome(n)))
           return 'Nome già presente';
         saveLega({
           ...lega,
@@ -536,6 +538,18 @@ export const useStore = create<PokerStore>()(
         );
         if (inUso) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
         saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
+        return null;
+      },
+
+      // #4.7c: rinomina (soprannome) — cosmetico, id stabile, si propaga ovunque.
+      rinominaGiocatore: (legaId, idNome, nuovoNome) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return 'Lega non trovata';
+        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.username);
+        if (err) return err;
+        const n = nuovoNome.trim();
+        saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? { ...x, nome: n } : x)) });
         return null;
       },
 
@@ -764,7 +778,7 @@ export const useStore = create<PokerStore>()(
         if (!n) return 'Inserisci un nome';
         let nomi = [...lega.nomi];
         let _nid = lega._nid;
-        let existing = nomi.find(x => x.nome.toLowerCase() === n.toLowerCase());
+        let existing = nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
         if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return null; }
         if (!existing) {
           existing = { id: _nid++, nome: n };
@@ -853,8 +867,8 @@ export const useStore = create<PokerStore>()(
           }
         }
 
-        const nLower = n.toLowerCase();
-        const nomeTrovato = lega.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        const nNorm = normalizzaNome(n);
+        const nomeTrovato = lega.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
         const giàInSess   = nomeTrovato
           ? sess.giocatori.find(g => g.id_nome === nomeTrovato.id)
           : null;
@@ -875,7 +889,7 @@ export const useStore = create<PokerStore>()(
         // Rilegge la lega aggiornata e fa entrare il nuovo giocatore
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
         if (!legaUpd?.sessioneAttiva) return;
-        const nomeTrovatoUpd = legaUpd.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        const nomeTrovatoUpd = legaUpd.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
         if (!nomeTrovatoUpd) return;
         const nuovoG = legaUpd.sessioneAttiva.giocatori.find(g => g.id_nome === nomeTrovatoUpd.id);
         if (!nuovoG || nuovoG.entrato) return;

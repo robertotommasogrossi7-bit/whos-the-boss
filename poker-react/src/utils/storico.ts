@@ -7,8 +7,8 @@ import { normalizzaNome } from './normalizzaNome';
    Una sola lista di "voci storico" che mescola i due mondi:
    - poker → una Partita (cash/torneo) di lega.partite
    - gioco → una SessioneGioco chiusa di lega.sessioniGioco
-   Su questa base il #4.7 monta UN componente Storico condiviso. La UI
-   vecchia (TabStorico, StoricoSessioni, LegaStorico) resta com'è.
+   Su questa base il #4.7b monta il componente condiviso StoricoLista
+   (TabStorico, LegaStorico, StoricoShell) — StoricoSessioni è stato assorbito.
 ══════════════════════════════════════════════════════ */
 
 export type VoceStorico =
