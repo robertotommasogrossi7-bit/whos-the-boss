@@ -11,7 +11,7 @@ import {
   type EsitoPartitaInput,
 } from '../utils/sessioneGioco';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
-import { èSeiTu } from '../utils/normalizzaNome';
+import { èSeiTu, normalizzaNome } from '../utils/normalizzaNome';
 import { validaRinomina } from '../utils/giocatori';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
@@ -512,7 +512,7 @@ export const useStore = create<PokerStore>()(
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 'Lega non trovata';
-        if (lega.nomi.some(nm => nm.nome.toLowerCase() === n.toLowerCase()))
+        if (lega.nomi.some(nm => normalizzaNome(nm.nome) === normalizzaNome(n)))
           return 'Nome già presente';
         saveLega({
           ...lega,

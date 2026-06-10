@@ -250,6 +250,15 @@ describe('statsPersonaCrossContesto', () => {
     expect(result.totale.partiteGiocate).toBe(1);
   });
 
+  it('matching nome a meno di accenti (normalizzaNome ovunque, #4.7c)', () => {
+    // nel db: 'José' (con accento), ricerca: 'jose' → match tollerante
+    const sess = sessione(1, [A], [partita(1, [A])]);
+    const lega1 = mkLega(10, [{ id: A, nome: 'José' }], [sess]);
+    const result = statsPersonaCrossContesto('jose', g, [lega1]);
+    expect(result.perContesto.length).toBe(1);
+    expect(result.totale.partiteGiocate).toBe(1);
+  });
+
   it('nessun contesto trovato → totale a zero, perContesto vuoto', () => {
     const lega1 = mkLega(10, [{ id: B, nome: 'Bob' }], []);
     const result = statsPersonaCrossContesto('Alice', g, [lega1]);

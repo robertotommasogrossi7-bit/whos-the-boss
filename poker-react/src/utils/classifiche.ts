@@ -125,12 +125,12 @@ export function statsPersonaCrossContesto(
   gioco: GiocoLega,
   leghe: Lega[],
 ): CrossContextoResult {
-  const nomeLower = nome.trim().toLowerCase();
+  const target = normalizzaNome(nome); // #4.7c: match nome condiviso (accenti/maiuscole)
   const perContesto: ContextoStats[] = [];
   let totale: StatsGiocatore = { ...ZERO_STATS };
 
   for (const lega of leghe) {
-    const giocatore = lega.nomi.find(n => n.nome.trim().toLowerCase() === nomeLower);
+    const giocatore = lega.nomi.find(n => normalizzaNome(n.nome) === target);
     if (!giocatore) continue;
 
     const sessioniChiuse = (lega.sessioniGioco ?? []).filter(
