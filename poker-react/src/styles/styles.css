@@ -2031,3 +2031,9 @@ button.ui-listrow:active { transform: scale(.99); }
   color: var(--ok); background: var(--ok-soft);
   padding: 1px 6px; border-radius: 999px; vertical-align: middle;
 }
+
+/* ─── STORICO CONDIVISO (#4.7b) ─── */
+/* Lista unificata: spaziatura coerente tra card poker (.game-card) e
+   gioco (.storico-sess), che da sole hanno spaziature diverse. */
+.storico-lista { display: flex; flex-direction: column; gap: 12px; }
+.storico-lista .game-card { margin-bottom: 0; }
