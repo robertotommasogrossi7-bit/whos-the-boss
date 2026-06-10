@@ -778,7 +778,7 @@ export const useStore = create<PokerStore>()(
         if (!n) return 'Inserisci un nome';
         let nomi = [...lega.nomi];
         let _nid = lega._nid;
-        let existing = nomi.find(x => x.nome.toLowerCase() === n.toLowerCase());
+        let existing = nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
         if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return null; }
         if (!existing) {
           existing = { id: _nid++, nome: n };
@@ -867,8 +867,8 @@ export const useStore = create<PokerStore>()(
           }
         }
 
-        const nLower = n.toLowerCase();
-        const nomeTrovato = lega.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        const nNorm = normalizzaNome(n);
+        const nomeTrovato = lega.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
         const giàInSess   = nomeTrovato
           ? sess.giocatori.find(g => g.id_nome === nomeTrovato.id)
           : null;
@@ -889,7 +889,7 @@ export const useStore = create<PokerStore>()(
         // Rilegge la lega aggiornata e fa entrare il nuovo giocatore
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
         if (!legaUpd?.sessioneAttiva) return;
-        const nomeTrovatoUpd = legaUpd.nomi.find(nm => nm.nome.toLowerCase() === nLower);
+        const nomeTrovatoUpd = legaUpd.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
         if (!nomeTrovatoUpd) return;
         const nuovoG = legaUpd.sessioneAttiva.giocatori.find(g => g.id_nome === nomeTrovatoUpd.id);
         if (!nuovoG || nuovoG.entrato) return;

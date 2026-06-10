@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { oggi, nowHHMM } from '../../utils/format';
+import { normalizzaNome } from '../../utils/normalizzaNome';
 import { idBloccatiInclusi } from '../../utils/personale';
 import { Sheet, Button } from '../ui';
 import { IconPlus } from '../icons';
@@ -42,7 +43,7 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
     if (err) { toast(err); return; }
     // Rilegge la lega aggiornata per selezionare il nuovo id
     const fresh = useStore.getState().db.leghe.find(l => l.id === lega.id);
-    const nuovo = fresh?.nomi.find(x => x.nome.toLowerCase() === n.toLowerCase());
+    const nuovo = fresh?.nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
     if (nuovo) setSelected(prev => (prev.includes(nuovo.id) ? prev : [...prev, nuovo.id]));
     setNewName('');
   }
