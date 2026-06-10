@@ -316,6 +316,21 @@
   → chi ha storico è sempre membro). 4.7a mostra i contesti dove **ci sei**; il "non ci sei più" diventa
   reale col **backend (#8)**. Niente over-engineering ora.
 
+## 2026-06-04 (j) — #4.7a "classifica condivisa" mergiata (chat base review)
+
+- **#4.7a in `main`** (merge `8da1854`, 138 test, tsc+lint verdi). Review chat base OK (diff letto per
+  intero + green check pre/post-merge; tutti i token CSS verificati). Fase UI: verifica a browser dei 3
+  contesti svolta dalla chat di fase.
+- Nuovi `components/classifica/ClassificaTable.tsx` (tabella **parametrica** soldi/punti; il `#` resta il
+  **rank reale** anche col match-in-cima) + `FiltroNome.tsx` (box ricerca riusabile, evidenzia i match
+  **senza** nasconderli). `TabClassifica`/`LegaClassifica`/`ClassificaShell` rifatti sul condiviso.
+- **Poker inline ovunque**: selettore lega include poker; ClassificaShell "La tua situazione" poker via
+  `classificaPokerCrossContesto` (netto+%+partite); il **redirect** alla schermata poker resta come link rapido.
+- Plus: `TabClassifica` ora usa `classificaPoker` (#4.6) → **risolta la duplicazione temporanea** del #4.6.
+  Filtro data poker preservato. Marker "ci sei" nel breakdown ("non ci sei più" deferito, #8). Niente inline style.
+- Prompt archiviato in `archivio/MULTIGIOCO_4_7A_CLASSIFICA_PROMPT.md`.
+- **Prossima**: **4.7b** (storico condiviso su `vociStorico`), poi **4.7c** (nickname + normalizzazione) → 4.x chiusi.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
