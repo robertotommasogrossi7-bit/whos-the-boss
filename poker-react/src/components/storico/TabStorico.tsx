@@ -42,7 +42,7 @@ export default function TabStorico() {
         )}
       </div>
 
-      {voci.length > 0 && <FiltroNome value={query} onChange={setQuery} />}
+      {(voci.length > 0 || query.trim()) && <FiltroNome value={query} onChange={setQuery} />}
       <StoricoLista lega={lega} voci={voci} query={query} />
     </div>
   );
