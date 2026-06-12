@@ -162,19 +162,18 @@ emoji, niente loghi di marca). Vedi `DECISIONI.md`, `MULTIGIOCO_SPEC.md`, `DESIG
 #4.7a/b/c FATTE e MERGIATE (da `6515bd5` a `c242c1c`; **147 test**, tsc+lint+**build di produzione** verdi;
 review chat base OK). Controllo generale fatto (build prod ok, `main` allineato/pulito, branch di fase cancellati).
 
-⏸️ **FINE SESSIONE 2026-06-04** (ripresa domani): niente in sospeso lato codice (tutto mergiato/pushato).
-**Da fare dall'utente, domani**: (1) **collaudo a browser** delle rifiniture 4.x — checklist: classifica
-condivisa (selettore con poker, KPI parametriche, ricerca match-in-cima), "La tua situazione" poker,
-storico (filtro Tutti/poker/giochi + ricerca secca), **soprannome** in Giocatori, badge/lock **"sei tu"**,
-e **poker intatto**; (2) poi **scelta**: **#5 soldi d'uscita (chat OPUS)** vs **estrazione libreria feature**.
+✅ **Collaudo a browser fatto (2026-06-12, chat base)** con dati di test: classifica condivisa + poker
+inline + ricerca match-in-cima, storico filtro gioco, "sei tu", soprannome → **tutto ok, zero errori console**.
 
-**Prossimo blocco = poker-live**:
-1. **#5 — Soldi d'uscita** (`saldoUscita`): **logica di soldi → chat OPUS** (NON Sonnet), con SPEC +
-   esempi-test PRIMA del codice. Contratto già pronto in `USCITA_CASH_SPEC.md` (§6 esempi-test). Funzione
-   pura → modello/store → azioni.
-2. **#6 — Tavolo live** (`TAVOLO_LIVE_SPEC`, estende `TavoloView.tsx`) → **#7 M5** → **#7.5 ruoli/poteri** → **#8 backend**.
-> Promemoria fine-feature: la **spina multigioco** è completa → valutare l'estrazione nella **libreria
-> feature cross-progetto** (`_LIBRERIA_FEATURE/`, vedi METODO) prima di tuffarsi nel poker-live.
+🔀 **CAMBIO DI ROTTA (2026-06-12, deciso con l'utente)**: si **anticipa il backend** (Supabase), da
+**SPEC + Auth**, **incrementale**. Il post-4.x è ora governato da **`BACKEND_SPEC.md`**:
+1. **B0 — SPEC + scelte** ← **adesso**: `BACKEND_SPEC.md` scritto; da **confermare 3 forche** (offline? ·
+   guest? · auth) + **creare il progetto Supabase** (URL + anon key).
+2. **B1 Auth reale** → **B2 sync dati propri** → **B3 condivisione + ruoli (assorbe #7.5)** → **B4 realtime/spettatori (#8)**.
+3. **Feature LOCALI** (poker integrato, "tutti i giochi", fix pin, poker-live #5/#6) **non** dipendono dal
+   backend → si **intrecciano**; meglio il **reshape del modello locale (poker integrato + all-games) prima di B2**.
+> Spina multigioco completa → valutare estrazione **libreria feature** (`_LIBRERIA_FEATURE/`). I vecchi
+> #5–#8 sopra restano come dettaglio, ma l'ordine post-4.x è quello di `BACKEND_SPEC.md`.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
 - **`nuovoGiocoCustom` usa id `custom-${Date.now()}`** → collisione possibile (teorica).

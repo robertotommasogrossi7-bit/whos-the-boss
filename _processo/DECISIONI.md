@@ -362,6 +362,22 @@
 - **Prossimo blocco = poker-live**: **#5 soldi d'uscita** (`saldoUscita`) → **chat OPUS** (logica soldi,
   SPEC `USCITA_CASH_SPEC` + esempi-test prima del codice) → #6 tavolo live. + valutare estrazione **libreria feature**.
 
+## 2026-06-12 — anticipato il BACKEND (Supabase): SPEC + Auth first, incrementale
+
+> Cambio di rotta deciso con l'utente dopo il collaudo browser delle 4.x. Le feature in arrivo
+> (admin/ruoli, "sei tu" affidabile, leghe condivise, multi-device) battono sul soffitto identità/ruoli.
+
+- **Si anticipa il backend** (#8) rispetto al resto, **NON big-bang**: prima **SPEC** (fatto:
+  `BACKEND_SPEC.md`), poi **Auth reale** (alto valore, contenuto) → sync → ruoli.
+- **Identità** (proposta): account Supabase + `giocatori.account_id` opzionale → **"sei tu" = giocatore
+  col tuo account** (il match per nome resta **solo per i guest**). I guest restano (li gestisce l'admin).
+- **Ruoli** per-lega via RLS (owner/admin/membro) → **assorbe #7.5**; il "fissa gioco" diventa potere admin.
+- **Feature locali NON bloccate** (poker integrato, "tutti i giochi", fix pin, poker-live): si intrecciano;
+  meglio reshapeare il **modello locale (poker integrato + all-games) prima di B2** (migri la forma finale 1 volta).
+- **Forche aperte** (da confermare): (1) offline? → raccomando **online-required** per partire;
+  (2) guest ammessi → raccomando **sì**; (3) auth email+pw ora, OAuth dopo. + **creare progetto Supabase**.
+- Roadmap: i vecchi #5–#8 restano come dettaglio ma l'ordine post-4.x è ora `BACKEND_SPEC.md` (B0→B4).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
