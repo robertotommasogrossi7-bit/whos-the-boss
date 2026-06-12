@@ -167,8 +167,9 @@ inline + ricerca match-in-cima, storico filtro gioco, "sei tu", soprannome → *
 
 🔀 **CAMBIO DI ROTTA (2026-06-12, deciso con l'utente)**: si **anticipa il backend** (Supabase), da
 **SPEC + Auth**, **incrementale**. Il post-4.x è ora governato da **`BACKEND_SPEC.md`**:
-1. **B0 — SPEC + scelte** ← **adesso**: `BACKEND_SPEC.md` scritto; da **confermare 3 forche** (offline? ·
-   guest? · auth) + **creare il progetto Supabase** (URL + anon key).
+1. **B0 — SPEC + scelte**: `BACKEND_SPEC.md` scritto + **3 forche CONFERMATE** (online-required · guest sì
+   + trasferimento storico guest→account · email+pw). ⏸️ **FINE SESSIONE 2026-06-12**: resta che **l'utente
+   crea il progetto Supabase e porta URL + anon key** → alla ripresa la chat base scrive il prompt di **B1 Auth**.
 2. **B1 Auth reale** → **B2 sync dati propri** → **B3 condivisione + ruoli (assorbe #7.5)** → **B4 realtime/spettatori (#8)**.
 3. **Feature LOCALI** (poker integrato, "tutti i giochi", fix pin, poker-live #5/#6) **non** dipendono dal
    backend → si **intrecciano**; meglio il **reshape del modello locale (poker integrato + all-games) prima di B2**.
