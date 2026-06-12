@@ -33,4 +33,10 @@
   contenuto), **condivisione/ruoli** dopo. Evitare il big-bang. Le feature locali possono precedere o
   intrecciarsi (conviene reshapeare il modello locale — all-games, poker integrato — **prima** della
   parte DB, così si migra la forma finale una volta sola).
-- **Decisione → `DECISIONI.md`** appena scelta.
+- **Decisione → `DECISIONI.md`** appena scelta. **(Scelto 2026-06-12: online-required, guest sì +
+  trasferimento storico, email+pw — vedi `BACKEND_SPEC.md` "Decisioni confermate" + `DECISIONI.md`.)**
+
+### Futuro (post-backend)
+- **Amicizie fra account** (richiesta utente 2026-06-12): poter fare "amicizia" tra account per
+  semplificare il **contatto dentro e fuori le leghe** (invitare amici a una lega, mandare/ricevere
+  richieste di storico, trovarsi più facilmente). Va **dopo** auth/identità (B1+).

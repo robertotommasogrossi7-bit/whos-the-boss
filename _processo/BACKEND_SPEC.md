@@ -74,8 +74,16 @@ Poker integrato (no sotto-app), **"tutti i giochi"** (sessione multi-gioco + vis
 pin**, **poker-live #5/#6**: sono **locali**. Conviene il **reshape del modello locale** (poker
 integrato + all-games) **prima di B2**, così si migra la **forma finale** una volta sola. Vedi `IDEE.md`.
 
-## Decisioni da CONFERMARE (utente)
-1. **Offline?** → **(A) online-required** [consigliata] o **(B) local-first + sync**. (§5)
-2. **Guest ammessi** (admin aggiunge nomi senza account) → **sì** [consigliata] o solo account. (§3)
-3. **Auth**: email+password ora, OAuth dopo → ok? (§2)
-4. **Prerequisito B1**: crei tu il **progetto Supabase** e mi passi **URL + anon key** quando partiamo.
+## Decisioni CONFERMATE (2026-06-12, utente)
+1. **Offline** → **(A) online-required**. ✅ (Supabase = verità; Zustand = cache di lettura.)
+2. **Auth** → **email + password** per ora (OAuth più avanti). ✅
+3. **Guest** → **ammessi** ✅, con queste regole:
+   - **Trasferimento storico guest → account reale**: nello **storico personale** un pulsante invia una
+     **richiesta a un account** per ottenere/unire lo storico; possibile anche **in autonomia**
+     (self-claim) quando hai diritto sul record. **Nelle leghe il trasferimento/aggiunta guest lo fa SOLO l'admin.**
+   - **Guest in lega**: aggiunti **solo dagli admin**; gli admin **si passano il "file dei guest"**
+     (roster guest condivisibile tra admin). [meccanismo esatto del "file" + flusso richiesta/claim → **B3**]
+4. **Prerequisito B1**: progetto **Supabase** creato + **URL + anon key** in `.env`. ⏳ in corso.
+
+> Idea futura (post-backend): **amicizie fra account** per semplificare il contatto dentro/fuori le
+> leghe (invitare amici, condividere storici, trovarsi). Vedi `IDEE.md`.

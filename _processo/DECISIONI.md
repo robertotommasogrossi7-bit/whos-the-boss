@@ -374,8 +374,10 @@
 - **Ruoli** per-lega via RLS (owner/admin/membro) → **assorbe #7.5**; il "fissa gioco" diventa potere admin.
 - **Feature locali NON bloccate** (poker integrato, "tutti i giochi", fix pin, poker-live): si intrecciano;
   meglio reshapeare il **modello locale (poker integrato + all-games) prima di B2** (migri la forma finale 1 volta).
-- **Forche aperte** (da confermare): (1) offline? → raccomando **online-required** per partire;
-  (2) guest ammessi → raccomando **sì**; (3) auth email+pw ora, OAuth dopo. + **creare progetto Supabase**.
+- **Forche CONFERMATE** (2026-06-12): (1) **online-required**; (2) **guest ammessi** (+ **trasferimento
+  storico guest→account** via richiesta nello storico personale o self-claim; **in lega solo l'admin**;
+  gli admin **si passano il "file dei guest"**); (3) **email+password** (OAuth dopo). Resta: **creare il
+  progetto Supabase** (URL + anon key). **Futuro**: **amicizie fra account** (vedi `IDEE.md`).
 - Roadmap: i vecchi #5–#8 restano come dettaglio ma l'ordine post-4.x è ora `BACKEND_SPEC.md` (B0→B4).
 
 ## Nuove feature messe in coda (oltre a Card Tracker)
