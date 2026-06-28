@@ -22,23 +22,23 @@ export default function LoginScreen() {
   const rgMailRef = useRef<HTMLInputElement>(null);
   const rgPwdRef  = useRef<HTMLInputElement>(null);
 
-  function doLogin() {
-    const username = liUserRef.current?.value ?? '';
+  async function doLogin() {
+    const email    = liUserRef.current?.value ?? '';
     const password = liPwdRef.current?.value ?? '';
-    const err = login(username, password);
+    const err = await login(email, password);
     if (err) { toast(err); return; }
     toast('Accesso effettuato!');
-    navigate('/circoli');
+    navigate('/');
   }
 
-  function doRegister() {
+  async function doRegister() {
     const username = rgUserRef.current?.value ?? '';
     const email    = rgMailRef.current?.value ?? '';
     const password = rgPwdRef.current?.value ?? '';
-    const err = register(username, email, password);
+    const err = await register(username, email, password);
     if (err) { toast(err); return; }
     toast('Account creato!');
-    navigate('/circoli');
+    navigate('/');
   }
 
   return (
@@ -66,11 +66,11 @@ export default function LoginScreen() {
         {tab === 'login' && (
           <div>
             <div className="form-row">
-              <label>Username o Email</label>
+              <label>Email</label>
               <input
-                type="text"
-                placeholder="es. mario.rossi"
-                autoComplete="username"
+                type="email"
+                placeholder="tu@esempio.it"
+                autoComplete="email"
                 ref={liUserRef}
               />
             </div>
@@ -127,7 +127,7 @@ export default function LoginScreen() {
         )}
 
         <p className="login-note">
-          Versione demo — i dati account non sono ancora salvati su server.
+          Accesso reale con Supabase. La tua sessione resta attiva tra le visite.
         </p>
       </div>
     </div>

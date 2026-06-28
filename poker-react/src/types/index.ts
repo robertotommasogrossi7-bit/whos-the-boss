@@ -6,6 +6,7 @@
 export interface User {
   username: string;
   email?: string;
+  id?: string;          // id account Supabase (B1)
 }
 
 export interface NomeGiocatore {
