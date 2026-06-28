@@ -42,10 +42,19 @@ function RedirectAppToPoker() {
 
 export default function App() {
   const runMigrations = useStore(s => s.runMigrations);
+  const initAuth      = useStore(s => s.initAuth);
+  const authLoading   = useStore(s => s.authLoading);
 
   useEffect(() => {
     runMigrations();
-  }, [runMigrations]);
+    initAuth();
+  }, [runMigrations, initAuth]);
+
+  // Finché la sessione Supabase non è ripristinata, mostra un loader: così
+  // RequireAuth non sbatte su /login prima del restore (niente flash al refresh).
+  if (authLoading) {
+    return <div className="app-loading">Caricamento…</div>;
+  }
 
   return (
     <BrowserRouter>
