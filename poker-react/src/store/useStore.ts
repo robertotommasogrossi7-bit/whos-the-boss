@@ -232,7 +232,7 @@ function mapAuthError(msg: string): string {
   if (m.includes('invalid login credentials')) return 'Email o password errati';
   if (m.includes('password should be at least')) return 'Password: almeno 6 caratteri';
   if (m.includes('email not confirmed')) return 'Email non confermata: controlla la posta';
-  if (m.includes('invalid email') || m.includes('unable to validate email')) return 'Email non valida';
+  if (m.includes('unable to validate email') || (m.includes('email') && m.includes('invalid'))) return 'Email non valida';
   if (m.includes('rate limit') || m.includes('too many')) return 'Troppi tentativi, riprova tra poco';
   return msg;
 }
