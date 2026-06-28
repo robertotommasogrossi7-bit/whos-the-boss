@@ -1,0 +1,14 @@
+{
+  "name": "whos-the-boss",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev:web": "pnpm --filter @poker/web dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0"
+  }
+}
