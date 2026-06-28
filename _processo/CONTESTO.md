@@ -170,8 +170,12 @@ inline + ricerca match-in-cima, storico filtro gioco, "sei tu", soprannome → *
 1. **B0 — SPEC + scelte** — ✅ **FATTO** (2026-06-13): `BACKEND_SPEC.md`, 3 forche confermate, **progetto
    Supabase creato** (`gnuaorunxhqtkumotown`; URL + anon key **verificati live**, auth 200), **`.env` locale**
    pronto (gitignored) + `.env.example` committato.
-   ▶ **B1 — Auth reale = FASE CORRENTE**: prompt `BACKEND_B1_AUTH_PROMPT.md`. ⚠️ Step manuale dashboard:
-   **Authentication → disattiva "Confirm email"** (dev) per testare il signup senza verifica mail.
+   ▶ **B1 — Auth** ⏳ in implementazione **in chat base** (branch `backend-b1-auth`, 4 commit: client +
+   auth reale + restore sessione, verde 147 test). **Conferma email TENUTA** (decisione utente, no disattivazione).
+   Restano per chiudere B1: schermata **"controlla la mail"** + **pulsante logout** + **Site URL** nel dashboard.
+   ▶ **Nuove decisioni (vedi `DECISIONI.md` 2026-06-13)**: **username univoco** (tabella `profiles` → **B1.5**),
+   **settings cambia email/pwd** (→ **B1.6**), **Play Store via PWA+TWA** (pubblica 1 volta, aggiorni il web
+   live → milestone **P**). Ordine: **B1 → B1.5 → B2 sync → P (Play Store) → B3 ruoli/settings/feature in volo**.
 2. **B1 Auth reale** → **B2 sync dati propri** → **B3 condivisione + ruoli (assorbe #7.5)** → **B4 realtime/spettatori (#8)**.
 3. **Feature LOCALI** (poker integrato, "tutti i giochi", fix pin, poker-live #5/#6) **non** dipendono dal
    backend → si **intrecciano**; meglio il **reshape del modello locale (poker integrato + all-games) prima di B2**.

@@ -380,6 +380,26 @@
   progetto Supabase** (URL + anon key). **Futuro**: **amicizie fra account** (vedi `IDEE.md`).
 - Roadmap: i vecchi #5–#8 restano come dettaglio ma l'ordine post-4.x è ora `BACKEND_SPEC.md` (B0→B4).
 
+## 2026-06-13 — auth (conferma email, username univoco, settings) + Play Store via PWA/TWA
+
+> Decisioni utente durante l'implementazione di B1 + risposta alla domanda "Play Store con aggiornamenti rapidi".
+
+- **Conferma email = ON** (tenuta apposta, più sicura). B1: dopo `signUp` → schermata **"controlla la mail"**;
+  il link riapre l'app e logga (lo fa il SDK con `detectSessionInUrl`). Configurare **Site URL / redirect**
+  nel dashboard (localhost in dev, URL hostato in prod).
+- **Username UNIVOCO** (richiesto): Supabase Auth garantisce univoco solo l'**email**, non lo username →
+  serve tabella **`profiles`** (`username UNIQUE`) + enforcement a signup (**trigger** su `auth.users`):
+  se preso → "Username già in uso". Anticipa il **primo pezzo di DB**. → fase **B1.5**.
+- **Impostazioni → Account** (cambia email/password): cambio **password** chiede la **vecchia password**
+  (re-auth) poi `updateUser({password})`; cambio **email** → vecchia password → `updateUser({email})` →
+  **doppia conferma** Supabase su vecchia+nuova ("Secure email change", già attiva di default). → fase **B1.6**.
+- **Play Store = PWA + TWA** (Bubblewrap/PWABuilder): l'app diventa **PWA** + **hostata**; sul Play Store è un
+  **guscio TWA** che carica il sito → **aggiornamenti web ISTANTANEI senza review** (ripubblichi solo per
+  icona/nome/manifest). Costo **$25 una-tantum**; requisiti: Lighthouse PWA ≥ 80 + Digital Asset Links. →
+  milestone **P**. **Strategia: pubblica un MVP presto e itera LIVE** (la TWA rende flessibile quando pubblicare).
+- **Ordine aggiornato**: B1 (rifinire: "controlla mail" + logout + Site URL) → **B1.5** username → **B2** sync
+  dati → **P** (PWA/TWA → Play Store) → **B3** ruoli + **B1.6** settings + feature locali, tutto **in volo** (live).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
