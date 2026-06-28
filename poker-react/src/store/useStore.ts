@@ -12,6 +12,8 @@ import {
 } from '../utils/sessioneGioco';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
 import { èSeiTu, normalizzaNome } from '../utils/normalizzaNome';
+import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { validaRinomina } from '../utils/giocatori';
 import { nuovoGiocatoreSessione } from '../utils/torneo';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
@@ -29,15 +31,15 @@ import {
    CHIAVI STORAGE
 ══════════════════════════════════════════════════════ */
 export const STORE_KEY = 'pokerTracker_v2';
-export const USER_KEY  = 'pokerTrackerUser_v2';
 
 /* ══════════════════════════════════════════════════════
    TIPI STORE
 ══════════════════════════════════════════════════════ */
 
 interface UiState {
-  // Auth (sessionStorage — non persistito in localStorage)
+  // Auth (Supabase) — non persistito in localStorage (la sessione la gestisce il SDK)
   utente: User | null;
+  authLoading: boolean;   // true finché la sessione non è ripristinata al boot
 
   // Nuova lega
   nlFoto: string;
@@ -85,10 +87,11 @@ interface StoreActions {
   setCurrentLega: (id: number) => void;
   addLega: (lega: Lega) => void;
 
-  // Auth — restituisce messaggio di errore o null se OK
-  login: (username: string, password: string) => string | null;
-  register: (username: string, email: string, password: string) => string | null;
-  logout: () => void;
+  // Auth (Supabase) — async; ritorna messaggio d'errore o null se OK
+  login: (email: string, password: string) => Promise<string | null>;
+  register: (username: string, email: string, password: string) => Promise<string | null>;
+  logout: () => Promise<void>;
+  initAuth: () => void;   // ripristina la sessione al boot + sottoscrive i cambi di stato
 
   // Overlay
   openOverlay:  () => void;
@@ -222,13 +225,16 @@ function sessioneTorneoAttiva(sess: Sessione): Sessione {
     inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0), trascorso_ms: 0 };
 }
 
-/* ── Legge l'utente da sessionStorage all'avvio ── */
-function readUtente(): User | null {
-  try {
-    return JSON.parse(sessionStorage.getItem(USER_KEY) ?? 'null') as User | null;
-  } catch {
-    return null;
-  }
+/* ── Mappa i messaggi d'errore di Supabase Auth in italiano ── */
+function mapAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Email già in uso';
+  if (m.includes('invalid login credentials')) return 'Email o password errati';
+  if (m.includes('password should be at least')) return 'Password: almeno 6 caratteri';
+  if (m.includes('email not confirmed')) return 'Email non confermata: controlla la posta';
+  if (m.includes('invalid email') || m.includes('unable to validate email')) return 'Email non valida';
+  if (m.includes('rate limit') || m.includes('too many')) return 'Troppi tentativi, riprova tra poco';
+  return msg;
 }
 
 /* ── #4.5: assicura che l'utente loggato sia un giocatore reale del Personale.
@@ -292,7 +298,8 @@ export const useStore = create<PokerStore>()(
       db: emptyDb(),
 
       /* ── Stato UI (NON persistito) ── */
-      utente: readUtente(),
+      utente: null,
+      authLoading: true,
       nlFoto: '',
       overlayOpen: false,
       serataView: 'hub',
@@ -334,34 +341,49 @@ export const useStore = create<PokerStore>()(
           },
         })),
 
-      /* ── Auth ── */
-      login: (username, password) => {
-        const u = username.trim();
-        if (!u || !password) return 'Inserisci username e password';
-        const utente: User = { username: u };
-        sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
-        set({ utente });
-        // #4.5: "tu" diventi un giocatore reale del Personale
-        assicuraTuNelPersonale(get().db, get().saveLega, u);
-        return null;
+      /* ── Auth (Supabase) ── */
+      initAuth: () => {
+        const applyUtente = (user: SupabaseUser | null) => {
+          if (!user) { set({ utente: null }); return; }
+          const uname    = String(user.user_metadata?.username ?? '').trim();
+          const username = uname || user.email || 'utente';
+          set({ utente: { username, email: user.email ?? undefined, id: user.id } });
+          // #4.5: aggancia "te" come giocatore reale del Personale
+          assicuraTuNelPersonale(get().db, get().saveLega, username);
+        };
+        // ripristino della sessione al boot
+        supabase.auth.getSession().then(({ data }) => {
+          applyUtente(data.session?.user ?? null);
+          set({ authLoading: false });
+        });
+        // sincronizzazione continua (login / logout / refresh token)
+        supabase.auth.onAuthStateChange((_event, session) => {
+          applyUtente(session?.user ?? null);
+        });
       },
 
-      register: (username, email, password) => {
+      login: async (email, password) => {
+        const e = email.trim();
+        if (!e || !password) return 'Inserisci email e password';
+        const { error } = await supabase.auth.signInWithPassword({ email: e, password });
+        return error ? mapAuthError(error.message) : null;
+      },
+
+      register: async (username, email, password) => {
         const u = username.trim();
         const e = email.trim();
         if (!u || !e || !password) return 'Compila tutti i campi';
-        if (password.length < 6)    return 'Password almeno 6 caratteri';
-        const utente: User = { username: u, email: e };
-        sessionStorage.setItem(USER_KEY, JSON.stringify(utente));
-        set({ utente });
-        // #4.5: "tu" diventi un giocatore reale del Personale
-        assicuraTuNelPersonale(get().db, get().saveLega, u);
+        if (password.length < 6)   return 'Password: almeno 6 caratteri';
+        const { data, error } = await supabase.auth.signUp({
+          email: e, password, options: { data: { username: u } },
+        });
+        if (error)         return mapAuthError(error.message);
+        if (!data.session) return 'Registrazione ok — conferma la mail per accedere.';
         return null;
       },
 
-      logout: () => {
-        sessionStorage.removeItem(USER_KEY);
-        set({ utente: null });
+      logout: async () => {
+        await supabase.auth.signOut();
       },
 
       /* ── Overlay ── */
