@@ -1,8 +1,13 @@
-# Dipendenze (per il futuro progetto React)
+# Dipendenze + cache build/tooling
 node_modules/
 dist/
 build/
 .vite/
+.turbo/
+*.tsbuildinfo
+# Expo / React Native (apps/mobile, in arrivo)
+.expo/
+.expo-shared/
 
 # Editor
 .vscode/
