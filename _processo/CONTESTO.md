@@ -165,22 +165,25 @@ review chat base OK). Controllo generale fatto (build prod ok, `main` allineato/
 ✅ **Collaudo a browser fatto (2026-06-12, chat base)** con dati di test: classifica condivisa + poker
 inline + ricerca match-in-cima, storico filtro gioco, "sei tu", soprannome → **tutto ok, zero errori console**.
 
-🔀 **CAMBIO DI ROTTA (2026-06-12, deciso con l'utente)**: si **anticipa il backend** (Supabase), da
-**SPEC + Auth**, **incrementale**. Il post-4.x è ora governato da **`BACKEND_SPEC.md`**:
-1. **B0 — SPEC + scelte** — ✅ **FATTO** (2026-06-13): `BACKEND_SPEC.md`, 3 forche confermate, **progetto
-   Supabase creato** (`gnuaorunxhqtkumotown`; URL + anon key **verificati live**, auth 200), **`.env` locale**
-   pronto (gitignored) + `.env.example` committato.
-   ▶ **B1 — Auth** ⏳ in implementazione **in chat base** (branch `backend-b1-auth`, 4 commit: client +
-   auth reale + restore sessione, verde 147 test). **Conferma email TENUTA** (decisione utente, no disattivazione).
-   Restano per chiudere B1: schermata **"controlla la mail"** + **pulsante logout** + **Site URL** nel dashboard.
-   ▶ **Nuove decisioni (vedi `DECISIONI.md` 2026-06-13)**: **username univoco** (tabella `profiles` → **B1.5**),
-   **settings cambia email/pwd** (→ **B1.6**), **Play Store via PWA+TWA** (pubblica 1 volta, aggiorni il web
-   live → milestone **P**). Ordine: **B1 → B1.5 → B2 sync → P (Play Store) → B3 ruoli/settings/feature in volo**.
-2. **B1 Auth reale** → **B2 sync dati propri** → **B3 condivisione + ruoli (assorbe #7.5)** → **B4 realtime/spettatori (#8)**.
-3. **Feature LOCALI** (poker integrato, "tutti i giochi", fix pin, poker-live #5/#6) **non** dipendono dal
-   backend → si **intrecciano**; meglio il **reshape del modello locale (poker integrato + all-games) prima di B2**.
-> Spina multigioco completa → valutare estrazione **libreria feature** (`_LIBRERIA_FEATURE/`). I vecchi
-> #5–#8 sopra restano come dettaglio, ma l'ordine post-4.x è quello di `BACKEND_SPEC.md`.
+🔀🔀 **PIVOT a REACT NATIVE (Expo) — 2026-06-13 (b), deciso con l'utente**: l'app va portata su **React
+Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`DECISIONI.md` 2026-06-13 (b)**.
+- **Stack**: **Expo (managed)** + TS + Expo Router. **Aggiornamenti veloci PRESERVATI** via **EAS Update (OTA)**.
+- **Si RIUSA il "cervello"** (TS puro, già scritto): `utils/`, `types/`, **store Zustand** (persist →
+  AsyncStorage), `lib/supabase.ts` (AsyncStorage), i **147 test**, tutto `_processo/` (design/decisioni).
+- **Si RICOSTRUISCE la "pelle"**: `components/*`, `styles.css` (→ StyleSheet), routing (→ Expo Router),
+  auth UI (conferma email via **deep link**). L'architettura era già RN-friendly (logica separata, no Tailwind).
+- **Il backend resta valido** (`BACKEND_SPEC.md`: auth/RLS/profiles/dati): cambia **solo il client** (RN).
+- **Strategia: PIVOT ORA** (non costruire altra UI web) → ricostruisci le schermate esistenti in RN, poi
+  tutto il resto (auth, settings, ruoli, feature) **direttamente in RN**. **App web = riferimento congelato**.
+- **Roadmap RN** (sostituisce il piano "backend su web B0-B4"; il **design** backend si riusa):
+  **R0** fondazione Expo + logica condivisa (147 test verdi) → **R1** port schermate core (shell/lega/poker/
+  classifica/storico/giocatori) → **R2** Auth Supabase RN (deep link; riusa la logica del branch
+  `backend-b1-auth`) → **R3** username univoco (`profiles`) → **R4** sync dati → **R5** ruoli/condivisione
+  → **settings + feature locali in volo** → **RP** pubblicazione (EAS Build + EAS Update, Play Store).
+- **DA CONFERMARE prima di R0**: struttura repo (Expo che riusa la logica + web congelata [semplice] **vs**
+  **monorepo** shared/web/mobile [più pulito, più setup]); merge del branch `backend-b1-auth` in `main` come riferimento.
+> Storia (superata dal pivot RN): "backend su web B0-B4" + "Play Store via PWA/TWA" → ora l'OTA è **EAS
+> Update**. Il branch `backend-b1-auth` (auth web, verde, non mergiato) resta come **logica-sorgente riusabile**.
 
 ## Debito tecnico noto (segnalato, da fare al momento opportuno)
 - **`nuovoGiocoCustom` usa id `custom-${Date.now()}`** → collisione possibile (teorica).

@@ -400,6 +400,34 @@
 - **Ordine aggiornato**: B1 (rifinire: "controlla mail" + logout + Site URL) → **B1.5** username → **B2** sync
   dati → **P** (PWA/TWA → Play Store) → **B3** ruoli + **B1.6** settings + feature locali, tutto **in volo** (live).
 
+## 2026-06-13 (b) — PIVOT a React Native (Expo): riorganizzazione roadmap
+
+> Decisione utente: l'app va portata su **React Native** (più richiesto/più mercato, obiettivo CV).
+> "Riorganizziamo tutto". Ricerca fatta su Expo + Supabase-RN + EAS Update.
+
+- **Stack RN = Expo (managed) + TypeScript + Expo Router.** Per un solo dev/primo progetto: scrivi solo
+  JS/TS, Expo gestisce il nativo. (Bare workflow solo se servisse codice nativo custom.)
+- **Aggiornamenti veloci PRESERVATI**: **EAS Update (OTA)** spedisce JS/stili/asset over-the-air senza
+  review (entro le regole store: bugfix/layout/copy ok, non cambiare lo scopo dell'app). = equivalente RN
+  della TWA → il requisito "aggiorna senza ripubblicare" resta valido. **(Supera il piano "PWA/TWA" del (a).)**
+- **Si RIUSA (il "cervello", TS puro)**: `utils/` (funzioni pure), `types/`, lo **store Zustand** (cambia
+  solo l'adapter persist: localStorage → **AsyncStorage**), `lib/supabase.ts` (storage AsyncStorage,
+  `detectSessionInUrl:false`), i **147 test** (Jest), e tutto il design/decisioni in `_processo/`.
+- **Si RICOSTRUISCE in RN (la "pelle")**: `components/*.tsx` (DOM → View/Text/Pressable/FlatList…),
+  `styles.css` (→ StyleSheet), routing (React Router → **Expo Router**), entry web → entry Expo, icone (SVG →
+  `react-native-svg`). Auth web → RN con **conferma email via deep link** (scheme `app.json` + redirect Supabase + URL handling).
+- **Vantaggio**: architettura già **RN-friendly** (logica separata dalla UI, **niente Tailwind** — scelta
+  del 2026-05-31 in vista di RN). "Nuova pelle sullo stesso cervello", non da-zero.
+- **Backend invariato**: `BACKEND_SPEC.md` (auth/RLS/profiles/dati) è **platform-agnostico**; cambia solo il **client**.
+- **Strategia: PIVOT ORA** (non costruire altra UI web) → schermate esistenti rifatte in RN, poi tutto in RN.
+  App web = **riferimento congelato**.
+- **Roadmap RN** (sostituisce B0-B4 web): **R0** fondazione Expo + logica condivisa (147 test) → **R1** port
+  schermate core → **R2** Auth Supabase RN (deep link, riusa la logica di `backend-b1-auth`) → **R3** username
+  univoco (`profiles`) → **R4** sync dati → **R5** ruoli/condivisione → **settings + feature locali** in volo →
+  **RP** pubblicazione (EAS Build + EAS Update OTA).
+- **DA CONFERMARE prima di R0**: (1) struttura repo — Expo riusa la logica + web congelata [semplice] **vs**
+  **monorepo** shared/web/mobile [più pulito, più setup]; (2) merge di `backend-b1-auth` in `main` come riferimento.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
