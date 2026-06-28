@@ -87,3 +87,14 @@ integrato + all-games) **prima di B2**, così si migra la **forma finale** una v
 
 > Idea futura (post-backend): **amicizie fra account** per semplificare il contatto dentro/fuori le
 > leghe (invitare amici, condividere storici, trovarsi). Vedi `IDEE.md`.
+
+## Hosting & piano (ricerca 2026-06-13)
+- **Piano Free = 2 progetti** attivi (tra le org dove sei owner). L'utente ha già 1 app di test → il
+  nostro è il **2° progetto: ci sta**. Limiti Free/progetto: 500 MB DB, 50k MAU, 1 GB storage, realtime
+  incluso, API illimitate. ⚠️ I progetti Free vanno **in pausa dopo ~1 settimana di inattività** (si
+  riattivano da dashboard) → tenerlo a mente per i periodi in cui non ci lavoriamo.
+- **Se cresce**: **Pro $25/mese PER progetto** (8 GB DB, 100k MAU, niente pausa, backup) → paghi **solo
+  il progetto che cresce**, l'altro resta Free (i progetti sono **indipendenti**). **No lock-in**: è
+  Postgres standard → `pg_dump`/migrazione altrove sempre possibile (rete di sicurezza per "se diventa scomoda").
+- Conferma scelta: per dati **relazionali + ruoli/RLS** (il nostro caso) Supabase è il pick tipico dei
+  team piccoli; Firebase resta forte solo per mobile **offline-first puro**. Vedi `DECISIONI.md` 2026-06-12.
