@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeLive } from './useComputeLive';
-import type { Sessione } from '../types';
+import type { Sessione } from '@poker/core';
 
 function makeSess(buy_in: number, giocatori: Sessione['giocatori']): Sessione {
   return {

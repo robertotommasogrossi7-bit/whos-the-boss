@@ -1,6 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro } from '../../utils/format';
-import { calcolaMontepremi } from '../../utils/calc';
+import { euro } from '@poker/core';
+import { calcolaMontepremi } from '@poker/core';
 import { IconPlay, IconPause, IconStop, IconSkip, IconLock, IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════

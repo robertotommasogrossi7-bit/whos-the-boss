@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { èSeiTu } from '../../utils/normalizzaNome';
+import { èSeiTu } from '@poker/core';
 import { IconUser, IconTrash, IconEdit, IconCheck, IconClose } from '../icons';
 
 export default function TabPartecipanti() {

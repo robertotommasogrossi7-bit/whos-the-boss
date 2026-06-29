@@ -1,12 +1,12 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro } from '../../utils/format';
+import { euro } from '@poker/core';
 import { IconLock, IconWarning, IconCoins } from '../icons';
 import {
   calcolaMontepremi,
   calcolaMontepremiIncassato,
   calcolaPremiPagati,
   calcolaPremi,
-} from '../../utils/calc';
+} from '@poker/core';
 
 /* ══════════════════════════════════════════════════════
    SUB-TAB: PREMI (torneo)

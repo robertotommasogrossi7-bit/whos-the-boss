@@ -3,29 +3,29 @@ import { persist, createJSONStorage, type StateStorage } from 'zustand/middlewar
 import type {
   Db, Lega, Sessione, SettlementState, SettlementEntrato, SettlementAlloc,
   User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
-} from '../types';
+} from '@poker/core';
 import { computeLive } from '../hooks/useComputeLive';
-import { migrateSessione, migratePartita, migrateLega } from '../utils/migrations';
+import { migrateSessione, migratePartita, migrateLega } from '@poker/core';
 import {
   nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
   type EsitoPartitaInput,
-} from '../utils/sessioneGioco';
-import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '../utils/personale';
-import { èSeiTu, normalizzaNome } from '../utils/normalizzaNome';
+} from '@poker/core';
+import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@poker/core';
+import { èSeiTu, normalizzaNome } from '@poker/core';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { validaRinomina } from '../utils/giocatori';
-import { nuovoGiocatoreSessione } from '../utils/torneo';
-import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '../utils/tavoli';
-import { nowHHMM } from '../utils/format';
-import { calcolaSettlement } from '../utils/settlement';
-import { calcolaSettlementTorneo } from '../utils/settlementTorneo';
-import type { Trasferimento } from '../types';
+import { validaRinomina } from '@poker/core';
+import { nuovoGiocatoreSessione } from '@poker/core';
+import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@poker/core';
+import { nowHHMM } from '@poker/core';
+import { calcolaSettlement } from '@poker/core';
+import { calcolaSettlementTorneo } from '@poker/core';
+import type { Trasferimento } from '@poker/core';
 import {
   calcolaMontepremi,
   calcolaPremi,
   consolidaPremiSeNecessario,
-} from '../utils/calc';
+} from '@poker/core';
 
 /* ══════════════════════════════════════════════════════
    CHIAVI STORAGE

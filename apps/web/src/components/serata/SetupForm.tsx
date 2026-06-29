@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { oggi } from '../../utils/format';
-import { idBloccatiInclusi } from '../../utils/personale';
-import { suggerisciTorneo, nuovoGiocatoreSessione, creaSessione } from '../../utils/torneo';
-import type { TorneoSetupConfig } from '../../utils/torneo';
+import { oggi } from '@poker/core';
+import { idBloccatiInclusi } from '@poker/core';
+import { suggerisciTorneo, nuovoGiocatoreSessione, creaSessione } from '@poker/core';
+import type { TorneoSetupConfig } from '@poker/core';
 import ConfigCash from './ConfigCash';
 import ConfigTorneo from './ConfigTorneo';
 import { IconWarning, IconCoins, IconTrophy } from '../icons';

@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, euro } from '../../utils/format';
+import { fmtData, euro } from '@poker/core';
 import { IconPlus, GameIcon, IconLiveDot } from '../icons';
 
 export default function SerataHub() {

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useMatch, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { applyTema } from '../../utils/tema';
+import { applyTema } from '@poker/core';
 import LegaNav from './LegaNav';
 
 /* SEZIONE LEGA (M3) — pagina dedicata con nav propria a 4 schede

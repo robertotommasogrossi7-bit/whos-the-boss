@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, euro } from '../../utils/format';
+import { fmtData, euro } from '@poker/core';
 import { IconCoins, IconUsers, GameIcon } from '../icons';
 import SubGiocatoriCash from './SubGiocatoriCash';
 import SubAttivi        from './SubAttivi';

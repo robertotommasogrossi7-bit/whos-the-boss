@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtData, euro, getNome } from '../../utils/format';
-import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
-import { esitoSessione, partitaInCorso } from '../../utils/sessioneGioco';
-import { filtraStoricoPerNome, type VoceStorico } from '../../utils/storico';
+import { fmtData, euro, getNome } from '@poker/core';
+import { GIOCHI_PREIMPOSTATI } from '@poker/core';
+import { esitoSessione, partitaInCorso } from '@poker/core';
+import { filtraStoricoPerNome, type VoceStorico } from '@poker/core';
 import {
   GameIcon, IconHistory, IconTrash, IconTrophy, IconCrown,
   IconChevronUp, IconChevronDown, IconCheck,
 } from '../icons';
 import { Chip, EmptyState } from '../ui';
-import type { Lega, Partita, SessioneGioco, PartitaGioco } from '../../types';
+import type { Lega, Partita, SessioneGioco, PartitaGioco } from '@poker/core';
 
 /* ══════════════════════════════════════════════════════
    STORICO CONDIVISO (#4.7b)

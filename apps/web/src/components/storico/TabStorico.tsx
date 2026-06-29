@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { vociStorico } from '../../utils/storico';
+import { vociStorico } from '@poker/core';
 import StoricoLista from './StoricoLista';
 import FiltroNome from '../classifica/FiltroNome';
 

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { euro, getNome } from '../../utils/format';
+import { euro, getNome } from '@poker/core';
 import { computeLive } from '../../hooks/useComputeLive';
 import { IconWarning, IconRefresh, IconSwap, IconArrowRight } from '../icons';
-import type { Lega, Sessione, GiocatoreSessione } from '../../types';
+import type { Lega, Sessione, GiocatoreSessione } from '@poker/core';
 
 interface Props {
   lega: Lega;

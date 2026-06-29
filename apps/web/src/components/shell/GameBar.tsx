@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
+import { GIOCHI_PREIMPOSTATI } from '@poker/core';
 import { GameIcon, IconChevronDown } from '../icons';
 import { Sheet } from '../ui';
 

@@ -1,7 +1,7 @@
-import { suggerisciTorneo } from '../../utils/torneo';
-import type { TorneoSetupConfig } from '../../utils/torneo';
-import type { Livello } from '../../types';
-import { euro } from '../../utils/format';
+import { suggerisciTorneo } from '@poker/core';
+import type { TorneoSetupConfig } from '@poker/core';
+import type { Livello } from '@poker/core';
+import { euro } from '@poker/core';
 import { IconSettings, IconPause, IconClose } from '../icons';
 
 interface Props {

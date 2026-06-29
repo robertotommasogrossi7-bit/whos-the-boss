@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { contaDebitiAperti } from '../../utils/calc';
+import { contaDebitiAperti } from '@poker/core';
 import { IconCoins } from '../icons';
 
 interface Props { legaId: number; }

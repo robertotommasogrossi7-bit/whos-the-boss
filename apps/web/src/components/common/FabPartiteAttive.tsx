@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, fmtRelativeData, euro } from '../../utils/format';
+import { fmtData, fmtRelativeData, euro } from '@poker/core';
 import { GameIcon, IconTrophy, IconCoins } from '../icons';
 
 interface Props { legaId: number; }

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { classificaUnificata, resolveGiocoLega } from '../../utils/classifiche';
-import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
+import { classificaUnificata, resolveGiocoLega } from '@poker/core';
+import { GIOCHI_PREIMPOSTATI } from '@poker/core';
 import { GameIcon, IconTrophy, IconChevronRight } from '../icons';
 import { EmptyState } from '../ui';
 import ClassificaTable from '../classifica/ClassificaTable';

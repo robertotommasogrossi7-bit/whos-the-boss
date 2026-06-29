@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, fmtRelativeData, euro } from '../../utils/format';
+import { fmtData, fmtRelativeData, euro } from '@poker/core';
 import { IconPlay, IconEdit, IconTrash } from '../icons';
 
 /* ══════════════════════════════════════════════════════

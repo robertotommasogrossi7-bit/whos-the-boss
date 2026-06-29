@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Sessione } from '../types';
+import type { Sessione } from '@poker/core';
 
 /* ══════════════════════════════════════════════════════
    TIMER HOOK — torneo live

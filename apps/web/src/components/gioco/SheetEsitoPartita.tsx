@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Sheet, Button } from '../ui';
 import { IconCheck } from '../icons';
-import type { EsitoPartitaInput } from '../../utils/sessioneGioco';
+import type { EsitoPartitaInput } from '@poker/core';
 
 /* Sheet "Esito partita" (M3, SPEC §6/B2). Montato = aperto: lo stato si
    resetta a ogni apertura. Partecipanti (override sui giocatori della

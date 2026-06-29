@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, euro } from '../../utils/format';
+import { fmtData, euro } from '@poker/core';
 import SetupForm      from '../serata/SetupForm';
 import LiveView       from '../serata/LiveView';
 import ChiusuraScreen from '../settlement/ChiusuraScreen';

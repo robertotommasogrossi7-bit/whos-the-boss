@@ -1,6 +1,6 @@
 import { useStore } from '../../store/useStore';
-import type { SettlementState } from '../../types';
-import { euro } from '../../utils/format';
+import type { SettlementState } from '@poker/core';
+import { euro } from '@poker/core';
 import { IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════

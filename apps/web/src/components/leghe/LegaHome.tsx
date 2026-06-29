@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { GIOCHI_PREIMPOSTATI } from '../../utils/giochi';
+import { GIOCHI_PREIMPOSTATI } from '@poker/core';
 import { GameIcon } from '../icons';
 
 /* HOME della lega (M3) — griglia giochi + "segna partita" per la lega.
