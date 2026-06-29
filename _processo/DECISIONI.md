@@ -428,6 +428,24 @@
 - **DA CONFERMARE prima di R0**: (1) struttura repo — Expo riusa la logica + web congelata [semplice] **vs**
   **monorepo** shared/web/mobile [più pulito, più setup]; (2) merge di `backend-b1-auth` in `main` come riferimento.
 
+## 2026-06-29 — R0 fondazione monorepo + RN eseguita (chat base)
+
+> Risolto il "DA CONFERMARE" del 06-13(b): **scelto il monorepo** (pnpm workspaces + Turborepo).
+> R0 fatto a micro-step su `rn-r0-monorepo`; `backend-b1-auth` mergiato in `main` (`08364dc`) come riferimento.
+
+- **Monorepo** (pnpm + Turborepo, `.npmrc` `node-linker=hoisted` per Metro): `apps/web` (ex web congelata,
+  `@poker/web`), `apps/mobile` (Expo, `@poker/mobile`), `packages/core` (`@poker/core`, logica pura).
+- **R0.1** (`9d6328e`,`3c226a4`): scaffold monorepo + sposta web in `apps/web`.
+- **R0.2** (`034974d`,`a8ab1d4`): estratto `@poker/core` = `utils/`+`types/`+**138 test**; la web lo importa (44 file).
+- **R0.3** (`90c3732`): scaffold `apps/mobile` con **Expo SDK 56** (Expo Router, React 19.2 / RN 0.85).
+  - **Template default poi sfoltito** a fondazione minima (1 schermata che prova `@poker/core`); demo rimossa.
+  - **`metro.config.js`** per monorepo: `watchFolders=[root]` + `nodeModulesPaths=[app, root]` (hoisted).
+  - **Verifica headless** (niente emulatore): `tsc --noEmit` + **`expo export`** (Metro bundla 1536 moduli →
+    bytecode Hermes) = prova che `@poker/core` si risolve via Metro. Turbo test monorepo verde (**147**).
+- **Debito**: dep Expo del template non ancora usate (`@expo/ui`, `expo-glass-effect`, `expo-symbols`,
+  `expo-image`, `expo-device`, `expo-web-browser`) + icone generiche → sfoltire/brandizzare in R1/RP.
+- **Prossimo**: **R0.4** = merge `rn-r0-monorepo` → `main` (chiusura R0), poi **R1** port schermate core in RN.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

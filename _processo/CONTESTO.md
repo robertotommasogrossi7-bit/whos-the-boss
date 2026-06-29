@@ -188,8 +188,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R0.2 FATTO** (`034974d`,`a8ab1d4`): estratto **`@poker/core`** = logica pura (`utils/`+`types/`+**138 test**,
     barrel `src/index.ts`). La web importa `@poker/core` (44 file riscritti). **147 test** verdi (138 core + 9 web),
     build+lint verdi. `giochi.test` (cross-check coi glifi web) tenuto in `apps/web`.
-  - **PROSSIMO → R0.3**: scaffold **`apps/mobile`** (Expo SDK con React 19 + Expo Router) + Metro per monorepo;
-    schermata "core funziona". Poi **merge `rn-r0-monorepo` → `main`** (chiusura R0).
+  - **R0.3 FATTO** (`90c3732`): scaffold **`apps/mobile`** = Expo **SDK 56** (Expo Router, TS, React 19.2 / RN 0.85)
+    che consuma `@poker/core`; `metro.config.js` per monorepo (watchFolders root + nodeModulesPaths hoisted);
+    schermata fondazione (`normalizzaNome` + `calcolaSettlement`). Demo del template rimossa. Verde:
+    `tsc --noEmit` + **`expo export`** (Metro: 1536 moduli, bytecode Hermes). Turbo test monorepo verde (147).
+  - **PROSSIMO → R0.4 (chiusura R0)**: **merge `rn-r0-monorepo` → `main`**, poi R1 (port schermate core in RN).
+  - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
+    `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
+    in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
   - ⏳ **Rimandato apposta da R0.2 → R2/mobile**: astrarre lo **storage** dello store (localStorage web /
     AsyncStorage mobile) e il **client Supabase** (env per-app: `import.meta.env` web / `process.env.EXPO_PUBLIC_*`
     mobile). Oggi `store/` + `lib/supabase.ts` stanno **ancora in `apps/web`** (hanno pezzi platform-specifici).
