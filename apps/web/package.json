@@ -1,5 +1,5 @@
 {
-  "name": "@poker/web",
+  "name": "@whos-the-boss/web",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@poker/core": "workspace:*",
+    "@whos-the-boss/core": "workspace:*",
     "@supabase/supabase-js": "^2.108.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

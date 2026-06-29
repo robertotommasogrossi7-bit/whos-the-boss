@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro, getNome } from '@poker/core';
+import { euro, getNome } from '@whos-the-boss/core';
 import { IconPlus, IconUsers } from '../icons';
 import TavoloView from './TavoloView';
 

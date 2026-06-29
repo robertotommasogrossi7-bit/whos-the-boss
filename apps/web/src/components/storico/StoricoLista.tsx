@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtData, euro, getNome } from '@poker/core';
-import { GIOCHI_PREIMPOSTATI } from '@poker/core';
-import { esitoSessione, partitaInCorso } from '@poker/core';
-import { filtraStoricoPerNome, type VoceStorico } from '@poker/core';
+import { fmtData, euro, getNome } from '@whos-the-boss/core';
+import { GIOCHI_PREIMPOSTATI } from '@whos-the-boss/core';
+import { esitoSessione, partitaInCorso } from '@whos-the-boss/core';
+import { filtraStoricoPerNome, type VoceStorico } from '@whos-the-boss/core';
 import {
   GameIcon, IconHistory, IconTrash, IconTrophy, IconCrown,
   IconChevronUp, IconChevronDown, IconCheck,
 } from '../icons';
 import { Chip, EmptyState } from '../ui';
-import type { Lega, Partita, SessioneGioco, PartitaGioco } from '@poker/core';
+import type { Lega, Partita, SessioneGioco, PartitaGioco } from '@whos-the-boss/core';
 
 /* ══════════════════════════════════════════════════════
    STORICO CONDIVISO (#4.7b)

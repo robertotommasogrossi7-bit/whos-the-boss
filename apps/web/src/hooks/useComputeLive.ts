@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { GiocatoreSessione, Sessione } from '@poker/core';
+import type { GiocatoreSessione, Sessione } from '@whos-the-boss/core';
 
 /* ══════════════════════════════════════════════════════
    COMPUTE LIVE — cash game calcolatrice

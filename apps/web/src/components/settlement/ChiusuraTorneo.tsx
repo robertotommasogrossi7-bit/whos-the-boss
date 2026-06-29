@@ -1,6 +1,6 @@
 import { useStore } from '../../store/useStore';
-import type { SettlementState } from '@poker/core';
-import { euro } from '@poker/core';
+import type { SettlementState } from '@whos-the-boss/core';
+import { euro } from '@whos-the-boss/core';
 import { IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════

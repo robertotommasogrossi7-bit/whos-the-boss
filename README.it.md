@@ -74,9 +74,8 @@ questo il processo fa parte del repo.
 ## Avvio in locale
 
 ```bash
-cd poker-react
-npm install
-npm run dev      # http://localhost:5173
+pnpm install
+pnpm dev:web     # http://localhost:5173
 ```
 
 Login demo (qualsiasi nome) — i dati restano nel tuo browser.

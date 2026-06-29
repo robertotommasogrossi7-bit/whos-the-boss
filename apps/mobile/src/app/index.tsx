@@ -2,10 +2,10 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { calcolaSettlement, normalizzaNome } from '@poker/core';
+import { calcolaSettlement, normalizzaNome } from '@whos-the-boss/core';
 
 /* R0.3 — schermata "fondazione".
-   Prova che il "cervello" condiviso (@poker/core, TS puro) gira su React
+   Prova che il "cervello" condiviso (@whos-the-boss/core, TS puro) gira su React
    Native attraverso Metro: stessa logica della web, zero duplicazione.
    La UI vera arriva in R1; qui basta dimostrare che il core e' agganciato. */
 const nomeNorm = normalizzaNome('  GiÙLià  Rossi ');
@@ -24,7 +24,7 @@ export default function Home() {
 
         <View style={styles.divider} />
 
-        <Text style={styles.badge}>@poker/core attivo via Metro</Text>
+        <Text style={styles.badge}>@whos-the-boss/core attivo via Metro</Text>
 
         <Text style={styles.label}>normalizzaNome()</Text>
         <Text style={styles.mono}>{nomeNorm}</Text>

@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { migrateLega } from '@poker/core';
-import { normalizzaNome } from '@poker/core';
+import { migrateLega } from '@whos-the-boss/core';
+import { normalizzaNome } from '@whos-the-boss/core';
 import { IconUsers, IconClose } from '../icons';
-import type { Lega } from '@poker/core';
+import type { Lega } from '@whos-the-boss/core';
 
 export default function NuovaLega() {
   const navigate = useNavigate();

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { euro } from '@poker/core';
+import { euro } from '@whos-the-boss/core';
 import { IconCheck, IconWarning, IconChevronUp, IconChevronDown } from '../icons';
-import type { CashSettlementResult } from '@poker/core';
+import type { CashSettlementResult } from '@whos-the-boss/core';
 
 /* ══════════════════════════════════════════════════════
    SCHERMATA CASSA (§6 SETTLEMENT_SPEC)

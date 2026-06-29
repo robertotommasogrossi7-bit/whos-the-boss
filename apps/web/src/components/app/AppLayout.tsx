@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { applyTema } from '@poker/core';
+import { applyTema } from '@whos-the-boss/core';
 import BottomNav from './BottomNav';
 import FabDebiti from '../common/FabDebiti';
 import FabPartiteAttive from '../common/FabPartiteAttive';

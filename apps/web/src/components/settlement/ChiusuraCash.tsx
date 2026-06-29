@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { euro, euroSigned } from '@poker/core';
+import { euro, euroSigned } from '@whos-the-boss/core';
 import { IconCheck, IconClose, IconWarning } from '../icons';
-import type { CashSettlementResult, Trasferimento } from '@poker/core';
+import type { CashSettlementResult, Trasferimento } from '@whos-the-boss/core';
 
 /* ══════════════════════════════════════════════════════
    SCHERMATA TRASFERIMENTI (§7, §9, §10 SETTLEMENT_SPEC)

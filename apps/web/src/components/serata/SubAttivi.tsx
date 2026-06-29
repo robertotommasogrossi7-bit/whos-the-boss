@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro, euroSigned, getNome } from '@poker/core';
+import { euro, euroSigned, getNome } from '@whos-the-boss/core';
 import { useComputeLive } from '../../hooks/useComputeLive';
 import { GameIcon, IconCrown, IconEdit, IconWarning } from '../icons';
 

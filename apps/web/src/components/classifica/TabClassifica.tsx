@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { classificaPoker, type ClassificaU } from '@poker/core';
+import { classificaPoker, type ClassificaU } from '@whos-the-boss/core';
 import { IconTrophy } from '../icons';
 import ClassificaTable from './ClassificaTable';
 import FiltroNome from './FiltroNome';

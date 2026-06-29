@@ -3,29 +3,29 @@ import { persist, createJSONStorage, type StateStorage } from 'zustand/middlewar
 import type {
   Db, Lega, Sessione, SettlementState, SettlementEntrato, SettlementAlloc,
   User, GiocatorePartita, PagamentoEffettuato, PagamentoRicevuto, Partita, Settlement,
-} from '@poker/core';
+} from '@whos-the-boss/core';
 import { computeLive } from '../hooks/useComputeLive';
-import { migrateSessione, migratePartita, migrateLega } from '@poker/core';
+import { migrateSessione, migratePartita, migrateLega } from '@whos-the-boss/core';
 import {
   nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
   type EsitoPartitaInput,
-} from '@poker/core';
-import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@poker/core';
-import { èSeiTu, normalizzaNome } from '@poker/core';
+} from '@whos-the-boss/core';
+import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@whos-the-boss/core';
+import { èSeiTu, normalizzaNome } from '@whos-the-boss/core';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { validaRinomina } from '@poker/core';
-import { nuovoGiocatoreSessione } from '@poker/core';
-import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@poker/core';
-import { nowHHMM } from '@poker/core';
-import { calcolaSettlement } from '@poker/core';
-import { calcolaSettlementTorneo } from '@poker/core';
-import type { Trasferimento } from '@poker/core';
+import { validaRinomina } from '@whos-the-boss/core';
+import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
+import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
+import { nowHHMM } from '@whos-the-boss/core';
+import { calcolaSettlement } from '@whos-the-boss/core';
+import { calcolaSettlementTorneo } from '@whos-the-boss/core';
+import type { Trasferimento } from '@whos-the-boss/core';
 import {
   calcolaMontepremi,
   calcolaPremi,
   consolidaPremiSeNecessario,
-} from '@poker/core';
+} from '@whos-the-boss/core';
 
 /* ══════════════════════════════════════════════════════
    CHIAVI STORAGE

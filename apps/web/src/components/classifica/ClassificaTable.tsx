@@ -1,5 +1,5 @@
-import { euro } from '@poker/core';
-import { ordinaMatchInCima, rigaMatchaNome, type ClassificaU, type RigaClassificaU } from '@poker/core';
+import { euro } from '@whos-the-boss/core';
+import { ordinaMatchInCima, rigaMatchaNome, type ClassificaU, type RigaClassificaU } from '@whos-the-boss/core';
 import { Avatar } from '../ui';
 import { IconCrown } from '../icons';
 

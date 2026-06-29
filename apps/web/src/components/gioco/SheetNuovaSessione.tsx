@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { oggi, nowHHMM } from '@poker/core';
-import { normalizzaNome } from '@poker/core';
-import { idBloccatiInclusi } from '@poker/core';
+import { oggi, nowHHMM } from '@whos-the-boss/core';
+import { normalizzaNome } from '@whos-the-boss/core';
+import { idBloccatiInclusi } from '@whos-the-boss/core';
 import { Sheet, Button } from '../ui';
 import { IconPlus } from '../icons';
-import type { Lega } from '@poker/core';
+import type { Lega } from '@whos-the-boss/core';
 
 /* Sheet "Nuova sessione" (M3, SPEC §6/B1). Scelta partecipanti (dai nomi
    della lega / guest del Personale, aggiungibili al volo) + data. Se la data

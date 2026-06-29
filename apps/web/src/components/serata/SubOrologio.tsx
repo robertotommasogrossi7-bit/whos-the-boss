@@ -1,6 +1,6 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { euro } from '@poker/core';
-import { calcolaMontepremi } from '@poker/core';
+import { euro } from '@whos-the-boss/core';
+import { calcolaMontepremi } from '@whos-the-boss/core';
 import { IconPlay, IconPause, IconStop, IconSkip, IconLock, IconCheck } from '../icons';
 
 /* ══════════════════════════════════════════════════════

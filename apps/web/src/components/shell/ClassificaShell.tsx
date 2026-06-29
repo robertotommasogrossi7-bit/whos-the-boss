@@ -4,9 +4,9 @@ import { useStore } from '../../store/useStore';
 import {
   classificaUnificata, classificaPokerCrossContesto, statsPersonaCrossContesto,
   resolveGiocoGlobale, type ClassificaU,
-} from '@poker/core';
-import { GIOCHI_PREIMPOSTATI } from '@poker/core';
-import { euroSigned } from '@poker/core';
+} from '@whos-the-boss/core';
+import { GIOCHI_PREIMPOSTATI } from '@whos-the-boss/core';
+import { euroSigned } from '@whos-the-boss/core';
 import { GameIcon, IconTrophy, IconChevronDown, IconChevronUp, IconChevronRight } from '../icons';
 import { Card, EmptyState } from '../ui';
 import GameBar from './GameBar';

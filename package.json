@@ -6,7 +6,7 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "dev:web": "pnpm --filter @poker/web dev"
+    "dev:web": "pnpm --filter @whos-the-boss/web dev"
   },
   "devDependencies": {
     "turbo": "^2.3.0"

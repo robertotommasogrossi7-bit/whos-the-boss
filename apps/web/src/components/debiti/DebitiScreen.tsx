@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { getNome, euro, fmtData } from '@poker/core';
+import { getNome, euro, fmtData } from '@whos-the-boss/core';
 import { IconCoins, IconCheck } from '../icons';
-import type { Settlement } from '@poker/core';
+import type { Settlement } from '@whos-the-boss/core';
 
 interface DebitoItem {
   partitaId: number;

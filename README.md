@@ -83,15 +83,14 @@ Few dependencies on purpose: small bundle, and a codebase that ports cleanly to 
 ## Run it locally
 
 ```bash
-cd poker-react
-npm install
-npm run dev      # http://localhost:5173
+pnpm install
+pnpm dev:web     # http://localhost:5173
 ```
 
 ```bash
-npm test         # Vitest
-npm run lint     # ESLint
-npm run build    # type-check + production build
+pnpm test        # all tests (Vitest, via Turbo)
+pnpm lint        # ESLint
+pnpm build       # type-check + production build
 ```
 
 Demo login (any name) — your data stays in your browser.
@@ -99,10 +98,12 @@ Demo login (any name) — your data stays in your browser.
 ## Project structure
 
 ```
-whos-the-boss/
-├── poker-react/   ← the app (Vite + React + TS) — production target
-├── _legacy/       ← historical: the original monolith + the vanilla-JS split
-├── METODO.md      ← the AI-orchestration method (how this was built)
+whos-the-boss/   ← pnpm + Turborepo monorepo
+├── apps/web/        ← the web app (Vite + React + TS) — frozen reference
+├── apps/mobile/     ← the React Native app (Expo) — current target
+├── packages/core/   ← shared logic (pure TS: settlement, standings, …) + tests
+├── _legacy/         ← historical: the original monolith + the vanilla-JS split
+├── METODO.md        ← the AI-orchestration method (how this was built)
 ├── README.md / README.it.md
 └── LICENSE
 ```

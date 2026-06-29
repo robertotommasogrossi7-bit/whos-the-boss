@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { applyTema } from '@poker/core';
+import { applyTema } from '@whos-the-boss/core';
 import GlobalNav from './GlobalNav';
 
 /* Layout della shell multigioco: contenuto + bottom nav globale.

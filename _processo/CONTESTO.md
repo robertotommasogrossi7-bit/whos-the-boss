@@ -17,7 +17,7 @@ Tracker"** (vedi `MULTIGIOCO_SPEC.md`). Il poker resta dentro, com'è, con un
 restyle grafico.
 
 ## Path
-`C:\Users\rober\Desktop\Programmi\poker\` — `poker-react/` per l'app React.
+`C:\Users\rober\Desktop\Programmi\poker\` (monorepo pnpm+Turborepo) — `apps/web/` (web, riferimento congelato), `apps/mobile/` (Expo, target), `packages/core/` (logica condivisa).
 I `.md` di processo stanno in `_processo/` (attivi) e `_processo/archivio/` (spenti).
 Node in `C:\Program Files\nodejs` (se `npm` non è nel PATH, usa il path completo).
 
@@ -183,18 +183,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ✅ **DECISO (2026-06-13/29)**: **monorepo** (pnpm workspaces + Turborepo, `.npmrc` hoisted per Metro).
   **B1 auth mergiato in `main`** (`08364dc`) come riferimento riusabile.
 - ✅ **R0 CHIUSO** (mergiata in `main` il 2026-06-29, merge `dfa2989`; branch di fase cancellato):
-  - **R0.1 FATTO** (`9d6328e`,`3c226a4`): scaffold monorepo. `apps/web` = ex web congelata (`@poker/web`);
+  - **R0.1 FATTO** (`9d6328e`,`3c226a4`): scaffold monorepo. `apps/web` = ex web congelata (`@whos-the-boss/web`);
     `packages/` per la logica; root `package.json`/`pnpm-workspace.yaml`/`turbo.json`/`.npmrc`. Turbo verde.
-  - **R0.2 FATTO** (`034974d`,`a8ab1d4`): estratto **`@poker/core`** = logica pura (`utils/`+`types/`+**138 test**,
-    barrel `src/index.ts`). La web importa `@poker/core` (44 file riscritti). **147 test** verdi (138 core + 9 web),
+  - **R0.2 FATTO** (`034974d`,`a8ab1d4`): estratto **`@whos-the-boss/core`** = logica pura (`utils/`+`types/`+**138 test**,
+    barrel `src/index.ts`). La web importa `@whos-the-boss/core` (44 file riscritti). **147 test** verdi (138 core + 9 web),
     build+lint verdi. `giochi.test` (cross-check coi glifi web) tenuto in `apps/web`.
   - **R0.3 FATTO** (`90c3732`): scaffold **`apps/mobile`** = Expo **SDK 56** (Expo Router, TS, React 19.2 / RN 0.85)
-    che consuma `@poker/core`; `metro.config.js` per monorepo (watchFolders root + nodeModulesPaths hoisted);
+    che consuma `@whos-the-boss/core`; `metro.config.js` per monorepo (watchFolders root + nodeModulesPaths hoisted);
     schermata fondazione (`normalizzaNome` + `calcolaSettlement`). Demo del template rimossa. Verde:
     `tsc --noEmit` + **`expo export`** (Metro: 1536 moduli, bytecode Hermes). Turbo test monorepo verde (147).
   - **R0.4 FATTO** (`dfa2989`): merge `rn-r0-monorepo` → `main` (`--no-ff`); **147 test verdi su `main`**; branch cancellato.
   - **PROSSIMO → R1**: port delle schermate core in RN (shell/lega/poker/classifica/storico/giocatori) su
-    `apps/mobile`, riusando `@poker/core`. È il blocco grosso → **consigliata una chat nuova** (legge METODO + CONTESTO).
+    `apps/mobile`, riusando `@whos-the-boss/core`. È il blocco grosso → **consigliata una chat nuova** (legge METODO + CONTESTO).
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
@@ -237,10 +237,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 ## Comandi rapidi (dalla root del monorepo)
 ```
 pnpm dev:web        # server dev web (Vite, porta 5173)
-pnpm run test       # tutti i test via Turbo (147: 138 @poker/core + 9 web)
+pnpm run test       # tutti i test via Turbo (147: 138 @whos-the-boss/core + 9 web)
 pnpm run lint       # ESLint via Turbo
 pnpm run build      # build di tutti i pacchetti via Turbo
-pnpm --filter @poker/core test   # solo i test della logica condivisa
+pnpm --filter @whos-the-boss/core test   # solo i test della logica condivisa
 ```
 (serve `pnpm` sul PATH: `npm i -g pnpm@9`. Turbo orchestra i pacchetti.)
 

@@ -1,4 +1,4 @@
-/* @poker/core — logica condivisa (TS puro), riusata da apps/web e apps/mobile.
+/* @whos-the-boss/core — logica condivisa (TS puro), riusata da apps/web e apps/mobile.
    Niente React/DOM/localStorage qui: solo funzioni pure + tipi. */
 export * from './types';
 export * from './utils/calc';

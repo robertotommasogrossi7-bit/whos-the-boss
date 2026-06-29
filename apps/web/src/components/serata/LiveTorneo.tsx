@@ -1,5 +1,5 @@
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { fmtData, euro } from '@poker/core';
+import { fmtData, euro } from '@whos-the-boss/core';
 import { useTimer } from '../../hooks/useTimer';
 import { IconTrophy, IconClock, IconUsers, IconCoins } from '../icons';
 import SubOrologio          from './SubOrologio';

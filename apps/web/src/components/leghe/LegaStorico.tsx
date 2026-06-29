@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { vociStorico } from '@poker/core';
-import { GIOCHI_PREIMPOSTATI } from '@poker/core';
+import { vociStorico } from '@whos-the-boss/core';
+import { GIOCHI_PREIMPOSTATI } from '@whos-the-boss/core';
 import { GameIcon } from '../icons';
 import StoricoLista from '../storico/StoricoLista';
 import FiltroNome from '../classifica/FiltroNome';

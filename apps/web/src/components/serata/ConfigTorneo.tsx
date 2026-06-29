@@ -1,7 +1,7 @@
-import { suggerisciTorneo } from '@poker/core';
-import type { TorneoSetupConfig } from '@poker/core';
-import type { Livello } from '@poker/core';
-import { euro } from '@poker/core';
+import { suggerisciTorneo } from '@whos-the-boss/core';
+import type { TorneoSetupConfig } from '@whos-the-boss/core';
+import type { Livello } from '@whos-the-boss/core';
+import { euro } from '@whos-the-boss/core';
 import { IconSettings, IconPause, IconClose } from '../icons';
 
 interface Props {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { vociStorico } from '@poker/core';
+import { vociStorico } from '@whos-the-boss/core';
 import { IconHistory, IconChevronRight } from '../icons';
 import { EmptyState } from '../ui';
 import GameBar from './GameBar';

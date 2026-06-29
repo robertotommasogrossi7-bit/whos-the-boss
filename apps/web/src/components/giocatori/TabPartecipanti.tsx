@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { èSeiTu } from '@poker/core';
+import { èSeiTu } from '@whos-the-boss/core';
 import { IconUser, IconTrash, IconEdit, IconCheck, IconClose } from '../icons';
 
 export default function TabPartecipanti() {

@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { GIOCHI_PREIMPOSTATI } from '@poker/core';
-import { fmtRelativeData } from '@poker/core';
-import { idBloccatiInclusi } from '@poker/core';
-import { esitoSessione, partitaInCorso } from '@poker/core';
+import { GIOCHI_PREIMPOSTATI } from '@whos-the-boss/core';
+import { fmtRelativeData } from '@whos-the-boss/core';
+import { idBloccatiInclusi } from '@whos-the-boss/core';
+import { esitoSessione, partitaInCorso } from '@whos-the-boss/core';
 import { GameIcon, IconChevronLeft, IconPlus, IconCheck, IconClock } from '../icons';
 import { Button, Card, Chip, EmptyState, Sheet } from '../ui';
 import SheetNuovaSessione from './SheetNuovaSessione';
 import SheetEsitoPartita from './SheetEsitoPartita';
-import type { PartitaGioco } from '@poker/core';
+import type { PartitaGioco } from '@whos-the-boss/core';
 
 /* SCHERMATA COMUNE DEL GIOCO (M3, SPEC §6) — "segna partita".
    Cuore del flusso non-poker: crea/avvia sessione, segna partite

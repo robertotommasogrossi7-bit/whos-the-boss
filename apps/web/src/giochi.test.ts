@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GIOCHI_PREIMPOSTATI, accentDaNome, nuovoGiocoCustom } from '@poker/core';
+import { GIOCHI_PREIMPOSTATI, accentDaNome, nuovoGiocoCustom } from '@whos-the-boss/core';
 import { GAME_ICON_KEYS } from './components/icons/gameGlyphs';
 
 describe('accentDaNome — accento deterministico (DESIGN_SPEC §4/§9)', () => {

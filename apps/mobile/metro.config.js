@@ -1,5 +1,5 @@
 // Metro per monorepo pnpm (.npmrc node-linker=hoisted).
-// Serve a far risolvere i pacchetti del workspace (es. @poker/core) che
+// Serve a far risolvere i pacchetti del workspace (es. @whos-the-boss/core) che
 // vivono fuori da apps/mobile, nella root del monorepo.
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
@@ -9,7 +9,7 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// 1) Osserva anche la root: Metro segue i sorgenti di @poker/core.
+// 1) Osserva anche la root: Metro segue i sorgenti di @whos-the-boss/core.
 config.watchFolders = [monorepoRoot];
 
 // 2) Cerca i moduli sia in apps/mobile sia nella root hoisted.

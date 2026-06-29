@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
-import { euroSigned } from '@poker/core';
-import { èSeiTu } from '@poker/core';
+import { euroSigned } from '@whos-the-boss/core';
+import { èSeiTu } from '@whos-the-boss/core';
 import { IconTrophy, GameIcon } from '../icons';
-import type { Lega } from '@poker/core';
+import type { Lega } from '@whos-the-boss/core';
 
 export default function ListaLeghe() {
   const navigate = useNavigate();

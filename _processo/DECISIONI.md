@@ -434,17 +434,33 @@
 > R0 fatto a micro-step su `rn-r0-monorepo`; `backend-b1-auth` mergiato in `main` (`08364dc`) come riferimento.
 
 - **Monorepo** (pnpm + Turborepo, `.npmrc` `node-linker=hoisted` per Metro): `apps/web` (ex web congelata,
-  `@poker/web`), `apps/mobile` (Expo, `@poker/mobile`), `packages/core` (`@poker/core`, logica pura).
+  `@whos-the-boss/web`), `apps/mobile` (Expo, `@whos-the-boss/mobile`), `packages/core` (`@whos-the-boss/core`, logica pura).
 - **R0.1** (`9d6328e`,`3c226a4`): scaffold monorepo + sposta web in `apps/web`.
-- **R0.2** (`034974d`,`a8ab1d4`): estratto `@poker/core` = `utils/`+`types/`+**138 test**; la web lo importa (44 file).
+- **R0.2** (`034974d`,`a8ab1d4`): estratto `@whos-the-boss/core` = `utils/`+`types/`+**138 test**; la web lo importa (44 file).
 - **R0.3** (`90c3732`): scaffold `apps/mobile` con **Expo SDK 56** (Expo Router, React 19.2 / RN 0.85).
-  - **Template default poi sfoltito** a fondazione minima (1 schermata che prova `@poker/core`); demo rimossa.
+  - **Template default poi sfoltito** a fondazione minima (1 schermata che prova `@whos-the-boss/core`); demo rimossa.
   - **`metro.config.js`** per monorepo: `watchFolders=[root]` + `nodeModulesPaths=[app, root]` (hoisted).
   - **Verifica headless** (niente emulatore): `tsc --noEmit` + **`expo export`** (Metro bundla 1536 moduli →
-    bytecode Hermes) = prova che `@poker/core` si risolve via Metro. Turbo test monorepo verde (**147**).
+    bytecode Hermes) = prova che `@whos-the-boss/core` si risolve via Metro. Turbo test monorepo verde (**147**).
 - **Debito**: dep Expo del template non ancora usate (`@expo/ui`, `expo-glass-effect`, `expo-symbols`,
   `expo-image`, `expo-device`, `expo-web-browser`) + icone generiche → sfoltire/brandizzare in R1/RP.
 - **Prossimo**: **R0.4** = merge `rn-r0-monorepo` → `main` (chiusura R0), poi **R1** port schermate core in RN.
+
+## 2026-06-29 (b) — rinominato lo scope dei pacchetti @poker -> @whos-the-boss
+
+> Richiesta utente: togliere "poker" dove indica il NOME del progetto/app (non il gioco) e usare
+> "who's the boss" (= il repo). Pulizia identita', coerenza per il CV.
+
+- **Scope pacchetti**: `@poker/{core,web,mobile}` -> **`@whos-the-boss/{core,web,mobile}`** (54 file:
+  package.json + tutti gli import + script + metro.config). Reinstall pnpm (lockfile rigenerato).
+- **Title web** `index.html`: "Poker Tracker" -> **"Who's the Boss"**.
+- **README EN/IT**: tolti i path stale `poker-react/` (cartella ormai `apps/web`) -> comandi monorepo
+  (`pnpm install` / `pnpm dev:web`) + struttura aggiornata (apps/web, apps/mobile, packages/core).
+- **NON toccato** (e' il GIOCO, non il nome): settlement/rotte/UI poker, `_legacy/poker_tracker.html`,
+  `_processo/POKER_MAP.md`, screenshot, descrizioni "poker" nei README. Una sostituzione cieca le romperebbe.
+- **Verifica verde** dopo il rename: turbo test (147), build web, tsc mobile, `expo export` (Metro 1536 moduli).
+- ⏳ **Resta da fare a mano (utente)**: rinominare la **cartella OS root** `…\Programmi\poker` ->
+  `…\whos-the-boss` (non fattibile da dentro la sessione: e' la CWD, Windows la blocca). Git/remote non cambiano.
 
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
