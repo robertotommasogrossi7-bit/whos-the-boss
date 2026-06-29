@@ -193,8 +193,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     schermata fondazione (`normalizzaNome` + `calcolaSettlement`). Demo del template rimossa. Verde:
     `tsc --noEmit` + **`expo export`** (Metro: 1536 moduli, bytecode Hermes). Turbo test monorepo verde (147).
   - **R0.4 FATTO** (`dfa2989`): merge `rn-r0-monorepo` → `main` (`--no-ff`); **147 test verdi su `main`**; branch cancellato.
-  - **PROSSIMO → R1**: port delle schermate core in RN (shell/lega/poker/classifica/storico/giocatori) su
-    `apps/mobile`, riusando `@whos-the-boss/core`. È il blocco grosso → **consigliata una chat nuova** (legge METODO + CONTESTO).
+- 🟢 **R1 IN CORSO** (branch `rn-r1-port`; approccio deciso con l'utente: **port nativo fedele**, restyle visivo dopo):
+  port delle schermate core in RN su `apps/mobile` riusando `@whos-the-boss/core`. Nav = Expo Router (tab native + stack).
+  Sotto-fasi: R1.1 tema+nav · R1.2 design system · R1.3 fondazione stato (store→AsyncStorage, **mini-spec prima**) · R1.4… schermate.
+  - **R1.1 FATTO** (`9e49827`): tema RN (token scuri+feltro come oggetto, accento per gioco riusato da `core/tema`)
+    + ThemeContext/useTheme + scheletro Expo Router (root Stack + ThemeProvider; `(tabs)` 4 voci
+    Home/Classifica/Storico/Leghe, tab bar nativa tematizzata, icone Ionicons placeholder) + `Placeholder.tsx`.
+    Rimosso il demo R0.3. Verde: `tsc --noEmit` + `expo export` (Metro 1605 moduli).
+  - **PROSSIMO → R1.2**: design system — primitive (Button/Card/Chip/ListRow/Sheet/EmptyState/Avatar/Toast) + icone SVG (`react-native-svg`).
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
