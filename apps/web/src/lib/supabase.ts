@@ -11,7 +11,7 @@ const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
 if (!url || !anon) {
   console.error(
     '[Supabase] Variabili mancanti: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. ' +
-    'Crea poker-react/.env (vedi .env.example).',
+    'Crea apps/web/.env (vedi .env.example).',
   );
 }
 
