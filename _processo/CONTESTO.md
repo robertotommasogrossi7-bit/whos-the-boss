@@ -200,7 +200,12 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     + ThemeContext/useTheme + scheletro Expo Router (root Stack + ThemeProvider; `(tabs)` 4 voci
     Home/Classifica/Storico/Leghe, tab bar nativa tematizzata, icone Ionicons placeholder) + `Placeholder.tsx`.
     Rimosso il demo R0.3. Verde: `tsc --noEmit` + `expo export` (Metro 1605 moduli).
-  - **PROSSIMO → R1.2**: design system — primitive (Button/Card/Chip/ListRow/Sheet/EmptyState/Avatar/Toast) + icone SVG (`react-native-svg`).
+  - **R1.2 FATTO**: design system. R1.2a (`c8514ca`) = primitive native (Button/Card/Chip/Avatar/EmptyState/
+    ListRow/Sheet/Toast), colori dai token via `useTheme`; R1.2b (`12d1112`) = icone in `react-native-svg`
+    (set UI completo ~30 + glifi gioco + `GameIcon`), tab bar con icone vere (`@expo/vector-icons` rimosso).
+    Home = anteprima del design system. Verde (tsc + expo export 1666 moduli).
+  - **PROSSIMO → R1.3** (fondazione stato): store condiviso + storage **AsyncStorage** + Supabase disaccoppiato.
+    ⚠️ tocca lo store *"non toccare senza spec"* → **mini-spec PRIMA di toccarlo**, poi via libera alle schermate vere (R1.4+).
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
