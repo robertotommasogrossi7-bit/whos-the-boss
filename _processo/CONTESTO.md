@@ -180,8 +180,25 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   classifica/storico/giocatori) → **R2** Auth Supabase RN (deep link; riusa la logica del branch
   `backend-b1-auth`) → **R3** username univoco (`profiles`) → **R4** sync dati → **R5** ruoli/condivisione
   → **settings + feature locali in volo** → **RP** pubblicazione (EAS Build + EAS Update, Play Store).
-- **DA CONFERMARE prima di R0**: struttura repo (Expo che riusa la logica + web congelata [semplice] **vs**
-  **monorepo** shared/web/mobile [più pulito, più setup]); merge del branch `backend-b1-auth` in `main` come riferimento.
+- ✅ **DECISO (2026-06-13/29)**: **monorepo** (pnpm workspaces + Turborepo, `.npmrc` hoisted per Metro).
+  **B1 auth mergiato in `main`** (`08364dc`) come riferimento riusabile.
+- 🟢 **R0 IN CORSO** (branch `rn-r0-monorepo`):
+  - **R0.1 FATTO** (`9d6328e`,`3c226a4`): scaffold monorepo. `apps/web` = ex web congelata (`@poker/web`);
+    `packages/` per la logica; root `package.json`/`pnpm-workspace.yaml`/`turbo.json`/`.npmrc`. Turbo verde.
+  - **R0.2 FATTO** (`034974d`,`a8ab1d4`): estratto **`@poker/core`** = logica pura (`utils/`+`types/`+**138 test**,
+    barrel `src/index.ts`). La web importa `@poker/core` (44 file riscritti). **147 test** verdi (138 core + 9 web),
+    build+lint verdi. `giochi.test` (cross-check coi glifi web) tenuto in `apps/web`.
+  - **R0.3 FATTO** (`90c3732`): scaffold **`apps/mobile`** = Expo **SDK 56** (Expo Router, TS, React 19.2 / RN 0.85)
+    che consuma `@poker/core`; `metro.config.js` per monorepo (watchFolders root + nodeModulesPaths hoisted);
+    schermata fondazione (`normalizzaNome` + `calcolaSettlement`). Demo del template rimossa. Verde:
+    `tsc --noEmit` + **`expo export`** (Metro: 1536 moduli, bytecode Hermes). Turbo test monorepo verde (147).
+  - **PROSSIMO → R0.4 (chiusura R0)**: **merge `rn-r0-monorepo` → `main`**, poi R1 (port schermate core in RN).
+  - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
+    `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
+    in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
+  - ⏳ **Rimandato apposta da R0.2 → R2/mobile**: astrarre lo **storage** dello store (localStorage web /
+    AsyncStorage mobile) e il **client Supabase** (env per-app: `import.meta.env` web / `process.env.EXPO_PUBLIC_*`
+    mobile). Oggi `store/` + `lib/supabase.ts` stanno **ancora in `apps/web`** (hanno pezzi platform-specifici).
 > Storia (superata dal pivot RN): "backend su web B0-B4" + "Play Store via PWA/TWA" → ora l'OTA è **EAS
 > Update**. Il branch `backend-b1-auth` (auth web, verde, non mergiato) resta come **logica-sorgente riusabile**.
 
@@ -215,15 +232,17 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - La logica del poker in generale: nella trasformazione si **sposta** sotto
   `/poker` e cambia solo aspetto (tema feltro), non comportamento.
 
-## Comandi rapidi (in `poker-react/`)
+## Comandi rapidi (dalla root del monorepo)
 ```
-npm run dev     # server dev, porta 5173
-npm run lint    # ESLint
-npm test        # Vitest (40 test)
-npx tsc -b      # build TS
+pnpm dev:web        # server dev web (Vite, porta 5173)
+pnpm run test       # tutti i test via Turbo (147: 138 @poker/core + 9 web)
+pnpm run lint       # ESLint via Turbo
+pnpm run build      # build di tutti i pacchetti via Turbo
+pnpm --filter @poker/core test   # solo i test della logica condivisa
 ```
+(serve `pnpm` sul PATH: `npm i -g pnpm@9`. Turbo orchestra i pacchetti.)
 
 ## Repo
 GitHub **pubblico**: `https://github.com/robertotommasogrossi7-bit/whos-the-boss`
-(Su GitHub: app `poker-react/` + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del
+(Su GitHub: **monorepo** `apps/web` + `packages/core` + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del
 processo AI) + README + LICENSE. Default branch `main`.)
