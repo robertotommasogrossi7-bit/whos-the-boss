@@ -462,6 +462,23 @@
 - ⏳ **Resta da fare a mano (utente)**: rinominare la **cartella OS root** `…\Programmi\poker` ->
   `…\whos-the-boss` (non fattibile da dentro la sessione: e' la CWD, Windows la blocca). Git/remote non cambiano.
 
+## 2026-06-29 (c) — R1 avviato: port React Native (approccio + navigazione)
+
+> Inizio del port delle schermate in RN (branch `rn-r1-port`). Ricerca UX fatta (Expo Router SDK 56).
+
+- **Approccio (deciso con l'utente)**: **port nativo fedele** — stessa IA/schermate del web, ma con
+  navigazione e componenti NATIVI (tab bar native, transizioni, gesture, tema feltro). Il **restyle visivo
+  grosso resta per dopo** ("molto in la'"). Scartato il redesign mobile-first ora (lungo + duplicherebbe il restyle).
+- **Navigazione**: **Expo Router** = root `Stack` (native) + `(tabs)` a 4 voci (Home/Classifica/Storico/Leghe),
+  stack annidati per sezione lega e poker (pattern standard SDK 56). Native Tabs "liquid glass" valutate ma
+  rimandate (alpha) → per ora `Tabs` stabile, tematizzato. Tema nav via `ThemeProvider` di expo-router.
+- **Tema RN**: i design token della web (`styles.css :root`) portati in un oggetto `Theme` (scuro + variante
+  feltro); la logica "quale tema/accento per gioco" si RIUSA da `@whos-the-boss/core` (`temaPerGioco`/`accentPerGioco`).
+  `applyTema` di core e' DOM-only (web): su mobile non si usa. (Debito: `applyTema` andrebbe spostato in `apps/web`.)
+- **Sotto-fasi R1**: R1.1 tema+nav (FATTO `9e49827`) -> R1.2 design system (primitive + icone SVG) ->
+  R1.3 fondazione stato (store condiviso + AsyncStorage + Supabase disaccoppiato; tocca lo store **"non toccare
+  senza spec"** -> **mini-spec prima**) -> R1.4... schermate una alla volta (ognuna con ricerca UX mirata).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
