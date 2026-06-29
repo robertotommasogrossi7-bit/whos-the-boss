@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { GameIcon, IconCheck, IconClock, IconCoins, IconCrown } from '@/components/icons';
 import { Avatar, Button, Card, Chip, EmptyState, ListRow, Sheet, Toast } from '@/components/ui';
 import { useTheme } from '@/theme/ThemeContext';
 
 /* R1.2 — anteprima del design system (temporanea).
-   Esercita tutte le primitive native; la Home vera arriva in R1.4. */
+   Esercita tutte le primitive + le icone native; la Home vera arriva in R1.4. */
 export default function HomeScreen() {
   const t = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -43,6 +44,19 @@ export default function HomeScreen() {
           <Chip tone="muted">muted</Chip>
         </View>
 
+        <Card>
+          <View style={styles.row}>
+            <IconCrown color={t.warn} />
+            <IconCheck color={t.ok} />
+            <IconClock color={t.accent} />
+            <IconCoins color={t.accent} />
+            <GameIcon icona="picche" color={t.text} />
+            <GameIcon icona="coppe" color={t.text} />
+            <GameIcon icona="denari" color={t.text} />
+            <GameIcon icona="magic" color={t.text} />
+          </View>
+        </Card>
+
         <ListRow
           left={<Avatar nome="Marco" size="sm" />}
           title="Marco Rossi"
@@ -58,7 +72,11 @@ export default function HomeScreen() {
         <Button size="sm" onPress={showToast}>Mostra toast</Button>
 
         <Card>
-          <EmptyState title="Empty state" hint="quando una lista e' vuota, mai schermo bianco" />
+          <EmptyState
+            icon={<GameIcon icona="mazzo" size={40} color={t.textMuted} />}
+            title="Empty state"
+            hint="quando una lista e' vuota, mai schermo bianco"
+          />
         </Card>
       </ScrollView>
 
