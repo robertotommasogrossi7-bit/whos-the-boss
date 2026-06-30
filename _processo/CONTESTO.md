@@ -204,8 +204,19 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     ListRow/Sheet/Toast), colori dai token via `useTheme`; R1.2b (`12d1112`) = icone in `react-native-svg`
     (set UI completo ~30 + glifi gioco + `GameIcon`), tab bar con icone vere (`@expo/vector-icons` rimosso).
     Home = anteprima del design system. Verde (tsc + expo export 1666 moduli).
-  - **PROSSIMO → R1.3** (fondazione stato): store condiviso + storage **AsyncStorage** + Supabase disaccoppiato.
-    ⚠️ tocca lo store *"non toccare senza spec"* → **mini-spec PRIMA di toccarlo**, poi via libera alle schermate vere (R1.4+).
+  - **R1.3 FATTO** (fondazione stato condiviso, mini-spec approvata):
+    - **R1.3a** (`087f697`): scaffold `packages/state`. **R1.3b-1** (`af819f2`): `computeLive` (puro) → core.
+    - **R1.3b-2** (`b80d0f2`): store → **`packages/state/src/store.ts`** come **`createAppStore({ storage, auth })`**;
+      Supabase disaccoppiato (4 azioni = slice iniettata; store tiene `utente` + `applyUtente`/`setAuthLoading` puri);
+      storage iniettato. `apps/web` = shim `useStore` (vanillaCompatStorage + supabaseAuth) + `authSlice.ts` +
+      `vanillaCompatStorage.ts`; **import dei componenti invariati**. Store ora **DOM-free + Supabase-free**.
+    - Verde: state tsc · web build (tsc -b + vite) · turbo test **147** · mobile tsc. Web invariata.
+  - **R1.3c FATTO** (`59328f1`): store agganciato al **mobile** = `createAppStore({ storage: AsyncStorage })` (no auth,
+    default no-op fino a R2); Home legge dallo store (prova wiring). Verde: mobile tsc + expo export (1680 moduli).
+    → **R1.3 CHIUSO**: stato condiviso su web (localStorage+Supabase) e mobile (AsyncStorage), stessa logica.
+  - **PROSSIMO → R1.4+**: **schermate vere** in RN, una alla volta, che consumano lo store condiviso:
+    Home · Leghe (lista+nuova) · Lega (4 schede) · Classifica · Storico · Giocatori · poker (serata/live/settlement) · Debiti.
+    (Quando comodo: valutare merge `rn-r1-state` → `main` come milestone "fondazione R1".)
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).

@@ -3,6 +3,7 @@
 export * from './types';
 export * from './utils/calc';
 export * from './utils/classifiche';
+export * from './utils/computeLive';
 export * from './utils/format';
 export * from './utils/giocatori';
 export * from './utils/giochi';

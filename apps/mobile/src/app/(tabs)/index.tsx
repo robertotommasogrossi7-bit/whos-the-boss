@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GameIcon, IconCheck, IconClock, IconCoins, IconCrown } from '@/components/icons';
 import { Avatar, Button, Card, Chip, EmptyState, ListRow, Sheet, Toast } from '@/components/ui';
+import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
 /* R1.2 — anteprima del design system (temporanea).
@@ -12,6 +13,7 @@ export default function HomeScreen() {
   const t = useTheme();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [toast, setToast] = useState(false);
+  const numLeghe = useStore((s) => s.db.leghe.length);
 
   const showToast = () => {
     setToast(true);
@@ -25,6 +27,13 @@ export default function HomeScreen() {
         <Text style={[styles.sub, { color: t.textMuted }]}>
           anteprima design system (R1.2) · la Home vera arriva in R1.4
         </Text>
+
+        <Card>
+          <Text style={[styles.cardTitle, { color: t.text }]}>Store condiviso · AsyncStorage</Text>
+          <Text style={[styles.cardSub, { color: t.textMuted }]}>
+            @whos-the-boss/state attivo · {numLeghe} {numLeghe === 1 ? 'lega' : 'leghe'}
+          </Text>
+        </Card>
 
         <Card>
           <View style={styles.row}>

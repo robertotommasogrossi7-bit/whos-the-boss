@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeLive } from './useComputeLive';
-import type { Sessione } from '@whos-the-boss/core';
+import { computeLive } from './computeLive';
+import type { Sessione } from '../types';
 
 function makeSess(buy_in: number, giocatori: Sessione['giocatori']): Sessione {
   return {
