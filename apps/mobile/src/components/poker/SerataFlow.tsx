@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { type Lega } from '@whos-the-boss/core';
 
 import { GameIcon } from '@/components/icons';
+import ChiusuraScreen from '@/components/poker/ChiusuraScreen';
 import LiveCash from '@/components/poker/LiveCash';
 import SerataHub from '@/components/poker/SerataHub';
 import SetupForm from '@/components/poker/SetupForm';
@@ -37,18 +38,7 @@ export default function SerataFlow({ lega }: { lega: Lega }) {
     return <LiveCash lega={lega} />;
   }
 
-  if (serataView === 'chiusura') {
-    return (
-      <ScrollView contentContainerStyle={styles.content}>
-        <EmptyState
-          icon={<GameIcon icona="picche" size={48} color={t.accent} />}
-          title="Chiusura serata"
-          hint="Il settlement (chi paga chi) arriva in R1.5e. La serata è pronta alla chiusura."
-        />
-        <Button variant="ghost" block onPress={() => setSerataView('live')}>Torna alla serata</Button>
-      </ScrollView>
-    );
-  }
+  if (serataView === 'chiusura') return <ChiusuraScreen />;
 
   return <SerataHub lega={lega} />;
 }
