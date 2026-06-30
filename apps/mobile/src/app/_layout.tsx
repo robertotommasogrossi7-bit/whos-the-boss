@@ -58,6 +58,10 @@ export default function RootLayout() {
               name="nuova-lega"
               options={{ headerShown: true, title: 'Nuova lega', presentation: 'modal' }}
             />
+            <Stack.Screen
+              name="profilo"
+              options={{ headerShown: true, title: 'Profilo', presentation: 'modal' }}
+            />
           </Stack>
         )}
       </ThemeProvider>
