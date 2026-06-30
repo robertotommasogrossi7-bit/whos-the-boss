@@ -219,9 +219,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       e `/nuova-lega` (placeholder con header nativo). Empty state su install fresca (servono Nuova lega + segna-partita).
     - **R1.4b** (`4fd1fc5`): **GameBar** (`components/GameBar.tsx`) + **tema dinamico**: `_layout` legge `giocoFiltro`
       → `themeForGame` → ri-tema app+nav (feltro poker). Completa la dinamicità del tema rimandata da R1.3. In cima alla Home.
-    - **PROSSIME**: **Classifica** + **Storico** (shell globali) — ora sbloccate (usano GameBar); servono ancora i
-      sub-componenti `ClassificaTable` / `StoricoLista` / `FiltroNome` (da portare). Util core già pronte
-      (classificaUnificata/…CrossContesto, vociStorico). Poi **Nuova lega** (form) → dati veri → poi Lega/Home/poker.
+    - **R1.4c** (`ae19e88`): **Classifica** (`(tabs)/classifica.tsx`) + sub `classifica/FiltroNome` + `classifica/ClassificaTable`
+      (tabella parametrica soldi/punti, match-in-cima, corona, righe-zero). 2 sezioni: cross-contesto per nome + Classifica Personale.
+    - **R1.4d** (`325a341`): **Storico** (`(tabs)/storico.tsx`) + sub `storico/StoricoLista` (card espandibili poker/gioco,
+      settlement pills, elimina via Alert nativo). Riusa GameBar + FiltroNome. `vociStorico` core.
+    - **PROSSIME**: **Nuova lega** (form `nuova-lega.tsx`, oggi placeholder) → così Leghe/Classifica/Storico mostrano **dati veri**;
+      poi **Lega** (4 schede, sostituisce il placeholder `lega/[id]`), **Home segna-partita** (porta `SchermataGioco`), **poker** (serata/live/settlement).
+      Boot: manca un init mobile che chiami `runMigrations()` (crea il Personale) — valutarlo con Nuova lega/Home.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
