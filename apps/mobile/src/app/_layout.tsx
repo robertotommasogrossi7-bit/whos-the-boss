@@ -1,30 +1,50 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { useEffect } from 'react';
 
+import { useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
-import { defaultTheme } from '@/theme/theme';
+import { themeForGame } from '@/theme/theme';
 
-/* Tema di navigazione (chrome RN: sfondi, header, bordi) allineato ai
-   nostri token scuri. Il tema "applicativo" (per le schermate) viaggia
-   separato in AppThemeProvider cosi' da poter diventare dinamico per
-   gioco (feltro) in R1.3 senza toccare la navigazione. */
-const navTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: defaultTheme.bg,
-    card: defaultTheme.surface,
-    text: defaultTheme.text,
-    border: defaultTheme.border,
-    primary: defaultTheme.accent,
-    notification: defaultTheme.danger,
-  },
-};
-
+/* Radice: legge il gioco selezionato (giocoFiltro) dallo store e ne calcola
+   il TEMA (feltro per il poker, accento del gioco altrimenti). Lo passa alle
+   schermate e alla navigazione, cosi' l'app si ri-tema al cambio gioco.
+   Init al boot: runMigrations() (crea il "Personale", idempotente) DOPO
+   l'idratazione async di AsyncStorage. */
 export default function RootLayout() {
+  const giocoFiltro = useStore((s) => s.giocoFiltro);
+  const runMigrations = useStore((s) => s.runMigrations);
+  const theme = themeForGame(giocoFiltro);
+
+  useEffect(() => {
+    const run = () => runMigrations();
+    if (useStore.persist.hasHydrated()) run();
+    return useStore.persist.onFinishHydration(run);
+  }, [runMigrations]);
+
+  const navTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: theme.bg,
+      card: theme.surface,
+      text: theme.text,
+      border: theme.border,
+      primary: theme.accent,
+      notification: theme.danger,
+    },
+  };
+
   return (
-    <AppThemeProvider value={defaultTheme}>
+    <AppThemeProvider value={theme}>
       <ThemeProvider value={navTheme}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="lega/[id]" options={{ headerShown: true, title: 'Lega' }} />
+          <Stack.Screen
+            name="nuova-lega"
+            options={{ headerShown: true, title: 'Nuova lega', presentation: 'modal' }}
+          />
+        </Stack>
       </ThemeProvider>
     </AppThemeProvider>
   );
