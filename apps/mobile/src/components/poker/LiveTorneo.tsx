@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { euro, fmtData, type Lega } from '@whos-the-boss/core';
 
@@ -7,7 +7,8 @@ import { IconClock, IconCoins, IconTrophy, IconUsers } from '@/components/icons'
 import PrizeModal from '@/components/poker/PrizeModal';
 import SubGiocatoriTorneo from '@/components/poker/SubGiocatoriTorneo';
 import SubOrologio from '@/components/poker/SubOrologio';
-import { Button, EmptyState } from '@/components/ui';
+import SubPremi from '@/components/poker/SubPremi';
+import { Button } from '@/components/ui';
 import { useTimer } from '@/hooks/useTimer';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -84,11 +85,7 @@ export default function LiveTorneo({ lega }: { lega: Lega }) {
       <View style={styles.fill}>
         {subTab === 'orologio' && <SubOrologio lega={lega} sess={sess} clockStr={clockStr} />}
         {subTab === 'giocatori' && <SubGiocatoriTorneo lega={lega} sess={sess} />}
-        {subTab === 'premi' && (
-          <ScrollView contentContainerStyle={styles.ph}>
-            <EmptyState icon={<IconCoins size={44} color={t.accent} />} title="Premi" hint="Montepremi e assegnazione premi arrivano in R1.5d3." />
-          </ScrollView>
-        )}
+        {subTab === 'premi' && <SubPremi sess={sess} />}
       </View>
 
       <View style={[styles.bottom, { borderTopColor: t.border, backgroundColor: t.bg }]}>
@@ -112,6 +109,5 @@ const styles = StyleSheet.create({
   subtabs: { flexDirection: 'row', margin: 12, borderRadius: 10, padding: 3, gap: 3 },
   subtab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 8 },
   subtabText: { fontSize: 12, fontWeight: '600' },
-  ph: { padding: 16 },
   bottom: { gap: 8, padding: 12, borderTopWidth: 1 },
 });
