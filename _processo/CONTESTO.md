@@ -214,9 +214,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R1.3c FATTO** (`59328f1`): store agganciato al **mobile** = `createAppStore({ storage: AsyncStorage })` (no auth,
     default no-op fino a R2); Home legge dallo store (prova wiring). Verde: mobile tsc + expo export (1680 moduli).
     → **R1.3 CHIUSO**: stato condiviso su web (localStorage+Supabase) e mobile (AsyncStorage), stessa logica.
-  - **PROSSIMO → R1.4+**: **schermate vere** in RN, una alla volta, che consumano lo store condiviso:
-    Home · Leghe (lista+nuova) · Lega (4 schede) · Classifica · Storico · Giocatori · poker (serata/live/settlement) · Debiti.
-    (Quando comodo: valutare merge `rn-r1-state` → `main` come milestone "fondazione R1".)
+  - 🟢 **R1.4 IN CORSO** (branch `rn-r1-screens`; fondazione R1.1-R1.3 già in `main`): schermate vere in RN, una alla volta.
+    - **R1.4a** (`1e25c8f`): **Leghe** (`(tabs)/leghe.tsx`) — lista da store + stats utente; nav typed → `/lega/[id]`
+      e `/nuova-lega` (placeholder con header nativo). Empty state su install fresca (servono Nuova lega + segna-partita).
+    - **R1.4b** (`4fd1fc5`): **GameBar** (`components/GameBar.tsx`) + **tema dinamico**: `_layout` legge `giocoFiltro`
+      → `themeForGame` → ri-tema app+nav (feltro poker). Completa la dinamicità del tema rimandata da R1.3. In cima alla Home.
+    - **PROSSIME**: **Classifica** + **Storico** (shell globali) — ora sbloccate (usano GameBar); servono ancora i
+      sub-componenti `ClassificaTable` / `StoricoLista` / `FiltroNome` (da portare). Util core già pronte
+      (classificaUnificata/…CrossContesto, vociStorico). Poi **Nuova lega** (form) → dati veri → poi Lega/Home/poker.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
