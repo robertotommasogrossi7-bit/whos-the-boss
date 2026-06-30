@@ -230,9 +230,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       Home tab reale (GameBar + flusso Personale); rotta `app/gioco/[legaId]/[giocoId]` dalle tile Lega. → **loop multi-gioco completo**.
     - **R1.4h** (`bfa2a4a`): **Debiti** (`app/debiti.tsx`) — debiti aperti per debitore, salda singolo/tutti; banner in LegaHome.
       → **app NON-poker COMPLETA**. [branch `rn-r1-debiti`, da mergiare]
-    - **MANCA in R1**: solo **🃏 poker** serata/live/settlement (GROSSO, ~25-30 comp.: serata setup, live cash/torneo con
-      giocatori/fiche/timer/rebuy, settlement/chiusura, tavolo virtuale). Rifiniture minori: date-picker sessione futura,
-      foto lega (`expo-image-picker`), toast globale mobile. (Le tile "poker" oggi mostrano un Alert "in arrivo".)
+    - 🟢 **R1.5 poker IN CORSO** (branch `rn-r1-poker`): R1.5a shell (`/poker/[legaId]`, feltro, 4 schede) ·
+      R1.5b setup serata (hub + form cash/torneo, ConfigTorneo semplificata) · R1.5c **live cash** (SubGiocatoriCash
+      roster + SubAttivi conto via computeLive; MoneyInput) · R1.5e **chiusura cash + settlement** (CassaView +
+      ChiusuraCash "chi paga chi" + conferma → debiti). → **LOOP CASH POKER COMPLETO end-to-end**.
+    - **MANCA in R1**: **R1.5d — torneo live** (timer/livelli/rebuy/add-on/premi + chiusura torneo: LiveTorneo,
+      SubGiocatoriTorneo, SubOrologio, SubPremi, ChiusuraTorneo). Rifiniture: tavolo virtuale (seating), editor livelli
+      manuale, date-picker, foto lega, toast globale. (Oggi torneo live/chiusura = placeholder.)
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).

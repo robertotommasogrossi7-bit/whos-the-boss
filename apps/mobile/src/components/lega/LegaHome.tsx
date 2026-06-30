@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GIOCHI_PREIMPOSTATI, type Lega } from '@whos-the-boss/core';
 
@@ -15,7 +15,7 @@ export default function LegaHome({ lega }: { lega: Lega }) {
 
   function entra(id: string) {
     if (id === 'poker') {
-      Alert.alert('In arrivo', 'La schermata Poker (serata/live) arriva in R1.');
+      router.push({ pathname: '/poker/[legaId]', params: { legaId: String(lega.id) } });
       return;
     }
     router.push({ pathname: '/gioco/[legaId]/[giocoId]', params: { legaId: String(lega.id), giocoId: id } });

@@ -1,4 +1,5 @@
-import { Alert, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import GameBar from '@/components/GameBar';
@@ -25,7 +26,7 @@ export default function HomeScreen() {
             icon={<GameIcon icona="picche" size={48} color={t.accent} />}
             title="Poker"
             hint="Il poker ha la sua schermata dedicata (serata, soldi, timer, settlement) — in arrivo in R1."
-            action={<Button onPress={() => Alert.alert('In arrivo', 'La schermata Poker arriva in R1.')}>Apri il Poker</Button>}
+            action={<Button onPress={() => { if (personale) router.push({ pathname: '/poker/[legaId]', params: { legaId: String(personale.id) } }); }}>Apri il Poker</Button>}
           />
         </View>
       ) : personale ? (
