@@ -13,8 +13,19 @@ function mapAuthError(msg: string): string {
   if (m.includes('password should be at least')) return 'Password: almeno 6 caratteri';
   if (m.includes('email not confirmed')) return 'Email non confermata: controlla la posta';
   if (m.includes('unable to validate email') || (m.includes('email') && m.includes('invalid'))) return 'Email non valida';
+  if (m.includes('should be different')) return 'La nuova password deve essere diversa dalla vecchia';
   if (m.includes('rate limit') || m.includes('too many')) return 'Troppi tentativi, riprova tra poco';
   return msg;
+}
+
+/* Riverifica la password attuale (gate per le operazioni sensibili): un
+   signInWithPassword sullo stesso utente rinfresca solo la sessione, non cambia
+   nulla di visibile. Ritorna un messaggio d'errore o null se la password e' giusta. */
+async function verifyCurrentPassword(email: string, currentPassword: string): Promise<string | null> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (!error) return null;
+  if (error.message.toLowerCase().includes('invalid login credentials')) return 'Password attuale errata';
+  return mapAuthError(error.message);
 }
 
 function toUser(u: SupabaseUser | null): User | null {
@@ -57,5 +68,31 @@ export const supabaseAuth: AuthInjector = (get) => ({
 
   logout: async () => {
     await supabase.auth.signOut();
+  },
+
+  updatePassword: async (currentPassword, newPassword) => {
+    if (!currentPassword || !newPassword) return 'Compila tutti i campi';
+    if (newPassword.length < 6) return 'Nuova password: almeno 6 caratteri';
+    const email = get().utente?.email;
+    if (!email) return 'Sessione non valida, riaccedi';
+    const bad = await verifyCurrentPassword(email, currentPassword);
+    if (bad) return bad;
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return error ? mapAuthError(error.message) : null;
+  },
+
+  updateEmail: async (currentPassword, newEmail) => {
+    const e = newEmail.trim();
+    if (!currentPassword || !e) return 'Compila tutti i campi';
+    const email = get().utente?.email;
+    if (!email) return 'Sessione non valida, riaccedi';
+    if (e.toLowerCase() === email.toLowerCase()) return 'La nuova email coincide con quella attuale';
+    const bad = await verifyCurrentPassword(email, currentPassword);
+    if (bad) return bad;
+    // Supabase invia la conferma a vecchia + nuova email (secure email change):
+    // il cambio si completa solo dopo il click sul link. (Il ritorno in app sara'
+    // fluido con il deep link, R2.4.)
+    const { error } = await supabase.auth.updateUser({ email: e });
+    return error ? mapAuthError(error.message) : null;
   },
 });
