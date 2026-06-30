@@ -242,6 +242,19 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     logica di `apps/web` + `packages/state` applyUtente; lo store mobile oggi parte senza auth con default no-op).
     Rifiniture rimandate (non bloccanti): tavolo virtuale (seating), editor livelli torneo manuale, date-picker
     (data serata/sessione = oggi), foto lega (`expo-image-picker`), toast globale mobile.
+  - 🟢 **R2 — AUTH SUPABASE RN** (branch `rn-r2-auth`, 2026-07-01; partito da `8c0ed83`). **Funzionalmente completo**:
+    - **R2.0+R2.1** (`6c37a4a`): client Supabase mobile (`lib/supabase.ts`, sessione AsyncStorage, `EXPO_PUBLIC_*`,
+      `react-native-url-polyfill`, `detectSessionInUrl:false`) + `store/authSlice.ts` (login/register/logout/initAuth,
+      stessa logica web) iniettata nello store (`createAppStore({ storage, auth })`). `.env` gitignorato + `.env.example`.
+    - **R2.2** (`38c40c9`): **LoginScreen** RN (tab Accedi/Registrati; banner inline al posto del toast globale).
+    - **R2.3** (`51bfd1d`): **gate auth** nel root `_layout` (initAuth al boot; `authLoading`→loader, `!utente`→Login,
+      altrimenti Stack). `utente`/`authLoading` non persistiti → niente flash del gate.
+    - **R2.5** (`1fde6ab`): schermata **Profilo** (avatar in Home → `/profilo`, pattern Spotify) + **Logout** (conferma Alert).
+    - **R2.6** (`f87499e`,`a59ae0c`): **cambio password/email** — contratto auth esteso (`updatePassword`/`updateEmail`,
+      default no-op → web resta verde) + impl mobile (riverifica la vecchia password via `signInWithPassword`) + UI Sheet
+      (vecchia pwd + nuova credenziale a doppia conferma). Verde a ogni passo: state+web tsc, mobile expo export + tsc.
+    - ⏳ **DA SISTEMARE ALLA FINE** (deciso con l'utente, "sistemiamo tutto alla fine"): **R2.4 deep link conferma email**
+      (scheme app + rotta callback + **config redirect nella dashboard Supabase** = azione utente); toast globale mobile.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).

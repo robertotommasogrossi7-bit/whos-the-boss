@@ -89,6 +89,9 @@ interface StoreActions {
   login: (email: string, password: string) => Promise<string | null>;
   register: (username: string, email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  // Cambio credenziali (R2.6) — richiedono la vecchia password come verifica
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
+  updateEmail: (currentPassword: string, newEmail: string) => Promise<string | null>;
   initAuth: () => void;   // ripristina la sessione al boot + sottoscrive i cambi di stato
   applyUtente: (user: User | null) => void;   // setta utente + aggancia "sei tu" (puro)
   setAuthLoading: (loading: boolean) => void;
@@ -244,7 +247,7 @@ function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, username: s
    STORE
 ══════════════════════════════════════════════════════ */
 /* Slice auth iniettabile dall'app (web = Supabase, mobile = stub/R2). */
-export type AuthSlice = Pick<StoreActions, 'initAuth' | 'login' | 'register' | 'logout'>;
+export type AuthSlice = Pick<StoreActions, 'initAuth' | 'login' | 'register' | 'logout' | 'updatePassword' | 'updateEmail'>;
 export type AuthInjector = (get: () => PokerStore) => Partial<AuthSlice>;
 
 export interface AppStoreDeps {
@@ -316,6 +319,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       login: async () => null,
       register: async () => null,
       logout: async () => {},
+      updatePassword: async () => null,
+      updateEmail: async () => null,
 
       /* ── Overlay ── */
       openOverlay:  () => set({ overlayOpen: true }),
