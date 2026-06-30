@@ -211,8 +211,12 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       storage iniettato. `apps/web` = shim `useStore` (vanillaCompatStorage + supabaseAuth) + `authSlice.ts` +
       `vanillaCompatStorage.ts`; **import dei componenti invariati**. Store ora **DOM-free + Supabase-free**.
     - Verde: state tsc · web build (tsc -b + vite) · turbo test **147** · mobile tsc. Web invariata.
-  - **PROSSIMO → R1.3c** (piccolo): wiring store sul **mobile** = `createAppStore({ storage: AsyncStorage })` (no auth, stub
-    fino a R2) → poi **R1.4+ schermate vere** una alla volta (Home, Leghe, Lega, Classifica, Storico, Giocatori, poker).
+  - **R1.3c FATTO** (`59328f1`): store agganciato al **mobile** = `createAppStore({ storage: AsyncStorage })` (no auth,
+    default no-op fino a R2); Home legge dallo store (prova wiring). Verde: mobile tsc + expo export (1680 moduli).
+    → **R1.3 CHIUSO**: stato condiviso su web (localStorage+Supabase) e mobile (AsyncStorage), stessa logica.
+  - **PROSSIMO → R1.4+**: **schermate vere** in RN, una alla volta, che consumano lo store condiviso:
+    Home · Leghe (lista+nuova) · Lega (4 schede) · Classifica · Storico · Giocatori · poker (serata/live/settlement) · Debiti.
+    (Quando comodo: valutare merge `rn-r1-state` → `main` come milestone "fondazione R1".)
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
