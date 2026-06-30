@@ -24,7 +24,14 @@ export default function RootLayout() {
   return (
     <AppThemeProvider value={defaultTheme}>
       <ThemeProvider value={navTheme}>
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="lega/[id]" options={{ headerShown: true, title: 'Lega' }} />
+          <Stack.Screen
+            name="nuova-lega"
+            options={{ headerShown: true, title: 'Nuova lega', presentation: 'modal' }}
+          />
+        </Stack>
       </ThemeProvider>
     </AppThemeProvider>
   );
