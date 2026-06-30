@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { GameIcon, IconChevronLeft } from '@/components/icons';
+import { IconChevronLeft } from '@/components/icons';
 import CassaView from '@/components/poker/CassaView';
 import ChiusuraCash from '@/components/poker/ChiusuraCash';
-import { Button, EmptyState } from '@/components/ui';
+import ChiusuraTorneo from '@/components/poker/ChiusuraTorneo';
+import { Button } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -57,7 +58,7 @@ export default function ChiusuraScreen() {
       </View>
 
       {settlement.isTorneo ? (
-        <EmptyState icon={<GameIcon icona="picche" size={44} color={t.accent} />} title="Chiusura torneo" hint="La chiusura torneo (premi) arriva in R1.5d." />
+        <ChiusuraTorneo legaId={legaId} />
       ) : settlement.cashResult ? (
         <>
           <CassaView legaId={legaId} cashResult={settlement.cashResult} />
