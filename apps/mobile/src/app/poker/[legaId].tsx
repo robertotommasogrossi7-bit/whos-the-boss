@@ -12,6 +12,7 @@ import LegaGiocatori from '@/components/lega/LegaGiocatori';
 import StoricoLista from '@/components/storico/StoricoLista';
 import { EmptyState } from '@/components/ui';
 import Placeholder from '@/components/Placeholder';
+import SerataFlow from '@/components/poker/SerataFlow';
 import { useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/theme/ThemeContext';
 import { themeForGame } from '@/theme/theme';
@@ -74,15 +75,7 @@ function PokerInner({ lega }: { lega: Lega }) {
         })}
       </View>
 
-      {tab === 'serata' && (
-        <ScrollView contentContainerStyle={styles.content}>
-          <EmptyState
-            icon={<GameIcon icona="picche" size={48} color={t.accent} />}
-            title="Serata di poker"
-            hint="Il flusso serata live (cash/torneo) + settlement arriva nelle prossime sotto-fasi (R1.5b+)."
-          />
-        </ScrollView>
-      )}
+      {tab === 'serata' && <SerataFlow lega={lega} />}
       {tab === 'giocatori' && <LegaGiocatori lega={lega} />}
       {tab === 'storico' && <PokerStorico lega={lega} />}
       {tab === 'classifica' && <PokerClassifica lega={lega} />}
