@@ -105,6 +105,9 @@ importers:
       '@whos-the-boss/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@whos-the-boss/state':
+        specifier: workspace:*
+        version: link:../../packages/state
       react:
         specifier: ^19.1.0
         version: 19.2.7
