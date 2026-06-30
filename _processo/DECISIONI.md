@@ -479,6 +479,43 @@
   R1.3 fondazione stato (store condiviso + AsyncStorage + Supabase disaccoppiato; tocca lo store **"non toccare
   senza spec"** -> **mini-spec prima**) -> R1.4... schermate una alla volta (ognuna con ricerca UX mirata).
 
+## 2026-07-01 — R2 mergiata + LINEA UFFICIALE fino alla pubblicazione (utente + chat base) — ⭐
+
+> R2 (Auth Supabase RN) mergiata in `main` (`c2783db`, 147 test verdi). Con l'utente abbiamo
+> scelto **strategia A (sostanza prima)** e disegnato la **linea completa** da qui alla
+> pubblicazione, mettendo in conto **tutto** il sospeso + uno slot per le feature nuove.
+
+- **Scelta di fondo: A (sostanza prima)** con raffinatura **reshape-first**: i pezzi che
+  **cambiano la forma di schermate/modello** (poker integrato, "tutti i giochi", tavolo live)
+  si fanno **PRIMA del backend**, così le tabelle cloud nascono sulla forma definitiva e lo
+  **schema si migra una volta sola**. (L'alternativa "sync subito del modello attuale" → doppia
+  migrazione, scartata.)
+- **Restyle grande = ultima fase prima di pubblicare** (accettato dall'utente). Tutto ciò che
+  reshapa la UI viene prima, così si disegna una volta sola sulla struttura finale.
+- **Tavolo live (R5)**: **base single-device** (un telefono = il banco); **spettatori
+  multi-device** rimandati al realtime (R9).
+- **Ruoli (R8)**: si saltano i "ruoli solo locali" (vecchia #7.5) → si fanno **diretti sul
+  backend**, dato che andiamo backend-first.
+- **Feature nuove non ancora scritte**: hanno uno **slot dedicato (R11)**, prima del restyle;
+  si raccolgono in `IDEE.md` man mano, le grosse diventano una fase a sé.
+- **Meta-regola (utente)**: se più avanti **cambiamo rotta** rispetto a questa linea, lo
+  registriamo come **"errore/lezione di costruzione"** (utile da riportare in **SideKick**),
+  non come modifica silenziosa. → vedi memoria feedback.
+
+**LA LINEA (codici nuovi; superano le etichette tentative R3=username/R4=sync/R5=ruoli):**
+- **Quick wins**: toast globale mobile · date-picker.
+- **BLOCCO 1 — reshape locale**: **R3** poker integrato · **R4** "tutti i giochi" (sessione
+  multi-gioco + viste aggregate) · **R5** tavolo live interattivo (`TAVOLO_LIVE_SPEC` +
+  `USCITA_CASH_SPEC` soldi d'uscita + naming "Sessioni" + fix GameBar pin), base single-device.
+- **BLOCCO 2 — backend**: **R6** identità reale (`profiles` + username univoco + R2.4 deep link
+  conferma email) · **R7** sync dati cross-device (leghe/sessioni/partite + RLS + migrazione) ·
+  **R8** ruoli & condivisione (admin multi-livello, inviti lega, governance GameBar) · **R9**
+  realtime & social (tavolo spettatori multi-device + amicizie fra account).
+- **BLOCCO 3 — rifiniture & nuove**: **R10** rifiniture (editor livelli torneo, foto lega via
+  Supabase Storage, sfoltire dep Expo debito R0.3) · **R11** feature nuove (slot aperto).
+- **BLOCCO 4 — traguardo**: **R12** restyle grande (redesign + brand definitivo) · **RP**
+  pubblicazione (EAS Build + screenshot + store + EAS Update OTA).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

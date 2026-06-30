@@ -255,6 +255,36 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       (vecchia pwd + nuova credenziale a doppia conferma). Verde a ogni passo: state+web tsc, mobile expo export + tsc.
     - ⏳ **DA SISTEMARE ALLA FINE** (deciso con l'utente, "sistemiamo tutto alla fine"): **R2.4 deep link conferma email**
       (scheme app + rotta callback + **config redirect nella dashboard Supabase** = azione utente); toast globale mobile.
+  - ✅ **R2 MERGIATA in `main`** (`c2783db`, 2026-07-01; 147 test verdi; branch cancellato).
+
+### 🆕 LINEA UFFICIALE post-R2 (decisa 2026-07-01 — vedi `DECISIONI.md` 2026-07-01)
+
+> **Strategia A (sostanza prima)** con **reshape-first**: i pezzi che cambiano forma di
+> schermate/modello si fanno **PRIMA del backend** (schema migrato una volta sola). **Restyle
+> grande = ultima fase prima di pubblicare** (accettato). Slot dedicato per feature nuove (R11).
+> Se cambiamo rotta → si registra come **lezione di costruzione** (per SideKick).
+> ⚠️ Questi codici **superano** le etichette tentative del pivot (R3=username/R4=sync/R5=ruoli).
+
+- **Quick wins** (apertura): toast globale mobile · date-picker.
+- **BLOCCO 1 — reshape locale** (la forma diventa definitiva):
+  - **R3 — Poker integrato**: niente sotto-app; classifica/storico restano condivisi, solo "apri sessione" = poker. *(locale)*
+  - **R4 — "Tutti i giochi"**: sessione multi-gioco + classifica/storico aggregati; estende `SessioneGioco`. *(locale)*
+  - **R5 — Tavolo live interattivo** ⭐ (`TAVOLO_LIVE_SPEC` + `USCITA_CASH_SPEC` soldi d'uscita + naming "Sessioni" +
+    fix GameBar pin). **Base single-device** (un telefono = il banco); spettatori multi-device → R9. *(locale)*
+- **BLOCCO 2 — backend** (sul modello definitivo):
+  - **R6 — Identità reale**: `profiles` + username univoco + **R2.4 deep link** conferma email. *(backend + dashboard)*
+  - **R7 — Sync dati cross-device** ⭐: leghe/sessioni/partite su Supabase + RLS + migrazione dal locale. *(il pezzo grosso)*
+  - **R8 — Ruoli & condivisione**: admin multi-livello (nominare/revocare/espellere), inviti lega, governance GameBar.
+    *(assorbe la vecchia #7.5 "ruoli locali": si va diretti sul backend)*
+  - **R9 — Realtime & social**: tavolo live multi-device/spettatori (Supabase Realtime) + amicizie fra account.
+- **BLOCCO 3 — rifiniture & nuove**:
+  - **R10 — Rifiniture**: editor livelli torneo manuale, foto lega (Supabase Storage), sfoltire dep Expo (debito R0.3).
+  - **R11 — Feature nuove** 🆕 (slot aperto): idee non ancora scritte → in `IDEE.md`; le grosse = fase a sé, prima del restyle.
+- **BLOCCO 4 — traguardo**:
+  - **R12 — Restyle grande**: redesign completo sulla struttura finale + brand definitivo (ricerca UX, best-in-class).
+  - **RP — Pubblicazione**: dev build → EAS Build → screenshot README → Play/App Store + EAS Update (OTA).
+
+**Prossima azione concreta (2026-07-01)**: quick wins (toast globale → date-picker) poi **R3 poker integrato**. Branch nuovo per blocco/fase.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
