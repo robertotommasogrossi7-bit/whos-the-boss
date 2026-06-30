@@ -228,8 +228,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       Classifica/Storico (GiocoPills + componenti riusati), Giocatori (add/rinomina/elimina via Alert). [branch `rn-r1-lega`, **non ancora mergiato**]
     - **R1.4g** (`0cc7d30`): **Home segna-partita** = `SchermataGioco` + `SheetNuovaSessione`/`SheetEsitoPartita`/`PickChip`;
       Home tab reale (GameBar + flusso Personale); rotta `app/gioco/[legaId]/[giocoId]` dalle tile Lega. → **loop multi-gioco completo**.
-    - **MANCA in R1**: **Debiti** (piccolo); **🃏 poker** serata/live/settlement (GROSSO, ~25-30 comp.). Rifiniture: date-picker
-      sessione futura, foto lega (`expo-image-picker`), toast globale mobile. (Branch corrente: `rn-r1-lega` — da mergiare.)
+    - **R1.4h** (`bfa2a4a`): **Debiti** (`app/debiti.tsx`) — debiti aperti per debitore, salda singolo/tutti; banner in LegaHome.
+      → **app NON-poker COMPLETA**. [branch `rn-r1-debiti`, da mergiare]
+    - **MANCA in R1**: solo **🃏 poker** serata/live/settlement (GROSSO, ~25-30 comp.: serata setup, live cash/torneo con
+      giocatori/fiche/timer/rebuy, settlement/chiusura, tavolo virtuale). Rifiniture minori: date-picker sessione futura,
+      foto lega (`expo-image-picker`), toast globale mobile. (Le tile "poker" oggi mostrano un Alert "in arrivo".)
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
