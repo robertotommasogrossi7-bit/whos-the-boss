@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { GIOCHI_PREIMPOSTATI, type Lega } from '@whos-the-boss/core';
@@ -5,17 +6,18 @@ import { GIOCHI_PREIMPOSTATI, type Lega } from '@whos-the-boss/core';
 import { GameIcon } from '@/components/icons';
 import { useTheme } from '@/theme/ThemeContext';
 
-/* HOME della lega — griglia giochi. Tap = avvia il gioco (poker / segna-partita):
-   quelle schermate arrivano dopo, per ora un avviso. (Niente GameBar: il gioco
-   si sceglie qui.) */
-export default function LegaHome({ lega: _lega }: { lega: Lega }) {
+/* HOME della lega — griglia giochi. Tap su un gioco apre il segna-partita
+   per (lega, gioco); il poker rimanda alla sua schermata dedicata (in arrivo).
+   (Niente GameBar: il gioco si sceglie qui.) */
+export default function LegaHome({ lega }: { lega: Lega }) {
   const t = useTheme();
 
   function entra(id: string) {
-    Alert.alert(
-      'In arrivo',
-      id === 'poker' ? 'La schermata Poker (serata/live) arriva in R1.' : 'Il segna-partita arriva in R1.',
-    );
+    if (id === 'poker') {
+      Alert.alert('In arrivo', 'La schermata Poker (serata/live) arriva in R1.');
+      return;
+    }
+    router.push({ pathname: '/gioco/[legaId]/[giocoId]', params: { legaId: String(lega.id), giocoId: id } });
   }
 
   return (
