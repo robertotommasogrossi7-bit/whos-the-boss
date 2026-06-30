@@ -223,9 +223,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
       (tabella parametrica soldi/punti, match-in-cima, corona, righe-zero). 2 sezioni: cross-contesto per nome + Classifica Personale.
     - **R1.4d** (`325a341`): **Storico** (`(tabs)/storico.tsx`) + sub `storico/StoricoLista` (card espandibili poker/gioco,
       settlement pills, elimina via Alert nativo). Riusa GameBar + FiltroNome. `vociStorico` core.
-    - **PROSSIME**: **Nuova lega** (form `nuova-lega.tsx`, oggi placeholder) → così Leghe/Classifica/Storico mostrano **dati veri**;
-      poi **Lega** (4 schede, sostituisce il placeholder `lega/[id]`), **Home segna-partita** (porta `SchermataGioco`), **poker** (serata/live/settlement).
-      Boot: manca un init mobile che chiami `runMigrations()` (crea il Personale) — valutarlo con Nuova lega/Home.
+    - **R1.4e** (`965f289`): **Nuova lega** (form) + **init boot** (`runMigrations` dopo idratazione AsyncStorage).
+    - **R1.4f** (`da7bd65`): **Lega** (4 schede, `app/lega/[id].tsx` + segmented control) — Home griglia giochi,
+      Classifica/Storico (GiocoPills + componenti riusati), Giocatori (add/rinomina/elimina via Alert). [branch `rn-r1-lega`, **non ancora mergiato**]
+    - **R1.4g** (`0cc7d30`): **Home segna-partita** = `SchermataGioco` + `SheetNuovaSessione`/`SheetEsitoPartita`/`PickChip`;
+      Home tab reale (GameBar + flusso Personale); rotta `app/gioco/[legaId]/[giocoId]` dalle tile Lega. → **loop multi-gioco completo**.
+    - **MANCA in R1**: **Debiti** (piccolo); **🃏 poker** serata/live/settlement (GROSSO, ~25-30 comp.). Rifiniture: date-picker
+      sessione futura, foto lega (`expo-image-picker`), toast globale mobile. (Branch corrente: `rn-r1-lega` — da mergiare.)
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
