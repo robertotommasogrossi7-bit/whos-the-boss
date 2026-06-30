@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { GIOCHI_PREIMPOSTATI, type Lega } from '@whos-the-boss/core';
 
-import { GameIcon } from '@/components/icons';
+import { GameIcon, IconChevronRight, IconCoins } from '@/components/icons';
 import { useTheme } from '@/theme/ThemeContext';
 
 /* HOME della lega — griglia giochi. Tap su un gioco apre il segna-partita
@@ -11,6 +11,7 @@ import { useTheme } from '@/theme/ThemeContext';
    (Niente GameBar: il gioco si sceglie qui.) */
 export default function LegaHome({ lega }: { lega: Lega }) {
   const t = useTheme();
+  const debitiAperti = lega.partite.flatMap((p) => p.settlements).filter((s) => !s.pagato).length;
 
   function entra(id: string) {
     if (id === 'poker') {
@@ -22,6 +23,18 @@ export default function LegaHome({ lega }: { lega: Lega }) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {debitiAperti > 0 ? (
+        <Pressable
+          onPress={() => router.push('/debiti')}
+          style={[styles.debtBanner, { backgroundColor: t.dangerSoft, borderColor: t.danger }]}
+        >
+          <IconCoins size={18} color={t.danger} />
+          <Text style={[styles.debtText, { color: t.danger }]}>
+            {debitiAperti} {debitiAperti === 1 ? 'debito aperto' : 'debiti aperti'}
+          </Text>
+          <IconChevronRight size={16} color={t.danger} />
+        </Pressable>
+      ) : null}
       <Text style={[styles.secHdr, { color: t.text }]}>Giochi</Text>
       <View style={styles.grid}>
         {GIOCHI_PREIMPOSTATI.map((g) => (
@@ -46,6 +59,8 @@ export default function LegaHome({ lega }: { lega: Lega }) {
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 12 },
   secHdr: { fontSize: 18, fontWeight: '800' },
+  debtBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  debtText: { flex: 1, fontSize: 14, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   tile: { width: '30%', flexGrow: 1, minWidth: 96, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, borderWidth: 1, padding: 8 },
   pressed: { opacity: 0.85 },
