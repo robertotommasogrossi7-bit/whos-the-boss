@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import GameBar from '@/components/GameBar';
 import { GameIcon, IconCheck, IconClock, IconCoins, IconCrown } from '@/components/icons';
 import { Avatar, Button, Card, Chip, EmptyState, ListRow, Sheet, Toast } from '@/components/ui';
 import { useStore } from '@/store/useStore';
@@ -22,6 +23,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: t.bg }]}>
+      <GameBar />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.h, { color: t.text }]}>Home</Text>
         <Text style={[styles.sub, { color: t.textMuted }]}>
