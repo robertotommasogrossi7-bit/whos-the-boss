@@ -3,7 +3,9 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { euro, fmtData, type Lega } from '@whos-the-boss/core';
 
-import { GameIcon, IconClock, IconCoins, IconTrophy, IconUsers } from '@/components/icons';
+import { IconClock, IconCoins, IconTrophy, IconUsers } from '@/components/icons';
+import PrizeModal from '@/components/poker/PrizeModal';
+import SubGiocatoriTorneo from '@/components/poker/SubGiocatoriTorneo';
 import SubOrologio from '@/components/poker/SubOrologio';
 import { Button, EmptyState } from '@/components/ui';
 import { useTimer } from '@/hooks/useTimer';
@@ -81,11 +83,7 @@ export default function LiveTorneo({ lega }: { lega: Lega }) {
 
       <View style={styles.fill}>
         {subTab === 'orologio' && <SubOrologio lega={lega} sess={sess} clockStr={clockStr} />}
-        {subTab === 'giocatori' && (
-          <ScrollView contentContainerStyle={styles.ph}>
-            <EmptyState icon={<GameIcon icona="picche" size={44} color={t.accent} />} title="Player" hint="Iscritti, rebuy/add-on, eliminazioni e revive arrivano in R1.5d2." />
-          </ScrollView>
-        )}
+        {subTab === 'giocatori' && <SubGiocatoriTorneo lega={lega} sess={sess} />}
         {subTab === 'premi' && (
           <ScrollView contentContainerStyle={styles.ph}>
             <EmptyState icon={<IconCoins size={44} color={t.accent} />} title="Premi" hint="Montepremi e assegnazione premi arrivano in R1.5d3." />
@@ -97,6 +95,8 @@ export default function LiveTorneo({ lega }: { lega: Lega }) {
         <Button block onPress={chiudi}>Chiudi serata</Button>
         <Button variant="ghost" block onPress={annulla}>Annulla torneo</Button>
       </View>
+
+      <PrizeModal lega={lega} />
     </View>
   );
 }
