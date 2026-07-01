@@ -12,7 +12,7 @@ function mkLega(nomi: NomeGiocatore[], personale = false): Lega {
 
 describe('validaRinomina (#4.7c)', () => {
   const lega = mkLega([
-    { id: 1, nome: 'Giulio Rossi' },
+    { id: 1, nome: 'Giulio Rossi', accountId: 'a1' },
     { id: 2, nome: 'Giulio Bianchi' },
     { id: 3, nome: 'José' },
   ]);
@@ -42,11 +42,16 @@ describe('validaRinomina (#4.7c)', () => {
     expect(validaRinomina(lega, 1, 'GIULIO ROSSI', null)).toBeNull();
   });
 
-  it('blocco sul record "sei tu" (nome corrente = username)', () => {
-    expect(validaRinomina(lega, 1, 'Nuovo Nome', 'giulio rossi')).toBe('Il tuo nome si cambia dall\'account');
+  it('blocco sul record dell\'account loggato (sei tu)', () => {
+    expect(validaRinomina(lega, 1, 'Nuovo Nome', 'a1')).toBe('Il tuo nome si cambia dall\'account');
   });
 
-  it('username diverso dal record → nessun blocco "sei tu"', () => {
-    expect(validaRinomina(lega, 1, 'Giulio R.', 'Anna')).toBeNull();
+  it('record di un ALTRO account → nessun blocco "sei tu"', () => {
+    // id 1 è dell'account a1; loggato come a2 → puoi rinominarlo (non sei tu)
+    expect(validaRinomina(lega, 1, 'Giulio R.', 'a2')).toBeNull();
+  });
+
+  it('record guest (senza account) → nessun blocco "sei tu"', () => {
+    expect(validaRinomina(lega, 2, 'Giulio B.', 'a1')).toBeNull();
   });
 });

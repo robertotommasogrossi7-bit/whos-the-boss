@@ -4,14 +4,16 @@
 ══════════════════════════════════════════════════════ */
 
 export interface User {
-  username: string;
+  username: string;     // handle univoco (R6)
   email?: string;
   id?: string;          // id account Supabase (B1)
+  displayName?: string; // nome visualizzato libero (R6, opzionale)
 }
 
 export interface NomeGiocatore {
   id: number;
   nome: string;
+  accountId?: string;   // id account Supabase del giocatore reale (R6). Assente = guest.
 }
 
 /* ─── SESSIONE (partita in corso) ─── */

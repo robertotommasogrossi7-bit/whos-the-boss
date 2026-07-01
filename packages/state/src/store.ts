@@ -11,7 +11,7 @@ import {
   type EsitoPartitaInput,
 } from '@whos-the-boss/core';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@whos-the-boss/core';
-import { èSeiTu, normalizzaNome } from '@whos-the-boss/core';
+import { èSeiTuRecord, normalizzaNome } from '@whos-the-boss/core';
 import { validaRinomina } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
@@ -237,13 +237,13 @@ function sessioneTorneoAttiva(sess: Sessione): Sessione {
 
 /* mapAuthError vive ora in apps/web/src/store/authSlice.ts (logica Supabase). */
 
-/* ── #4.5: assicura che l'utente loggato sia un giocatore reale del Personale.
-   Chiamata a login/register riusciti. Difensiva: se il Personale non esiste
-   ancora (runMigrations lo crea al boot) salta senza crashare. ── */
-function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, username: string): void {
+/* ── #4.5/R6: assicura che l'utente loggato sia un giocatore reale del Personale,
+   ancorato all'account (accountId). Chiamata a login/register riusciti. Difensiva:
+   se il Personale non esiste ancora (runMigrations lo crea al boot) salta. ── */
+function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, user: User): void {
   const personale = db.leghe.find(l => l.personale);
   if (!personale) return;
-  const aggiornata = assicuraGiocatorePersonale(personale, username);
+  const aggiornata = assicuraGiocatorePersonale(personale, user);
   if (aggiornata !== personale) saveLega(aggiornata);
 }
 
@@ -319,7 +319,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       applyUtente: (user) => {
         set({ utente: user });
         // #4.5: aggancia "te" come giocatore reale del Personale
-        if (user) assicuraTuNelPersonale(get().db, get().saveLega, user.username);
+        if (user) assicuraTuNelPersonale(get().db, get().saveLega, user);
       },
       setAuthLoading: (loading) => set({ authLoading: loading }),
       initAuth: () => set({ authLoading: false }),
@@ -342,7 +342,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         set(s => {
           // #4.5: l'id "sei tu" nel Personale è bloccato-incluso → toggle no-op
           const lega = s.db.leghe.find(l => l.id === s.db._currentLegaId);
-          if (lega && idBloccatiInclusi(lega, s.utente?.username).includes(id)) return s;
+          if (lega && idBloccatiInclusi(lega, s.utente?.id).includes(id)) return s;
           const next = new Set(s.setupPartIds);
           if (next.has(id)) next.delete(id); else next.add(id);
           return { setupPartIds: next };
@@ -494,7 +494,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         // #4.5: non puoi rimuovere te stesso dal Personale
         if (lega.personale) {
           const rec = lega.nomi.find(n => n.id === idNome);
-          if (rec && èSeiTu(rec.nome, get().utente?.username)) {
+          if (rec && èSeiTuRecord(rec, get().utente?.id)) {
             return 'Non puoi rimuovere te stesso dal Personale';
           }
         }
@@ -511,7 +511,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 'Lega non trovata';
-        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.username);
+        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.id);
         if (err) return err;
         const n = nuovoNome.trim();
         saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? { ...x, nome: n } : x)) });

@@ -21,7 +21,8 @@ function toUser(u: SupabaseUser | null): User | null {
   if (!u) return null;
   const uname = String(u.user_metadata?.username ?? '').trim();
   const username = uname || u.email || 'utente';
-  return { username, email: u.email ?? undefined, id: u.id };
+  const display = String(u.user_metadata?.display_name ?? '').trim();
+  return { username, email: u.email ?? undefined, id: u.id, displayName: display || undefined };
 }
 
 export const supabaseAuth: AuthInjector = (get) => ({

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { euroSigned } from '@whos-the-boss/core';
-import { èSeiTu } from '@whos-the-boss/core';
+import { èSeiTuRecord } from '@whos-the-boss/core';
 import { IconTrophy, GameIcon } from '../icons';
 import type { Lega } from '@whos-the-boss/core';
 
@@ -18,8 +18,8 @@ export default function ListaLeghe() {
   }
 
   function statsUtente(lega: Lega) {
-    // #4.7c: trova il MIO record per nome normalizzato (èSeiTu condiviso)
-    const meId = lega.nomi.find(n => èSeiTu(n.nome, utente?.username))?.id;
+    // R6: trova il MIO record per account (èSeiTuRecord)
+    const meId = lega.nomi.find(n => èSeiTuRecord(n, utente?.id))?.id;
     if (meId === undefined) return { rendimento: 0, vittorie: 0 };
     let rendimento = 0;
     let vittorie   = 0;

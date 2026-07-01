@@ -1,5 +1,6 @@
 import type { Lega } from '../types';
-import { normalizzaNome, èSeiTu } from './normalizzaNome';
+import { normalizzaNome } from './normalizzaNome';
+import { èSeiTuRecord } from './personale';
 
 /* ══════════════════════════════════════════════════════
    GIOCATORI — validazioni condivise (#4.7c)
@@ -21,13 +22,13 @@ export function validaRinomina(
   lega:      Lega,
   idNome:    number,
   nuovoNome: string,
-  username?: string | null,
+  accountId?: string | null,
 ): string | null {
   const n = nuovoNome.trim();
   if (!n) return 'Inserisci un nome';
   const rec = lega.nomi.find(x => x.id === idNome);
   if (!rec) return 'Giocatore non trovato';
-  if (èSeiTu(rec.nome, username)) return 'Il tuo nome si cambia dall\'account';
+  if (èSeiTuRecord(rec, accountId)) return 'Il tuo nome si cambia dall\'account';
   const norm = normalizzaNome(n);
   if (lega.nomi.some(x => x.id !== idNome && normalizzaNome(x.nome) === norm)) {
     return 'Nome già presente';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore, selectCurrentLega } from '../../store/useStore';
-import { èSeiTu } from '@whos-the-boss/core';
+import { èSeiTuRecord } from '@whos-the-boss/core';
 import { IconUser, IconTrash, IconEdit, IconCheck, IconClose } from '../icons';
 
 export default function TabPartecipanti() {
@@ -82,7 +82,7 @@ export default function TabPartecipanti() {
         ) : (
           lega.nomi.map(nm => {
             const np       = nPartite(nm.id);
-            const seiTu    = èSeiTu(nm.nome, utente?.username);
+            const seiTu    = èSeiTuRecord(nm, utente?.id);
             const bloccato = lega.personale && seiTu; // tu nel Personale: non rimovibile
             const inEdit   = editId === nm.id;
 
