@@ -40,7 +40,7 @@
 - **Sessioni gioco**: `sessioneGioco.ts` (esitoSessione, vittoriePartecipanti), `serate.ts` (R4: classificaSerata, vincitoriSerata), `classifiche.ts`, `storico.ts` (vociStorico), `statsGiochi.ts`, `giochi.ts`, `format.ts`, `normalizzaNome`, `migrations.ts`, `personale.ts`, `tema.ts`.
 
 ## Azioni store (`packages/state`) — poker live
-- **Cash**: toggleEntrato, setEntrata, setVersato, aggiungiRicarica/modifica/togglePagata, aggiornaFiches, addGiocatoreSessione, rimuoviGiocatoreSessione, **spostaGiocatore**/**riequilibraSeat** (seat), aggiungiEFaiEntrare.
+- **Cash**: toggleEntrato (assegna seat + avvia timer R5), setEntrata, setVersato, aggiungiRicarica/modifica/togglePagata, aggiornaFiches, addGiocatoreSessione, rimuoviGiocatoreSessione, **spostaGiocatore**/**riequilibraSeat** (seat), aggiungiEFaiEntrare, **esceDalTavolo** (R5: uscita/cash-out via `saldoUscita`+fiches_finali, congela timer).
 - **Torneo**: avviaTorneo, pausa/riprendi, avanzaLivello, stop, torneoAddRebuy/AddOn/Revive/Elimina, confirmaPremio.
 - **Serata poker**: avviaSessione, apriSerataAttiva, annullaSessione, aggiornaSetupSerata, confermaChiusura, settlement.
 - **Multigioco**: creaSessioneGioco (+serataId R4), avvia/chiudi/eliminaSessioneGioco, **creaSerata/eliminaSerata** (R4).
@@ -48,5 +48,9 @@
 
 ## Feature grandi — stato
 - Auth (R2) ✅ · Poker integrato (R3) ✅ · Serata multi-gioco (R4) ✅ · **Tavolo live (R5) IN CORSO**.
-- **R5 buchi noti** (da fare, NON duplicare): `esceDalTavolo` (uscita/cash-out, usa `saldoUscita`); transizioni timer (seduto_da_ms set/freeze); **seating anche per il cash** (riusa `assegnaPostiCasuali`); UI tavolo-con-sedie + widget Cassa + menù rapido + "chi deve a chi" live.
+- R5a ✅ core (saldoUscita/tempoGiocoMs, test-first). R5b ✅ store (esceDalTavolo + timer cash in toggleEntrato).
+  Nota: il **seating cash c'era già** (toggleEntrato→assegnaPostoIngresso) — non duplicato.
+- **R5 resta** (NON duplicare): **R5c UI** tavolo-con-sedie (rende `seat`) + widget Cassa (riusa CassaView) +
+  menù rapido sul giocatore (buy-in/rebuy/cash-out/esce) + "chi deve a chi" live (riusa computeLive/settlement);
+  **R5d** timer a schermo (`tempoGiocoMs`) + timer torneo (avviaTorneo/torneoElimina) + unificazione vista torneo.
 - **Backlog restyle** (R-erg): `_processo/ERGONOMIA_AUDIT.md` + IDEE. Seating grafico "bello" → restyle.

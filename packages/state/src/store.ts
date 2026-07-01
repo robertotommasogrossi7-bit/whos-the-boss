@@ -172,6 +172,8 @@ interface StoreActions {
   spostaGiocatore:           (legaId: number, idNome: number, tavolo: number, posto: number) => void;
   riequilibraSeat:           (legaId: number) => void;
   aggiungiEFaiEntrare:       (legaId: number, nome: string) => void;
+  // R5 (tavolo live): esce dal tavolo a metà con `valore` (fiche cash / premio torneo)
+  esceDalTavolo:             (legaId: number, idNome: number, valore: number) => void;
 
   // Torneo live — timer & stato
   avviaTorneo:               (legaId: number) => void;
@@ -598,22 +600,53 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!g) return;
 
         if (!g.entrato) {
-          // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC)
+          // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC) +
+          // avvia il timer per-persona (R5: seduto_da_ms = ora).
           const seduti = sess.giocatori.map(x => ({ id_nome: x.id_nome, seat: x.seat }));
           const nuoviSeduti = assegnaPostoIngresso(seduti, idNome);
           const nuovoSeat = nuoviSeduti.find(s => s.id_nome === idNome)?.seat ?? null;
           const nEntrati = sess.giocatori.filter(x => x.entrato).length + 1;
           const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat } : x,
+            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now() } : x,
           );
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(nEntrati) } });
         } else {
-          // Uscita: libera il seat (nessun riequilibrio automatico in T2)
-          const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: false, seat: null } : x,
-          );
+          // Uscita: libera il seat + CONGELA il timer (R5: accumula in tempo_gioco_ms).
+          const now = Date.now();
+          const giocatori = sess.giocatori.map(x => {
+            if (x.id_nome !== idNome) return x;
+            const frozen = (x.tempo_gioco_ms ?? 0) + (x.seduto_da_ms ? Math.max(0, now - x.seduto_da_ms) : 0);
+            return { ...x, entrato: false, seat: null, tempo_gioco_ms: frozen, seduto_da_ms: undefined };
+          });
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
         }
+      },
+
+      esceDalTavolo: (legaId, idNome, valore) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const now = Date.now();
+        // Registra il valore d'uscita in fiches_finali: il settlement esistente
+        // (calcolaSettlement) lo conteggia -> niente math duplicata (USCITA_CASH_SPEC §7).
+        // Libera il posto e congela il timer per-persona.
+        const giocatori = sess.giocatori.map(g => {
+          if (g.id_nome !== idNome) return g;
+          const frozen = (g.tempo_gioco_ms ?? 0) + (g.seduto_da_ms ? Math.max(0, now - g.seduto_da_ms) : 0);
+          return {
+            ...g,
+            uscito: true,
+            valore_uscita: valore,
+            fiches_finali: valore,
+            ora_uscita: nowHHMM(),
+            seat: null,
+            tempo_gioco_ms: frozen,
+            seduto_da_ms: undefined,
+          };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast('Uscito dal tavolo');
       },
 
       setEntrata: (legaId, idNome, val) => {
