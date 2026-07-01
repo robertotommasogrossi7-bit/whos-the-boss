@@ -90,6 +90,7 @@ export const IconSwap = (p: IconProps) => (
 );
 export const IconArrowRight = (p: IconProps) => (<Base {...p}><Path d="M5 12h14" /><Path d="M13 6l6 6-6 6" /></Base>);
 export const IconClock = (p: IconProps) => (<Base {...p}><Circle cx="12" cy="12" r="8" /><Path d="M12 7.5V12l3 2" /></Base>);
+export const IconCalendar = (p: IconProps) => (<Base {...p}><Rect x="3" y="5" width="18" height="16" rx="2" /><Path d="M3 9.5h18M8 3v4M16 3v4" /></Base>);
 export const IconCoins = (p: IconProps) => (
   <Base {...p}>
     <Ellipse cx="12" cy="6.5" rx="7" ry="3" />

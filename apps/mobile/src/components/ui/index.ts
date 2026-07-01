@@ -6,5 +6,6 @@ export { default as Chip } from './Chip';
 export { default as Avatar } from './Avatar';
 export { default as EmptyState } from './EmptyState';
 export { default as ListRow } from './ListRow';
+export { default as DateField } from './DateField';
 export { default as Sheet } from './Sheet';
 export { default as Toast } from './Toast';

@@ -10,7 +10,7 @@ import PickChip from '@/components/gioco/PickChip';
 import { IconChevronLeft, IconCoins, IconTrophy, IconWarning } from '@/components/icons';
 import ConfigCash from '@/components/poker/ConfigCash';
 import ConfigTorneo from '@/components/poker/ConfigTorneo';
-import { Button, Card, EmptyState } from '@/components/ui';
+import { Button, Card, DateField, EmptyState } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -30,6 +30,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
 
   const sessE = setupEditing ? lega.sessioneAttiva : undefined;
 
+  const [data, setData] = useState(() => sessE?.data ?? oggi());
   const [oraInizio, setOraInizio] = useState(() => sessE?.ora_inizio ?? '21:00');
   const [oraFine, setOraFine] = useState(() => sessE?.ora_fine ?? '');
   const [buyIn, setBuyIn] = useState(() => sessE?.buy_in ?? 25);
@@ -65,7 +66,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
     if (giocatori.length < 2) { Alert.alert('Attenzione', 'Seleziona almeno 2 partecipanti'); return; }
 
     const sess = creaSessione(
-      oggi(), oraInizio.trim(), oraFine.trim(), buyIn,
+      data, oraInizio.trim(), oraFine.trim(), buyIn,
       setupModalita, giocatori,
       setupModalita === 'torneo' ? torneoConfig : undefined,
     );
@@ -98,6 +99,9 @@ export default function SetupForm({ lega }: { lega: Lega }) {
 
       <Card>
         <Text style={[styles.cardTitle, { color: t.text }]}>Quando</Text>
+        <View style={{ marginBottom: 12 }}>
+          <DateField label="Data" value={data} onChange={setData} />
+        </View>
         <View style={styles.grid}>
           <View style={styles.field}>
             <Text style={[styles.label, { color: t.textMuted }]}>Ora inizio</Text>
@@ -108,7 +112,6 @@ export default function SetupForm({ lega }: { lega: Lega }) {
             <TextInput style={[styles.input, { color: t.text, backgroundColor: t.surface2, borderColor: t.border }]} value={oraFine} onChangeText={setOraFine} placeholder="--:--" placeholderTextColor={t.textMuted} />
           </View>
         </View>
-        <Text style={[styles.hint, { color: t.textMuted }]}>Data: oggi.</Text>
       </Card>
 
       <Card>
