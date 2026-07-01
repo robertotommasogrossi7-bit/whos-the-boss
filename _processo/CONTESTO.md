@@ -284,7 +284,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R12 — Restyle grande**: redesign completo sulla struttura finale + brand definitivo (ricerca UX, best-in-class).
   - **RP — Pubblicazione**: dev build → EAS Build → screenshot README → Play/App Store + EAS Update (OTA).
 
-**Prossima azione concreta (2026-07-01)**: quick wins (toast globale → date-picker) poi **R3 poker integrato**. Branch nuovo per blocco/fase.
+**Avanzamento (2026-07-01)**:
+- ✅ **Quick wins** mergiati in `main`: toast globale mobile + date-picker nativo (`DateField`).
+- ✅ **R3 (poker integrato)** mergiato in `main` (`1cfacaf` sul branch): poker non è più un'app-nell'app —
+  classifica/storico/giocatori nelle **viste condivise** (standard BG Stats), sessione live = schermata
+  **immersiva dedicata** (standard poker-timer). Rosa Personale su rotta condivisa `/giocatori/[legaId]`.
+  ⚙️ **Metodo aggiornato** (`CLAUDE.md`): ricerca su app note/solide **prima** di feature+spec (non solo grafica).
+- **Prossimo: R4 — "Tutti i giochi"** (sessione multi-gioco + viste aggregate). Prima ricerca app note, poi mini-spec.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
