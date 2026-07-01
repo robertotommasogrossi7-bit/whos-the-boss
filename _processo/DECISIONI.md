@@ -568,6 +568,24 @@
 - **`accountId` in R6 solo sul record Personale "sei tu"**; il binding su TUTTI i `giocatori`
   (tabella cloud) resta a **R7 sync** (dove nasce lato server). Deciso col piano 2026-07-01.
 
+## 2026-07-01 (d) — RED TEAM senior + linea di produzione riordinata (de-risk first) — ⭐ lezione
+
+> L'utente ha chiesto un red team "senior" su tutto il processo/risultato e di **riordinare la linea
+> di produzione** includendo tutte le critiche. Registro completo in `_processo/REVISIONE-ESTERNA.md`
+> (finding F1–F14 con severità e "dove si risolve"). Migration R6 applicata dall'utente + Redirect URL
+> `whostheboss://**` configurato (F2/F3 mitigati; resta la prova signup su device = R6.V).
+
+- **Lezione di costruzione (per SideKick)**: dopo 304 commit e un pivot (web→RN) l'app non era mai
+  girata su un device reale, senza CI, senza recupero password, senza test d'integrazione — mentre si
+  costruiva backend. **Principio adottato: DE-RISK prima di aggiungere superficie.** Prima far
+  funzionare/proteggere ciò che c'è (device, CI, auth completa, test dello store), poi il resto.
+- **Ordine autorevole in `CONTESTO.md`** (sezione "LINEA DI PRODUZIONE riordinata"): TRACK 0
+  infrastruttura (I1 CI, I2 CI migrations) → **R6 chiusura vera** (R6.6 recupero password · R6.7
+  hardening · R6.8 test store · **R6.V verifica device = GATE** → merge) → R7/R8/R9 backend →
+  H1–H4 hardening pre-pubblicazione (crash reporting, SMTP, privacy/ToS, debito) → R12 restyle → RP.
+- **Nessun codice toccato in questo passo**: solo registrazione critiche + riordino (richiesta esplicita
+  "prima segnati tutte le critiche e crea la linea"). Esecuzione dal prossimo passo (consiglio: I1 CI).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

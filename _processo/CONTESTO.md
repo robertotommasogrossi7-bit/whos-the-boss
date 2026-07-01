@@ -284,6 +284,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R12 — Restyle grande**: redesign completo sulla struttura finale + brand definitivo (ricerca UX, best-in-class).
   - **RP — Pubblicazione**: dev build → EAS Build → screenshot README → Play/App Store + EAS Update (OTA).
 
+### 🔁 LINEA DI PRODUZIONE riordinata (2026-07-01 (d), post RED TEAM) — AUTOREVOLE
+
+> Riordino dopo la revisione senior (`_processo/REVISIONE-ESTERNA.md`, finding F1–F14).
+> Principio: **de-risk PRIMA di aggiungere superficie.** Questo ordine **supera** l'elenco qui sopra
+> per la sequenza; i contenuti dei blocchi restano.
+
+- **TRACK 0 — Infrastruttura (subito)**: **I1** CI (Actions: test+build+tsc su push/PR) · **I2** CI migrations (`supabase db push`).
+- **R6 — chiusura vera (prima del merge)**: **R6.6** recupero password (deep link) · **R6.7** hardening (errore trigger preciso, ramo demo, enumerazione) · **R6.8** test dello store · **R6.V** verifica su **device reale** (signup + unicità + ritorno-mail) = **GATE** → poi merge `rn-r6-identita`→`main`.
+- **Backend**: **R7** sync cross-device (+ partition per account, F8) · **R8** ruoli/condivisione (+ enumerazione, F7) · **R9** realtime/social.
+- **Pre-pubblicazione (hardening)**: **H1** crash reporting · **H2** SMTP custom · **H3** privacy+ToS · **H4** pulizia debito (dep Expo R0.3, E2E, editor livelli, foto lega).
+- **Traguardo**: **R12** restyle · **RP** pubblicazione (EAS Build → store → OTA). (R11 feature nuove = slot in IDEE.)
+
 **Avanzamento (2026-07-01)**:
 - ✅ **Quick wins** mergiati in `main`: toast globale mobile + date-picker nativo (`DateField`).
 - ✅ **R3 (poker integrato)** mergiato in `main` (`1cfacaf` sul branch): poker non è più un'app-nell'app —
