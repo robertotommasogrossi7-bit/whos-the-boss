@@ -35,6 +35,7 @@ export default function GameBar() {
   }
 
   function scegli(id: string) {
+    if (gameBarPinned) return; // gioco fisso: sblocca prima di cambiare
     setGiocoFiltro(id);
     setOpen(false);
   }
@@ -42,8 +43,7 @@ export default function GameBar() {
   return (
     <>
       <Pressable
-        onPress={() => { if (!gameBarPinned) setOpen(true); }}
-        disabled={gameBarPinned}
+        onPress={() => setOpen(true)}
         style={[styles.bar, { backgroundColor: t.surface, borderBottomColor: t.border }]}
       >
         <GameIcon icona={icona} size={22} color={t.accent} />
@@ -54,6 +54,9 @@ export default function GameBar() {
       </Pressable>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Scegli gioco">
+        {gameBarPinned ? (
+          <Text style={[styles.pinnedHint, { color: t.textMuted }]}>Gioco fisso. Sblocca per cambiare.</Text>
+        ) : null}
         <View style={styles.list}>
           {GIOCHI_PREIMPOSTATI.map((g) => {
             const sel = g.id === giocoFiltro;
@@ -94,6 +97,7 @@ const styles = StyleSheet.create({
   pin: { fontSize: 12, fontWeight: '700' },
   showBar: { paddingVertical: 10, alignItems: 'center' },
   showText: { fontSize: 13, fontWeight: '600' },
+  pinnedHint: { fontSize: 13, fontWeight: '600', marginBottom: 10 },
   list: { gap: 8, marginBottom: 8 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, borderWidth: 1 },
   itemNome: { fontSize: 15, fontWeight: '600' },
