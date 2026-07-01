@@ -1,0 +1,38 @@
+name: CI
+
+# Robot che, a ogni push / pull request, verifica che il monorepo sia sano:
+# test della logica condivisa + bundle mobile (Expo export) + typecheck.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4        # legge la versione da package.json (packageManager)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Test — logica condivisa (@whos-the-boss/core)
+        run: pnpm test
+
+      - name: Bundle mobile — Expo export (prova che compila + genera i typed routes)
+        run: pnpm --filter @whos-the-boss/mobile exec expo export --platform android
+        env:
+          # valori fittizi: bastano a far bundle-are Metro (la anon key vera vive in .env, non in CI)
+          EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+          EXPO_NO_TELEMETRY: '1'
+
+      - name: Typecheck mobile (dopo l'export: i typed routes esistono)
+        run: pnpm typecheck
