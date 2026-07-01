@@ -49,3 +49,16 @@
 - **R-erg2** — **swipe** tra le sub-tab della lega (serve un pager).
 - **R-erg3** — **stepper +/–** per gli input numerici (buy-in, n. giocatori).
 - **R-erg4** — ripensare **GameBar** (posizione/gesture).
+
+## 2026-07-01 — Feature native del telefono ("più carina") → default R10 (+ dove serve)
+
+> Richiesta utente: integrare le feature native del telefono. Default in **R10** (rifiniture);
+> le voci legate a una fase specifica vanno in quella fase.
+- **Haptics** (feedback tattile sulle azioni chiave) — R10.
+- **Condividi/Share** (resoconto "chi paga chi", classifica) al gruppo WhatsApp/Telegram — R10 (o subito: cheap+utile).
+- **Notifiche push** (serata programmata, inviti, "tocca a te") — con backend/realtime → R9.
+- **Biometria** (Face/Touch ID per rientrare) — con auth/settings → R6.
+- **Fotocamera/galleria** (foto lega/giocatore, image picker) — R10.
+- **Deep link** (conferma email / invito lega) — R6 (R2.4) e R8.
+- **Clipboard** (copia resoconto/IBAN) + **payment link** (Revolut/PayPal per i debiti, come PokerBoss) — R10.
+- **Cast** del clock torneo su TV/secondo schermo (poker-timer apps) — avanti/restyle.
