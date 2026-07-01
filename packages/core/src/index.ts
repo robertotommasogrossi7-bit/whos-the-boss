@@ -10,6 +10,7 @@ export * from './utils/giochi';
 export * from './utils/migrations';
 export * from './utils/normalizzaNome';
 export * from './utils/personale';
+export * from './utils/serate';
 export * from './utils/sessioneGioco';
 export * from './utils/settlement';
 export * from './utils/settlementTorneo';

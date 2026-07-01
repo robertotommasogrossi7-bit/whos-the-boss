@@ -23,6 +23,8 @@ export function creaLegaPersonale(id: number): Lega {
     personale: true,
     sessioniGioco: [],
     _sgid: 1,
+    serate: [],
+    _serataId: 1,
   };
 }
 
