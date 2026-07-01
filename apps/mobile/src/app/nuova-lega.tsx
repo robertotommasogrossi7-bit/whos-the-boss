@@ -69,11 +69,11 @@ export default function NuovaLega() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: t.bg }}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={[styles.fill, { backgroundColor: t.bg }]}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
       <Card>
         <Text style={[styles.cardTitle, { color: t.text }]}>Nome della lega</Text>
         <TextInput
@@ -123,12 +123,18 @@ export default function NuovaLega() {
         ) : null}
       </Card>
 
-      <Button block onPress={creaLega}>Crea lega</Button>
-    </ScrollView>
+      </ScrollView>
+
+      <View style={[styles.footer, { borderTopColor: t.border, backgroundColor: t.bg }]}>
+        <Button block onPress={creaLega}>Crea lega</Button>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  footer: { padding: 16, borderTopWidth: 1 },
   content: { padding: 16, gap: 12 },
   cardTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, minHeight: 44 },
