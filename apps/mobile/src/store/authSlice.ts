@@ -2,6 +2,7 @@ import type { User } from '@whos-the-boss/core';
 import { validaUsername } from '@whos-the-boss/core';
 import type { AuthInjector } from '@whos-the-boss/state';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 
 import { supabase } from '@/lib/supabase';
 
@@ -77,7 +78,10 @@ export const supabaseAuth: AuthInjector = (get) => ({
     const { data, error } = await supabase.auth.signUp({
       email: e,
       password,
-      options: { data: { username: handle, ...(dn ? { display_name: dn } : {}) } },
+      options: {
+        emailRedirectTo: Linking.createURL('auth-callback'),
+        data: { username: handle, ...(dn ? { display_name: dn } : {}) },
+      },
     });
     if (error) return mapAuthError(error.message);
     if (!data.session) return 'Registrazione ok — conferma la mail per accedere.';

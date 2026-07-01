@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '@/components/auth/LoginScreen';
 import GlobalToast from '@/components/GlobalToast';
+import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
 import { useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { themeForGame } from '@/theme/theme';
@@ -22,6 +23,9 @@ export default function RootLayout() {
   const utente = useStore((s) => s.utente);
   const authLoading = useStore((s) => s.authLoading);
   const theme = themeForGame(giocoFiltro);
+
+  // Ritorno in app dal link di conferma email (R6.4 / R2.4)
+  useDeepLinkAuth();
 
   useEffect(() => {
     const run = () => { runMigrations(); initAuth(); };

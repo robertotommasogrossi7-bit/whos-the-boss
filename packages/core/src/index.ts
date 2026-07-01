@@ -1,6 +1,7 @@
 /* @whos-the-boss/core — logica condivisa (TS puro), riusata da apps/web e apps/mobile.
    Niente React/DOM/localStorage qui: solo funzioni pure + tipi. */
 export * from './types';
+export * from './utils/authRedirect';
 export * from './utils/calc';
 export * from './utils/classifiche';
 export * from './utils/computeLive';
