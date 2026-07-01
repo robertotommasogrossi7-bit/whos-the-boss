@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import GameBar from '@/components/GameBar';
 import SchermataGioco from '@/components/gioco/SchermataGioco';
-import { GameIcon } from '@/components/icons';
+import { GameIcon, IconUsers } from '@/components/icons';
 import { Avatar, Button, EmptyState } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -22,9 +22,20 @@ export default function HomeScreen() {
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: t.bg }]}>
       <View style={styles.topbar}>
         <Text style={[styles.brand, { color: t.text }]} numberOfLines={1}>Who&apos;s the Boss</Text>
-        <Pressable onPress={() => router.push('/profilo')} hitSlop={8} accessibilityLabel="Profilo">
-          <Avatar nome={utente?.username} size="sm" />
-        </Pressable>
+        <View style={styles.topActions}>
+          {personale ? (
+            <Pressable
+              onPress={() => router.push({ pathname: '/giocatori/[legaId]', params: { legaId: String(personale.id) } })}
+              hitSlop={8}
+              accessibilityLabel="Giocatori"
+            >
+              <IconUsers size={22} color={t.textMuted} />
+            </Pressable>
+          ) : null}
+          <Pressable onPress={() => router.push('/profilo')} hitSlop={8} accessibilityLabel="Profilo">
+            <Avatar nome={utente?.username} size="sm" />
+          </Pressable>
+        </View>
       </View>
       <GameBar />
       {giocoFiltro === 'poker' ? (
@@ -52,4 +63,5 @@ const styles = StyleSheet.create({
   pad: { padding: 16 },
   topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
   brand: { fontSize: 20, fontWeight: '800', flex: 1 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
 });
