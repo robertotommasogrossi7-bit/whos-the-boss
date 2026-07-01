@@ -63,6 +63,10 @@ export default function RootLayout() {
               name="profilo"
               options={{ headerShown: true, title: 'Profilo', presentation: 'modal' }}
             />
+            <Stack.Screen
+              name="giocatori/[legaId]"
+              options={{ headerShown: true, title: 'Giocatori' }}
+            />
           </Stack>
         )}
         <GlobalToast />
