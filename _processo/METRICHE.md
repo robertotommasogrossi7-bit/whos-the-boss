@@ -17,6 +17,11 @@
 | Infra — CI GitHub Actions | `2c6d02b`→`89827f2` | 13:58→18:31* | ~30' attivi | test + expo export + typecheck **verdi** (1 fix: `:` nello YAML → 0 job) |
 | **R6 + infra — totale** | | | **~2h15' attivi** | *il gap 13:58→18:31 è **idle/interruzione**, non lavoro continuo |
 
+## R7 — Sync cross-device (2026-07-01, in corso)
+| Blocco | Commit | Durata | Volume |
+|--------|--------|--------|--------|
+| R7.0 design (ricerca + mappa) | (doc) | ~in corso | `R7_SCHEMA.md` (mappa viva) + diagramma ER + scelta relazionale. **Zero codice** (design-first) |
+
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
 > dell'esperimento da valutare.

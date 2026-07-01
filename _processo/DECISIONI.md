@@ -616,6 +616,29 @@
   fine). Si prosegue la costruzione: **R6 hardening applicato** (profili privati + trigger footgun,
   migration `…140000`), poi **R7 sync** (mini-spec prima — backend/dati = "design prima del codice").
 
+## 2026-07-01 (f) — R7 sync: scelto RELAZIONALE + mappa viva (design prima del codice)
+
+> Ricerca fatta (local-first RN+Supabase, LWW, import one-shot) + review del modello dati reale.
+> Scelta utente: **relazionale normalizzato** (non JSONB-per-lega) — "programmato con calma, review di
+> tutto il codice, un file con tutte le relazioni, non perdere niente, chiaro per poterne parlare".
+> Mappa completa in **`_processo/R7_SCHEMA.md`** (documento VIVO) + diagramma ER.
+
+- **Scope R7** = sync dei **dati propri** (le tue leghe) sul **tuo account, multi-device**. Condivisione
+  tra account + ruoli = **R8** (lì servono `lega_membri` + RLS per-membro).
+- **Local-first PRESERVATO + layer di sync** (push/pull, **LWW su `updated_at`**, tombstone `deleted_at`).
+  **NON online-required** → *course-correction di `BACKEND_SPEC`*: diceva online-required "perché è una
+  demo", ma R1–R5 l'hanno resa un vero local-first offline; online-required riscriverebbe ~50 azioni e
+  toglierebbe l'offline. (Lezione per SideKick: le assunzioni dello spec vanno riverificate quando l'app cambia.)
+- **Stato LIVE non sincronizzato in R7** (`sessioneAttiva`/`serate_bg`, timer/seat/livelli): resta locale,
+  al **realtime R9**. Si sincronizza solo lo **storico salvato** (Partite chiuse, SessioniGioco). Grande de-risk.
+- **Tabelle**: profiles(R6) · leghe · **giocatori (perno: risolve `id_nome`)** · giochi_lega · partite_poker ·
+  partita_poker_giocatori · **settlements (= i debiti)** · serate · sessioni_gioco · partite_gioco + ponti
+  partecipanti/vincitori. **Soldi = `numeric(10,2)`**. Ogni riga tiene `local_id` (mapping int→uuid) + `updated_at`.
+- **Decisioni proposte (D1–D8 in `R7_SCHEMA.md`)**, aperte per l'utente: D1 live-locale, D2 array-foglia JSONB
+  (ricariche/pagamenti), D3 ponti per partecipanti/vincitori, D5 preferenze GameBar (locali vs cloud).
+- **Sotto-fasi**: R7.1 schema SQL+RLS+diagramma → R7.2 layer sync (test-first) → R7.3 import one-shot
+  (backup-first) → R7.4 aggancio store → R7.V verifica nel grande test finale. **Nessun codice prima dell'OK.**
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
