@@ -304,7 +304,9 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
   FR/ES) → **R12** restyle.
 - **Prossimo**: **R6 — Identità reale** (`profiles` + username univoco + R2.4 deep link) [inizio blocco BACKEND].
-  Prima però l'utente farà un **controllo generale** (Expo Go / APK) quando vuole. Config EAS pronta (`apps/mobile/eas.json`).
+  ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
+  pronta (`apps/mobile/eas.json`). Si fa al **controllo pre-pubblicazione** (dopo il primo build è 1 comando; poi OTA
+  con EAS Update). Per sbirciare intanto: Expo Go (`npx expo start`). **Non insistere** con l'APK finché non serve.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
