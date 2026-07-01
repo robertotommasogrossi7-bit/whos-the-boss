@@ -49,7 +49,7 @@ interface UiState {
   setupEditing: boolean; // true = sto modificando una serata 'pre' esistente
 
   // Live session (sub-tab attivo)
-  liveSubTab: 'orologio' | 'giocatori' | 'attivi' | 'premi';
+  liveSubTab: 'orologio' | 'tavolo' | 'giocatori' | 'attivi' | 'premi';
 
   // Torneo
   pendingPrizeNome: number | null;
@@ -172,6 +172,8 @@ interface StoreActions {
   spostaGiocatore:           (legaId: number, idNome: number, tavolo: number, posto: number) => void;
   riequilibraSeat:           (legaId: number) => void;
   aggiungiEFaiEntrare:       (legaId: number, nome: string) => void;
+  // R5 (tavolo live): esce dal tavolo a metà con `valore` (fiche cash / premio torneo)
+  esceDalTavolo:             (legaId: number, idNome: number, valore: number) => void;
 
   // Torneo live — timer & stato
   avviaTorneo:               (legaId: number) => void;
@@ -426,7 +428,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         saveLega({ ...lega, sessioneAttiva: sess, serate_bg });
         set({
           serataView:   'live',
-          liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'giocatori',
+          liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'tavolo',
           setupPartIds: new Set<number>(),
           setupEditing: false,
         });
@@ -598,22 +600,53 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!g) return;
 
         if (!g.entrato) {
-          // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC)
+          // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC) +
+          // avvia il timer per-persona (R5: seduto_da_ms = ora).
           const seduti = sess.giocatori.map(x => ({ id_nome: x.id_nome, seat: x.seat }));
           const nuoviSeduti = assegnaPostoIngresso(seduti, idNome);
           const nuovoSeat = nuoviSeduti.find(s => s.id_nome === idNome)?.seat ?? null;
           const nEntrati = sess.giocatori.filter(x => x.entrato).length + 1;
           const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat } : x,
+            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now() } : x,
           );
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(nEntrati) } });
         } else {
-          // Uscita: libera il seat (nessun riequilibrio automatico in T2)
-          const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: false, seat: null } : x,
-          );
+          // Uscita: libera il seat + CONGELA il timer (R5: accumula in tempo_gioco_ms).
+          const now = Date.now();
+          const giocatori = sess.giocatori.map(x => {
+            if (x.id_nome !== idNome) return x;
+            const frozen = (x.tempo_gioco_ms ?? 0) + (x.seduto_da_ms ? Math.max(0, now - x.seduto_da_ms) : 0);
+            return { ...x, entrato: false, seat: null, tempo_gioco_ms: frozen, seduto_da_ms: undefined };
+          });
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
         }
+      },
+
+      esceDalTavolo: (legaId, idNome, valore) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega?.sessioneAttiva) return;
+        const sess = lega.sessioneAttiva;
+        const now = Date.now();
+        // Registra il valore d'uscita in fiches_finali: il settlement esistente
+        // (calcolaSettlement) lo conteggia -> niente math duplicata (USCITA_CASH_SPEC §7).
+        // Libera il posto e congela il timer per-persona.
+        const giocatori = sess.giocatori.map(g => {
+          if (g.id_nome !== idNome) return g;
+          const frozen = (g.tempo_gioco_ms ?? 0) + (g.seduto_da_ms ? Math.max(0, now - g.seduto_da_ms) : 0);
+          return {
+            ...g,
+            uscito: true,
+            valore_uscita: valore,
+            fiches_finali: valore,
+            ora_uscita: nowHHMM(),
+            seat: null,
+            tempo_gioco_ms: frozen,
+            seduto_da_ms: undefined,
+          };
+        });
+        saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
+        toast('Uscito dal tavolo');
       },
 
       setEntrata: (legaId, idNome, val) => {
@@ -866,7 +899,13 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pre') return;
-        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
+        const attiva = sessioneTorneoAttiva(sess);
+        // R5: avvia il timer per-persona per chi è entrato (non eliminato).
+        const now = Date.now();
+        const giocatori = attiva.giocatori.map(g =>
+          g.entrato && !g.eliminato ? { ...g, seduto_da_ms: now } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...attiva, giocatori } });
         toast('Torneo avviato!');
       },
 
@@ -1059,7 +1098,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const sess = lega.sessioneAttiva;
         const giocatori = sess.giocatori.map(g =>
           g.id_nome === idNome && g.eliminato
-            ? { ...g, eliminato: false, elim_ts_ms: null, posizione_finale: null }
+            ? { ...g, eliminato: false, elim_ts_ms: null, posizione_finale: null, seduto_da_ms: Date.now() }
             : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
@@ -1110,11 +1149,12 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           sess.premi = calcolaPremi(monte, sess.giocatori.filter(x => x.entrato).length);
         }
 
-        sess.giocatori = sess.giocatori.map(x =>
-          x.id_nome === idNome
-            ? { ...x, eliminato: true, elim_ts_ms: Date.now(), posizione_finale: posizione }
-            : x,
-        );
+        sess.giocatori = sess.giocatori.map(x => {
+          if (x.id_nome !== idNome) return x;
+          // R5: congela il timer per-persona all'eliminazione.
+          const frozen = (x.tempo_gioco_ms ?? 0) + (x.seduto_da_ms ? Math.max(0, Date.now() - x.seduto_da_ms) : 0);
+          return { ...x, eliminato: true, elim_ts_ms: Date.now(), posizione_finale: posizione, tempo_gioco_ms: frozen, seduto_da_ms: undefined };
+        });
 
         const viviDopo = sess.giocatori.filter(x => x.entrato && !x.eliminato).length;
 
