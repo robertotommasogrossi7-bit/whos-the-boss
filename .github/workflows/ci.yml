@@ -20,19 +20,19 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install (frozen lockfile)
+      - name: "Install (frozen lockfile)"
         run: pnpm install --frozen-lockfile
 
-      - name: Test — logica condivisa (@whos-the-boss/core)
+      - name: "Test - logica condivisa (core)"
         run: pnpm test
 
-      - name: Bundle mobile — Expo export (prova che compila + genera i typed routes)
+      - name: "Bundle mobile - Expo export (compila e genera i typed routes)"
         run: pnpm --filter @whos-the-boss/mobile exec expo export --platform android
         env:
           # valori fittizi: bastano a far bundle-are Metro (la anon key vera vive in .env, non in CI)
-          EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
-          EXPO_NO_TELEMETRY: '1'
+          EXPO_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: "ci-dummy-anon-key"
+          EXPO_NO_TELEMETRY: "1"
 
-      - name: Typecheck mobile (dopo l'export: i typed routes esistono)
+      - name: "Typecheck mobile (typed routes gia generati dall export)"
         run: pnpm typecheck
