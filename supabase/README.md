@@ -10,6 +10,13 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 |------|------|---------|
 | `migrations/20260701120000_r6_profiles_username.sql` | **R6** | Tabella `profiles` + **username univoco** (handle case-insensitive), RLS, trigger `handle_new_user`, RPC `username_available`, backfill account R2. |
 | `migrations/20260701140000_r6_hardening.sql` | **R6** | Hardening post red-team: profili **PRIVATI** (via il select pubblico), trigger **a prova di footgun** (username mancante/non conforme → handle derivato, mai blocca il signup). **Va applicata dopo la prima.** |
+| `migrations/20260701150000_r7_core.sql` | **R7.1a** | Nucleo sync: `set_updated_at()` (trigger server), `owns_lega()` (RLS), `profiles.imported_at`; tabelle **leghe · giocatori · giochi_lega**. RLS solo-proprietario. |
+| `migrations/20260701150100_r7_poker.sql` | **R7.1b** | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti` (append-only) `· settlements`. |
+| `migrations/20260701150200_r7_multigioco.sql` | **R7.1c** | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti partecipanti/vincitori. |
+
+> ⚠️ Le R7 vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
+> Lo schema R7 è **scritto ma non ancora applicato/validato**: si può incollare nel SQL Editor per un
+> parse-check, o si valida nel "grande test" finale (scelta di studio, `DECISIONI.md`).
 
 ## Come applicarla
 
