@@ -586,6 +586,31 @@
 - **Nessun codice toccato in questo passo**: solo registrazione critiche + riordino (richiesta esplicita
   "prima segnati tutte le critiche e crea la linea"). Esecuzione dal prossimo passo (consiglio: I1 CI).
 
+## 2026-07-01 (e) — RED TEAM ESTERNO integrato + reframe "serio = invisibile" — ⭐ lezione
+
+> Red team esterno (chat base non contaminata) su flusso + piano. Finding E1–E11 in
+> `REVISIONE-ESTERNA.md`. Verdetto: CAMBIA (scheletro sano, sequenza sbagliata, peso morto).
+> Concessione: il mio piano mascherava "l'app non è MAI stata eseguita" dietro il gate R6.V
+> (razionalizzazione) → **owned**.
+
+- **Steer utente**: feature + restyle **ultimissimi** (li vuole, ma dopo tutto il resto); "apriamola per
+  vedere se va" ma **il feedback amici serve dopo**; intanto **le cose importanti per un'app "seria"**.
+- **Reframe adottato**: "serio" = **qualità invisibile da senior** (correttezza, sicurezza, verifica,
+  test, doc) su **ciò che ESISTE**, NON più superficie/feature. (Music-marketplace review: non ti
+  comprano l'app, ti "comprano" te → conta l'invisibile + saper **difendere le decisioni, non il codice**.)
+- **Verificato dal codice** (il senior aveva detto di controllare): soldi = float + round-a-centesimi
+  (`r100`) → difendibile, non landmine; **nessun segreto hardcoded**; RLS esiste ma `select` pubblico.
+- **Concessioni tecniche adottate** (BLOCCO A/B in `REVISIONE-ESTERNA`): profili **RLS privati**;
+  **trigger** a prova di footgun + mapping stretto; **audit RLS**; deep link **verificato su device**
+  (swap a `expo-linking` se serve); recupero password **rimandato** (local-only = ri-signup gratis);
+  **Supabase CLI + README** al posto dello step manuale (niente CI-migration); CI ridotta a test+tsc.
+- **DECISIONI IN SOSPESO (serve OK utente)**: (1) **cancellare la web congelata** (+ tag d'archivio,
+  E8); (2) **CONGELARE R7/R8/R9** finché l'uso reale non valida gli access pattern (E2) — il pezzo
+  portfolio vero diventa *"usata → ecco gli access pattern → così progetterei il sync ora"*;
+  (3) soldi: tenere float+r100 (documentato) o migrare a interi-centesimi.
+- **PRIMA MOSSA CONDIVISA DA TUTTI**: **V0 — farla girare su un telefono ORA** (Expo Go). Nessuno,
+  incluso l'utente, l'ha mai vista accendersi in 304 commit: è la figuraccia n.1 e si cancella in 20'.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

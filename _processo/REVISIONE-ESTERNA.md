@@ -68,3 +68,37 @@ Principio guida della correzione: **de-risk prima di aggiungere superficie.**
 **BLOCCO TRAGUARDO**
 - **R12 — Restyle grande** · **RP — Pubblicazione** (EAS Build → screenshot → store → EAS Update OTA).
 - (R11 feature nuove = slot aperto in IDEE, prima del restyle.)
+
+---
+
+# Red team ESTERNO (2026-07-01) — findings aggiuntivi E1–E11
+
+> Verdetto esterno: **CAMBIA** (con BUTTA su pezzi specifici). Lo scheletro (monorepo core/state/mobile,
+> test sul core, unique index, account-id anchoring) è sano; il problema è la **sequenza** e il
+> **peso morto**. Concessione onesta della chat interna: il piano mascherava "mai eseguita" dietro un
+> gate di fase 2 (razionalizzazione). Sotto, i finding + cosa verificato dal codice.
+
+| ID | Sev | Finding esterno | Verificato/Azione |
+|----|-----|-----------------|-------------------|
+| **E1** | ALTA | La UI **non è MAI stata renderizzata** (`expo export` bundla, non esegue). | → **V0** device ORA |
+| **E2** | ALTA | Backend/identità con **zero utenti** = "tetto prima dei muri". Valore-portfolio vero = *usata → access pattern reali → "così progetterei il sync"*. | → **CONGELA R7/R8/R9** |
+| **E3** | ALTA | **Parser deep link custom** non esercitato = la cosa più rischiosa (cold/warm, fragment vs query, iOS/Android). | → **A4** verifica su device; se edge → `expo-linking`/handling ufficiale |
+| **E4** | ALTA | Trigger su `auth.users`: può **bloccare TUTTI i signup** (non solo edge, es. username mancante = NOT NULL violation); mapping errore troppo largo. | → **A2** hardening trigger |
+| **E5** | ALTA | **Profili PUBBLICI** = enumerabili per una feature (ricerca-username) che non esiste; RLS mal configurata = incidente Supabase #1. | → **A1** profili PRIVATI |
+| **E6** | MEDIA | **TOCTOU** sul pre-check RPC: la violazione di unicità va gestita **all'insert** a prescindere (il pre-check è solo UX). | → **A2** |
+| **E7** | MEDIA | **Step manuale in dashboard** = non riproducibile su repo portfolio pubblico. Fix = Supabase CLI (`db push`) + README, **non** CI-per-migration. | → **A6** (declassa I2) |
+| **E8** | MEDIA | **Web congelata** = tassa a valore negativo + confonde su repo pubblico (quale è quella vera?). | → **B3** cancella (+ tag) |
+| **E9** | MEDIA | **Recupero password prematuro** con dati local-only (lockout = ri-signup gratis). | → **A5** rimanda a pre-pubblicazione |
+| **E10** | — | Verificato dal codice: **soldi** = float + round-a-centesimi (`r100`) → difendibile, non landmine (decidere se migrare a interi). **Segreti**: nessuno hardcoded. **RLS**: esiste ma `select` pubblico → E5. | note |
+| **E11** | meta | Il piano interno mascherava "mai eseguita" dietro il gate R6.V = razionalizzazione. | **owned** |
+
+## LINEA v2 (proposta post red-team esterno) — "serio = sistema l'invisibile su ciò che ESISTE, non aggiungi superficie"
+> Concilia lo steer dell'utente (features+restyle **ultimissimi**; "apriamola per vedere se va" ma
+> **feedback dopo**; fare le cose importanti per un'app **seria**) con i finding esterni. "Serio" =
+> qualità invisibile da senior (correttezza, sicurezza, verifica, test, doc), NON più feature.
+
+- **V0 — ORA: accendere la luce** (device). `expo start`/Expo Go sul telefono: la UI si renderizza? nav, hydration store, login? (20 min, serve il tuo telefono.) Cancella la figuraccia n.1. *(feedback amici = dopo, come vuoi tu.)*
+- **BLOCCO A — R6 reso serio (hardening):** A1 profili **RLS privati** [E5] · A2 **trigger a prova di footgun** + mapping errore stretto [E4,E6] · A3 **audit RLS** (2° account non legge/scrive il tuo) · A4 **deep link: verifica su device**, swap a lib se serve [E3] · A5 recupero password **rimandato** [E9] · A6 **Supabase CLI + README** (niente CI-migration) [E7].
+- **BLOCCO B — igiene "serietà":** B1 **CI test+typecheck** su push (solo questo) · B2 **senior code review pass** (no `any`, no codice morto, no ramo demo-without-id) · B3 **cancella web congelata** (+tag) [E8] · B4 **stati di fallimento** (loading/empty/error/offline) · B5 **README+architettura+decision record+video 2min** (framing onesto "AI sotto mia direzione") · B6 **soldi**: decidere float+r100 vs interi-centesimi [E10].
+- **CONGELATO fino a "validato dall'uso":** R7 sync, R8 ruoli, R9 realtime [E2].
+- **ULTIMISSIMO (volontà utente):** feature nuove + **restyle grande**; poi pubblicazione/friends-beta con feedback strutturato.
