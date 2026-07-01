@@ -5,7 +5,7 @@ import { idBloccatiInclusi, normalizzaNome, nowHHMM, oggi, type Lega } from '@wh
 
 import PickChip from '@/components/gioco/PickChip';
 import { IconPlus } from '@/components/icons';
-import { Button, Sheet } from '@/components/ui';
+import { Button, DateField, Sheet } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -28,6 +28,7 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
 
   const [selected, setSelected] = useState<number[]>(lega.nomi.map((n) => n.id));
   const [newName, setNewName] = useState('');
+  const [data, setData] = useState(oggi());
 
   const bloccati = idBloccatiInclusi(lega, utente?.username);
 
@@ -49,7 +50,7 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
 
   function submit() {
     if (selected.length === 0) { Alert.alert('Attenzione', 'Scegli almeno un partecipante'); return; }
-    const id = creaSessioneGioco(lega.id, giocoId, selected, oggi(), nowHHMM());
+    const id = creaSessioneGioco(lega.id, giocoId, selected, data, nowHHMM());
     if (id == null) return;
     avviaSessioneGioco(lega.id, id);
     onCreated(id);
@@ -82,7 +83,9 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
         <Button size="sm" onPress={aggiungiGuest}><IconPlus size={18} color={t.accentInk} /></Button>
       </View>
 
-      <Text style={[styles.hint, { color: t.textMuted, marginTop: 12 }]}>La sessione parte oggi.</Text>
+      <View style={{ marginTop: 14 }}>
+        <DateField label="Data" value={data} onChange={setData} />
+      </View>
 
       <View style={styles.actions}>
         <Button variant="ghost" onPress={onClose}>Annulla</Button>

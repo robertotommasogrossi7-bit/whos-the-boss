@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '@/components/auth/LoginScreen';
+import GlobalToast from '@/components/GlobalToast';
 import { useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { themeForGame } from '@/theme/theme';
@@ -64,6 +65,7 @@ export default function RootLayout() {
             />
           </Stack>
         )}
+        <GlobalToast />
       </ThemeProvider>
     </AppThemeProvider>
   );
