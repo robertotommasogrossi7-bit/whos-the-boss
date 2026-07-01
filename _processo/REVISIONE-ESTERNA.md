@@ -100,5 +100,10 @@ Principio guida della correzione: **de-risk prima di aggiungere superficie.**
 - **V0 — ORA: accendere la luce** (device). `expo start`/Expo Go sul telefono: la UI si renderizza? nav, hydration store, login? (20 min, serve il tuo telefono.) Cancella la figuraccia n.1. *(feedback amici = dopo, come vuoi tu.)*
 - **BLOCCO A — R6 reso serio (hardening):** A1 profili **RLS privati** [E5] · A2 **trigger a prova di footgun** + mapping errore stretto [E4,E6] · A3 **audit RLS** (2° account non legge/scrive il tuo) · A4 **deep link: verifica su device**, swap a lib se serve [E3] · A5 recupero password **rimandato** [E9] · A6 **Supabase CLI + README** (niente CI-migration) [E7].
 - **BLOCCO B — igiene "serietà":** B1 **CI test+typecheck** su push (solo questo) · B2 **senior code review pass** (no `any`, no codice morto, no ramo demo-without-id) · B3 **cancella web congelata** (+tag) [E8] · B4 **stati di fallimento** (loading/empty/error/offline) · B5 **README+architettura+decision record+video 2min** (framing onesto "AI sotto mia direzione") · B6 **soldi**: decidere float+r100 vs interi-centesimi [E10].
-- **CONGELATO fino a "validato dall'uso":** R7 sync, R8 ruoli, R9 realtime [E2].
-- **ULTIMISSIMO (volontà utente):** feature nuove + **restyle grande**; poi pubblicazione/friends-beta con feedback strutturato.
+- **~~CONGELATO~~ → NON congelato (scelta utente (e)):** R7 sync, R8 ruoli, R9 realtime **proseguono**,
+  marcati come **scelta di studio** ("costruzione completa + test gigante su device ALLA FINE"; confronto
+  con l'approccio incrementale di All for Music via SideKick; token+tempo in `METRICHE.md`). E2 respinto
+  **consapevolmente**, non per svista.
+- **ULTIMISSIMO (volontà utente):** feature nuove + **restyle grande**; poi pubblicazione/beta con feedback strutturato.
+- ✅ **Fatto in (e):** web congelata **rimossa** (tag `archive/web-frozen`); R6 **hardening** applicato
+  (profili privati E5 + trigger footgun E4, migration `…140000`); soldi float+r100 **da documentare** (B6).

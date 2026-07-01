@@ -289,6 +289,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 > Riordino dopo la revisione senior (`_processo/REVISIONE-ESTERNA.md`, finding F1–F14).
 > Principio: **de-risk PRIMA di aggiungere superficie.** Questo ordine **supera** l'elenco qui sopra
 > per la sequenza; i contenuti dei blocchi restano.
+>
+> ⚠️ **AGGIORNAMENTO 2026-07-01 (e)** (dopo red team ESTERNO + scelta utente): l'app prosegue con
+> **costruzione COMPLETA + un unico test su device ALLA FINE** (SCELTA DI STUDIO, non de-risk) → quindi
+> **niente "device/CI prima"** e **R7/R8/R9 NON congelati** (si va avanti). Restano/fatti: **R6 hardening**
+> (profili privati + trigger footgun, migration `…140000`), **web congelata RIMOSSA** (tag
+> `archive/web-frozen`), **soldi float+r100 documentati**, **feature+restyle ultimissimi**. Token/tempo
+> in `_processo/METRICHE.md`. Dettaglio + confronto-con-All-for-Music: `DECISIONI.md` 2026-07-01 (e).
 
 - **TRACK 0 — Infrastruttura (subito)**: **I1** CI (Actions: test+build+tsc su push/PR) · **I2** CI migrations (`supabase db push`).
 - **R6 — chiusura vera (prima del merge)**: **R6.6** recupero password (deep link) · **R6.7** hardening (errore trigger preciso, ramo demo, enumerazione) · **R6.8** test dello store · **R6.V** verifica su **device reale** (signup + unicità + ritorno-mail) = **GATE** → poi merge `rn-r6-identita`→`main`.
