@@ -202,13 +202,18 @@ interface StoreActions {
   confermaChiusura:       (legaId: number, oraFine: string) => void;
 
   // Sessioni gioco (multigioco non-poker, M3) — su lega.sessioniGioco
-  creaSessioneGioco:    (legaId: number, giocoId: string, partecipanti: number[], data: string, ora: string) => number | null;
+  // `serataId` opzionale (R4): lega la sessione a una serata multi-gioco.
+  creaSessioneGioco:    (legaId: number, giocoId: string, partecipanti: number[], data: string, ora: string, serataId?: number) => number | null;
   avviaSessioneGioco:   (legaId: number, sessId: number) => void;
   aggiungiPartita:      (legaId: number, sessId: number) => number | null;
   chiudiPartita:        (legaId: number, sessId: number, partitaId: number, esito: EsitoPartitaInput) => void;
   annullaPartita:       (legaId: number, sessId: number, partitaId: number) => void;
   chiudiSessioneGioco:  (legaId: number, sessId: number, esitoPareggio: boolean) => void;
   eliminaSessioneGioco: (legaId: number, sessId: number) => void;
+
+  // Serate multi-gioco (R4) — su lega.serate; raggruppano le sessioniGioco via serataId
+  creaSerata:           (legaId: number, partecipanti: number[], data: string) => number | null;
+  eliminaSerata:        (legaId: number, serataId: number) => void;
 
   // Migrations (chiamate all'avvio)
   runMigrations: () => void;
@@ -1483,13 +1488,15 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
          Ciclo Gioco → Sessione → Partita su lega.sessioniGioco (tipi M1).
          NON tocca il poker (sessioneAttiva/serate_bg/partite restano suoi).
       ══════════════════════════════════════════════════════ */
-      creaSessioneGioco: (legaId, giocoId, partecipanti, data, ora) => {
+      creaSessioneGioco: (legaId, giocoId, partecipanti, data, ora, serataId) => {
         const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return null;
         if (partecipanti.length === 0) { toast('Scegli almeno un partecipante'); return null; }
         const sgid = lega._sgid ?? 1;
-        const sess = nuovaSessioneGioco(sgid, giocoId, partecipanti, data, ora);
+        const base = nuovaSessioneGioco(sgid, giocoId, partecipanti, data, ora);
+        // R4: se la sessione nasce dentro una serata multi-gioco, la si lega.
+        const sess = serataId !== undefined ? { ...base, serataId } : base;
         saveLega({
           ...lega,
           sessioniGioco: [...(lega.sessioniGioco ?? []), sess],
@@ -1590,6 +1597,33 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega) return;
         const sessioniGioco = (lega.sessioniGioco ?? []).filter(s => s.id !== sessId);
         saveLega({ ...lega, sessioniGioco });
+      },
+
+      /* ── Serate multi-gioco (R4) ── */
+      creaSerata: (legaId, partecipanti, data) => {
+        const { db, saveLega, toast } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return null;
+        if (partecipanti.length === 0) { toast('Scegli almeno un partecipante'); return null; }
+        const id = lega._serataId ?? 1;
+        saveLega({
+          ...lega,
+          serate: [...(lega.serate ?? []), { id, data, partecipanti: [...partecipanti] }],
+          _serataId: id + 1,
+        });
+        return id;
+      },
+
+      eliminaSerata: (legaId, serataId) => {
+        const { db, saveLega } = get();
+        const lega = db.leghe.find(l => l.id === legaId);
+        if (!lega) return;
+        // Rimuove la serata E le sue sessioni-gioco (il gruppo intero).
+        saveLega({
+          ...lega,
+          serate: (lega.serate ?? []).filter(s => s.id !== serataId),
+          sessioniGioco: (lega.sessioniGioco ?? []).filter(s => s.serataId !== serataId),
+        });
       },
 
       /* ── Migrations ── */
