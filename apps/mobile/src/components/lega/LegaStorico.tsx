@@ -5,6 +5,7 @@ import { GIOCHI_PREIMPOSTATI, vociStorico, type Lega } from '@whos-the-boss/core
 
 import FiltroNome from '@/components/classifica/FiltroNome';
 import GiocoPills, { type OpzioneGioco } from '@/components/lega/GiocoPills';
+import SerateLista from '@/components/serata/SerateLista';
 import StoricoLista from '@/components/storico/StoricoLista';
 
 /* STORICO di LEGA (#4.7b) — selettore gioco (Tutti / Poker / giochi con
@@ -28,6 +29,7 @@ export default function LegaStorico({ lega }: { lega: Lega }) {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      <SerateLista lega={lega} />
       {opzioni.length > 1 ? <GiocoPills opzioni={opzioni} attivo={selId} onSel={(id) => { setSelId(id); setQuery(''); }} /> : null}
       {voci.length > 0 ? <FiltroNome value={query} onChange={setQuery} /> : null}
       <StoricoLista lega={lega} voci={voci} query={query} />
