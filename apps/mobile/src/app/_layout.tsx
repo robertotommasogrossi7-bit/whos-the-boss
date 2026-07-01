@@ -67,6 +67,7 @@ export default function RootLayout() {
               name="giocatori/[legaId]"
               options={{ headerShown: true, title: 'Giocatori' }}
             />
+            <Stack.Screen name="serata/[legaId]/[serataId]" options={{ headerShown: false }} />
           </Stack>
         )}
         <GlobalToast />
