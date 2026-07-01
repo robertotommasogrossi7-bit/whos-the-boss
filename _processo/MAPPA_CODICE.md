@@ -47,9 +47,11 @@
 - **Debiti**: toggleSettlementPaid, saldaDebito, saldaTuttiDi.
 
 ## Feature grandi — stato
-- Auth (R2) ✅ · Poker integrato (R3) ✅ · Serata multi-gioco (R4) ✅ · **Tavolo live (R5) IN CORSO**.
+- Auth (R2) ✅ · Poker integrato (R3) ✅ · Serata multi-gioco (R4) ✅ · **Tavolo live (R5) ✅**.
 - R5a ✅ core (saldoUscita/tempoGiocoMs, test-first). R5b ✅ store (esceDalTavolo + timer cash in toggleEntrato).
   R5c ✅ UI TavoloView (sedie + cassa + menù rapido cash-out; timer statico sul posto). Sub-tab Tavolo default cash.
   Nota: il **seating cash c'era già** (toggleEntrato→assegnaPostoIngresso) — non duplicato.
-- **R5 resta**: **R5d** timer live che scorre (tick) + timer torneo (avviaTorneo/torneoElimina) + unificazione vista torneo sul tavolo.
+- R5d ✅ timer live (tick 30s in TavoloView) + timer torneo (avviaTorneo avvia / torneoElimina congela / torneoRevive riparte).
+  **R5 COMPLETO** (cash: tavolo live pieno; torneo: clock+giocatori+premi+timer). Unificare la vista torneo sul
+  tavolo → **rimandata al restyle** (il torneo ha già le sue viste standard poker-timer).
 - **Backlog restyle** (R-erg): `_processo/ERGONOMIA_AUDIT.md` + IDEE. Seating grafico "bello" → restyle.

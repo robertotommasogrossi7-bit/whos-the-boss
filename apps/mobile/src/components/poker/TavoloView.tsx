@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { computeLive, euro, euroSigned, getNome, tempoGiocoMs, type Lega, type Sessione } from '@whos-the-boss/core';
@@ -28,9 +28,15 @@ export default function TavoloView({ lega, sess }: { lega: Lega; sess: Sessione 
   const [esceId, setEsceId] = useState<number | null>(null);
   const [ricId, setRicId] = useState<number | null>(null);
 
+  // Timer live: ri-renderizza ogni 30s così il tempo sul posto scorre.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(i);
+  }, []);
+
   const { arr } = computeLive(sess);
   const contoDi = (id: number) => arr.find((c) => c.id_nome === id);
-  const now = Date.now();
 
   const seduti = sess.giocatori.filter((g) => g.entrato && !g.uscito);
   const usciti = sess.giocatori.filter((g) => g.uscito);

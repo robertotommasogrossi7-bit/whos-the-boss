@@ -899,7 +899,13 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         if (sess.stato !== 'pre') return;
-        saveLega({ ...lega, sessioneAttiva: sessioneTorneoAttiva(sess) });
+        const attiva = sessioneTorneoAttiva(sess);
+        // R5: avvia il timer per-persona per chi è entrato (non eliminato).
+        const now = Date.now();
+        const giocatori = attiva.giocatori.map(g =>
+          g.entrato && !g.eliminato ? { ...g, seduto_da_ms: now } : g,
+        );
+        saveLega({ ...lega, sessioneAttiva: { ...attiva, giocatori } });
         toast('Torneo avviato!');
       },
 
@@ -1092,7 +1098,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const sess = lega.sessioneAttiva;
         const giocatori = sess.giocatori.map(g =>
           g.id_nome === idNome && g.eliminato
-            ? { ...g, eliminato: false, elim_ts_ms: null, posizione_finale: null }
+            ? { ...g, eliminato: false, elim_ts_ms: null, posizione_finale: null, seduto_da_ms: Date.now() }
             : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
@@ -1143,11 +1149,12 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           sess.premi = calcolaPremi(monte, sess.giocatori.filter(x => x.entrato).length);
         }
 
-        sess.giocatori = sess.giocatori.map(x =>
-          x.id_nome === idNome
-            ? { ...x, eliminato: true, elim_ts_ms: Date.now(), posizione_finale: posizione }
-            : x,
-        );
+        sess.giocatori = sess.giocatori.map(x => {
+          if (x.id_nome !== idNome) return x;
+          // R5: congela il timer per-persona all'eliminazione.
+          const frozen = (x.tempo_gioco_ms ?? 0) + (x.seduto_da_ms ? Math.max(0, Date.now() - x.seduto_da_ms) : 0);
+          return { ...x, eliminato: true, elim_ts_ms: Date.now(), posizione_finale: posizione, tempo_gioco_ms: frozen, seduto_da_ms: undefined };
+        });
 
         const viviDopo = sess.giocatori.filter(x => x.entrato && !x.eliminato).length;
 
