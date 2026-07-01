@@ -290,7 +290,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   classifica/storico/giocatori nelle **viste condivise** (standard BG Stats), sessione live = schermata
   **immersiva dedicata** (standard poker-timer). Rosa Personale su rotta condivisa `/giocatori/[legaId]`.
   ⚙️ **Metodo aggiornato** (`CLAUDE.md`): ricerca su app note/solide **prima** di feature+spec (non solo grafica).
-- **Prossimo: R4 — "Tutti i giochi"** (sessione multi-gioco + viste aggregate). Prima ricerca app note, poi mini-spec.
+- ✅ **R4 (serata multi-gioco)** mergiato in `main`: apri una serata coi partecipanti, giochi più giochi
+  (ognuno una `SessioneGioco` legata da `serataId`), **classifica serata** (vittoria +1 a ogni vincitore,
+  patta +0.5, totale assoluto max = vincitore; test-first, 148 core) con hub a schermata piena, "Aggiungi
+  gioco" in basso (thumb zone), sezione "Serate" nello Storico. Poker resta serata a parte.
+- ✅ **Audit ergonomico** (`_processo/ERGONOMIA_AUDIT.md`): applicato **E1** (Nuova lega in basso); FAB/swipe/
+  stepper/GameBar → **backlog restyle** (IDEE, R-erg1..4).
+- **Prossimo**: **APK** (EAS Build, primo installabile per i controlli dell'utente) → poi **R5 (tavolo live)**.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
