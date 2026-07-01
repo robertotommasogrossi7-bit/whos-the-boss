@@ -516,6 +516,30 @@
 - **BLOCCO 4 — traguardo**: **R12** restyle grande (redesign + brand definitivo) · **RP**
   pubblicazione (EAS Build + screenshot + store + EAS Update OTA).
 
+## 2026-07-01 (b) — LEZIONE DI COSTRUZIONE: ricerca-prima-della-spec + poker come "mode" (utente) — ⭐
+
+> Errore di processo + correzione (candidato **SideKick**). Avevo proposto la mini-spec di R3
+> ("poker integrato") partendo da una **nota interna** (IDEE) **senza prima cercare come lo fanno le
+> app note e solide**. L'utente ha corretto: **ricerca → spec → codice**, e SOLO su app
+> conosciute/solide. Metodo aggiornato in `CLAUDE.md` (sez. «Ricerca prima di scegliere»,
+> ora vale per le FEATURE, non solo la grafica) → **da risincronizzare in SideKick**.
+
+- **Ricerca fatta** (app note/solide):
+  - *Multi-game tracker standard* = **BG Stats**: tutti i giochi trattati **uniformemente** (un
+    modello, template di punteggio per-gioco, ma **statistiche/storico/giocatori CONDIVISI**).
+    Nessun gioco è una sotto-app.
+  - *Poker live* (PokerBoss, PokerTimer, Blinds Are Up!, Blind Valet, Travis, The Poker Timer): la
+    **sessione live è una modalità immersiva a schermo intero dedicata** (clock/blind al centro,
+    editor struttura, seating, payout, **cast a secondo schermo/TV** — "i giocatori vedono solo il timer").
+- **Decisione R3 (confermata + rifinita dalla ricerca)**: **ibrido** =
+  1. classifica/storico/giocatori del poker = **le viste condivise** (standard BG Stats) → si tolgono
+     le schede duplicate del poker;
+  2. la **sessione poker resta una schermata immersiva a schermo intero** (standard poker-timer),
+     senza chrome/tab. Il disagio "poker = app separata" nasce dalla **duplicazione** delle viste,
+     non dalla separatezza della sessione.
+- **Nord per R5 (tavolo live)**: adottare le feature best-in-class dei poker-timer (clock grande,
+  editor struttura blind, seating, payout; più avanti cast a TV/secondo schermo).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
