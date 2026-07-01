@@ -62,3 +62,9 @@
 - **Deep link** (conferma email / invito lega) — R6 (R2.4) e R8.
 - **Clipboard** (copia resoconto/IBAN) + **payment link** (Revolut/PayPal per i debiti, come PokerBoss) — R10.
 - **Cast** del clock torneo su TV/secondo schermo (poker-timer apps) — avanti/restyle.
+
+## 2026-07-01 — i18n (multilingua) → al RESTYLE (R12)
+
+> Richiesta utente: tradurre tutta l'app almeno in **inglese**, forse anche **francese** e **spagnolo**.
+- Estrarre le stringhe UI (ora hardcoded in italiano) in un sistema **i18n** (es. i18n-js + expo-localization),
+  lingua da impostazioni / di sistema, **IT default**. Conviene farlo **col restyle** (si ritocca comunque tutta la UI).
