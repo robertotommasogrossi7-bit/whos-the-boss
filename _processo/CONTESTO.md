@@ -296,7 +296,12 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   gioco" in basso (thumb zone), sezione "Serate" nello Storico. Poker resta serata a parte.
 - ✅ **Audit ergonomico** (`_processo/ERGONOMIA_AUDIT.md`): applicato **E1** (Nuova lega in basso); FAB/swipe/
   stepper/GameBar → **backlog restyle** (IDEE, R-erg1..4).
-- **Prossimo**: **APK** (EAS Build, primo installabile per i controlli dell'utente) → poi **R5 (tavolo live)**.
+- ✅ **R5 (tavolo live)** mergiato in `main`: poker cash come **tavolo con le sedie** (posti, cassa/piatto, menù
+  rapido sul giocatore con **ricarica** e **cash-out** via `esceDalTavolo`→`saldoUscita`, **timer per-persona**
+  che scorre). Soldi d'uscita + timer = funzioni pure **test-first** (163 core). Torneo: timer per-persona.
+  Vista torneo sul tavolo + **seating grafico "bello"** → rimandati al restyle. `_processo/MAPPA_CODICE.md` tiene feature→dove.
+- **Prossimo**: **R6 — Identità reale** (`profiles` + username univoco + R2.4 deep link) [inizio blocco BACKEND].
+  Prima però l'utente farà un **controllo generale** (Expo Go / APK) quando vuole.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
