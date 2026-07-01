@@ -87,7 +87,7 @@ interface StoreActions {
 
   // Auth (Supabase) — async; ritorna messaggio d'errore o null se OK
   login: (email: string, password: string) => Promise<string | null>;
-  register: (username: string, email: string, password: string) => Promise<string | null>;
+  register: (username: string, email: string, password: string, displayName?: string) => Promise<string | null>;
   logout: () => Promise<void>;
   // Cambio credenziali (R2.6) — richiedono la vecchia password come verifica
   updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;

@@ -1,4 +1,5 @@
 import type { User } from '@whos-the-boss/core';
+import { validaUsername } from '@whos-the-boss/core';
 import type { AuthInjector } from '@whos-the-boss/state';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -15,6 +16,11 @@ function mapAuthError(msg: string): string {
   if (m.includes('unable to validate email') || (m.includes('email') && m.includes('invalid'))) return 'Email non valida';
   if (m.includes('should be different')) return 'La nuova password deve essere diversa dalla vecchia';
   if (m.includes('rate limit') || m.includes('too many')) return 'Troppi tentativi, riprova tra poco';
+  // Handle gia' preso: gara vinta dall'unique index (il pre-check non l'ha vista).
+  // "database error saving new user" = il trigger handle_new_user ha sollevato:
+  // nel nostro schema il solo motivo e' l'unicita' dell'handle.
+  if (m.includes('duplicate key') || m.includes('profiles_username_lower_key')
+      || m.includes('database error saving new user')) return 'Username già in uso';
   return msg;
 }
 
@@ -53,13 +59,25 @@ export const supabaseAuth: AuthInjector = (get) => ({
     return error ? mapAuthError(error.message) : null;
   },
 
-  register: async (username, email, password) => {
-    const u = username.trim();
+  register: async (username, email, password, displayName) => {
     const e = email.trim();
-    if (!u || !e || !password) return 'Compila tutti i campi';
+    if (!username.trim() || !e || !password) return 'Compila tutti i campi';
     if (password.length < 6) return 'Password: almeno 6 caratteri';
+    // Handle univoco (R6): valida il formato lato client...
+    const val = validaUsername(username);
+    if (!val.ok) return val.error;
+    const handle = val.value;
+    // ...poi pre-check di disponibilita' (UX). Il vincolo DB resta la verita'
+    // in caso di gara; se l'RPC non c'e' ancora (migration non applicata) si
+    // procede e sara' il trigger a bloccare.
+    const { data: available, error: rpcErr } =
+      await supabase.rpc('username_available', { candidate: handle });
+    if (!rpcErr && available === false) return 'Username già in uso';
+    const dn = displayName?.trim();
     const { data, error } = await supabase.auth.signUp({
-      email: e, password, options: { data: { username: u } },
+      email: e,
+      password,
+      options: { data: { username: handle, ...(dn ? { display_name: dn } : {}) } },
     });
     if (error) return mapAuthError(error.message);
     if (!data.session) return 'Registrazione ok — conferma la mail per accedere.';
