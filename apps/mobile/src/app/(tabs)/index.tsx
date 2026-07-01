@@ -43,8 +43,8 @@ export default function HomeScreen() {
           <EmptyState
             icon={<GameIcon icona="picche" size={48} color={t.accent} />}
             title="Poker"
-            hint="Il poker ha la sua schermata dedicata (serata, soldi, timer, settlement) — in arrivo in R1."
-            action={<Button onPress={() => { if (personale) router.push({ pathname: '/poker/[legaId]', params: { legaId: String(personale.id) } }); }}>Apri il Poker</Button>}
+            hint="Serata dal vivo: cash o torneo, con soldi, timer e chi paga chi. Classifica e storico li trovi nelle sezioni condivise."
+            action={<Button onPress={() => { if (personale) router.push({ pathname: '/poker/[legaId]', params: { legaId: String(personale.id) } }); }}>Apri il poker</Button>}
           />
         </View>
       ) : personale ? (
