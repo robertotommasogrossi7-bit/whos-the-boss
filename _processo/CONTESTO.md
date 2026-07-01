@@ -303,7 +303,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ✅ Quick-win in `main`: **condividi resoconto "chi paga chi"** (Share nativo, dai Debiti) + **fix sblocco GameBar**
   (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
   FR/ES) → **R12** restyle.
-- **Prossimo**: **R6 — Identità reale** (`profiles` + username univoco + R2.4 deep link) [inizio blocco BACKEND].
+- 🟢 **R6 — Identità reale COSTRUITA** (branch `rn-r6-identita`, 6.1→6.5, non ancora mergiato; 185 core
+  + web/state test + mobile export/tsc verdi). Aperto il **blocco BACKEND**. Fatto: **profiles + username
+  UNIVOCO** (migration `supabase/migrations/`: unique index `lower(username)` + trigger `handle_new_user`
+  + RPC `username_available` + backfill), **two-tier** handle/display name (registrazione + Profilo
+  `@handle`), **deep link conferma email (R2.4 chiuso)** senza nuove dep (`parseAuthRedirect` puro +
+  `useDeepLinkAuth`), **"sei tu" ancorato all'account** (`accountId` + `èSeiTuRecord`; **rimosso** il
+  kludge `èSeiTu` per nome → niente codice morto). Vedi `DECISIONI.md` 2026-07-01 (c).
+  - ⏳ **Azioni utente (dashboard Supabase), poi merge**: (1) applicare la migration (`supabase db push`
+    o SQL Editor); (2) *Authentication → URL Configuration → Redirect URLs* = **`whostheboss://**`**.
+    Guida in `supabase/README.md`. Verifica a device (Expo Go/dev build) del giro conferma-email dopo la config.
+- **Prossimo (dopo merge R6)**: **R7 — Sync dati cross-device** (leghe/sessioni/partite su Supabase +
+  RLS + migrazione dal locale; qui `giocatori.account_id` su TUTTI i record). Il pezzo grosso.
   ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
   pronta (`apps/mobile/eas.json`). Si fa al **controllo pre-pubblicazione** (dopo il primo build è 1 comando; poi OTA
   con EAS Update). Per sbirciare intanto: Expo Go (`npx expo start`). **Non insistere** con l'APK finché non serve.

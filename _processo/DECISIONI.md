@@ -540,6 +540,34 @@
 - **Nord per R5 (tavolo live)**: adottare le feature best-in-class dei poker-timer (clock grande,
   editor struttura blind, seating, payout; più avanti cast a TV/secondo schermo).
 
+## 2026-07-01 (c) — R6 identità reale COSTRUITA (profiles + username univoco + deep link + "sei tu" per account)
+
+> Blocco 2 (backend) aperto. R6 costruito a micro-step su `rn-r6-identita` (6.1→6.5), tutto verde
+> headless (185 core + web/state test + mobile export/tsc). Ricerca-prima-della-spec rispettata:
+> Discord/Instagram (two-tier), doc Supabase (profiles/trigger, native deep linking).
+
+- **Two-tier identità (come Discord/Instagram)**: `username` = **handle univoco** (minuscole,
+  `[a-z0-9._]`, 3–20) per identità/ricerca/amici; `display_name` = nome visualizzato libero
+  (opzionale). Il soprannome per-lega resta (override locale). Profilo mostra display + `@handle`.
+- **Univocità garantita dal DB**: tabella `profiles` (unique index su `lower(username)`) + trigger
+  `handle_new_user` (SECURITY DEFINER, legge i metadata del signUp) + RPC `username_available` per
+  il pre-check. Verità = DB (race-safe); il pre-check è solo UX. Migration **versionata** in
+  `supabase/migrations/` (showcase). Azioni dashboard utente: applicare migration + Redirect URLs.
+- **"sei tu" ancorato all'ACCOUNT, non al nome (R6.5)** — *pulizia/lezione richiesta dall'utente*:
+  il match-per-nome `èSeiTu` era **scaffold pre-backend**. Ora `NomeGiocatore.accountId` +
+  `èSeiTuRecord(rec, accountId)` puro. `assicuraGiocatorePersonale` prende lo `User`, timbra il
+  record dell'account, **migra una volta** il vecchio record creato per nome, non ruba record di
+  altri account (multi-login). **`èSeiTu(nome)` RIMOSSA da core** (orfana dopo lo swap): niente
+  codice morto. `normalizzaNome` resta (match/dedup guest + filtri classifica/storico).
+- **Deep link conferma email (R2.4, CHIUSO) SENZA nuove dipendenze**: parser puro `parseAuthRedirect`
+  in core (token/errore dal fragment) + hook `useDeepLinkAuth` (expo-linking, già presente) →
+  `supabase.auth.setSession`. `register` passa `emailRedirectTo = whostheboss://auth-callback`.
+  Scartato `expo-auth-session` (anti-bloat, coerente col debito dep R0.3).
+- **Contratto `register` esteso con `displayName?` opzionale**: la web congelata resta compatibile
+  senza modifiche (parametro opzionale). Web toccata solo per coerenza identità (2 file → `èSeiTuRecord`).
+- **`accountId` in R6 solo sul record Personale "sei tu"**; il binding su TUTTI i `giocatori`
+  (tabella cloud) resta a **R7 sync** (dove nasce lato server). Deciso col piano 2026-07-01.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

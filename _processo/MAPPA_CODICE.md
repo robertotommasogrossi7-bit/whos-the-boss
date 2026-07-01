@@ -7,7 +7,7 @@
 > Mappa del vecchio codice web: `POKER_MAP.md`.
 
 ## Rotte / schermate (`apps/mobile/src/app`)
-- `_layout.tsx` — root: tema dinamico (giocoFiltro→themeForGame), **gate auth** (loader/Login/Stack), `GlobalToast`, boot (runMigrations+initAuth).
+- `_layout.tsx` — root: tema dinamico (giocoFiltro→themeForGame), **gate auth** (loader/Login/Stack), `GlobalToast`, boot (runMigrations+initAuth), **deep link auth** (`useDeepLinkAuth`, R6.4).
 - `(tabs)/_layout.tsx` — bottom nav 4 voci: Home / Classifica / Storico / Leghe.
 - `(tabs)/index.tsx` — **Home Personale**: topbar (brand+Giocatori+avatar), GameBar, **Nuova serata**, contenuto gioco (SchermataGioco / poker).
 - `(tabs)/classifica.tsx` — classifica globale/Personale (GameBar + FiltroNome + ClassificaTable).
@@ -19,7 +19,7 @@
 - `serata/[legaId]/[serataId].tsx` — **hub serata multi-gioco** (R4): classifica serata + giochi + "Aggiungi gioco".
 - `giocatori/[legaId].tsx` — rosa condivisa (LegaGiocatori) fuori dal poker.
 - `nuova-lega.tsx` — form nuova lega (Crea in basso, E2).
-- `profilo.tsx` — account: avatar, cambia password/email, logout.
+- `profilo.tsx` — account: avatar, **nome visualizzato + @handle** (R6), cambia password/email, logout.
 - `debiti.tsx` — debiti aperti, salda singolo/tutti.
 
 ## Componenti condivisi
@@ -38,6 +38,7 @@
 - **Tavolo/seating**: `tavoli.ts` (`assegnaPostoIngresso`, `riequilibraTavoli`, `tavoliNecessari`), `torneo.ts` (`assegnaPostiCasuali`).
 - **Timer**: `tempoGiocoMs` (R5, per-persona) · `useTimer` hook (orologio torneo, in mobile).
 - **Sessioni gioco**: `sessioneGioco.ts` (esitoSessione, vittoriePartecipanti), `serate.ts` (R4: classificaSerata, vincitoriSerata), `classifiche.ts`, `storico.ts` (vociStorico), `statsGiochi.ts`, `giochi.ts`, `format.ts`, `normalizzaNome`, `migrations.ts`, `personale.ts`, `tema.ts`.
+- **Identità/account (R6)**: `username.ts` (`validaUsername` handle univoco), `authRedirect.ts` (`parseAuthRedirect` deep link, puro), `personale.ts` (`èSeiTuRecord` per account, `assicuraGiocatorePersonale(User)`, `idBloccatiInclusi(accountId)`); `NomeGiocatore.accountId`, `User.displayName`. Mobile: `lib/useDeepLinkAuth.ts`. Backend: **`supabase/migrations/`** (profiles + username univoco + trigger + RPC). ⚠️ Il match-per-nome `èSeiTu` è stato **rimosso** (era scaffold pre-backend).
 
 ## Azioni store (`packages/state`) — poker live
 - **Cash**: toggleEntrato (assegna seat + avvia timer R5), setEntrata, setVersato, aggiungiRicarica/modifica/togglePagata, aggiornaFiches, addGiocatoreSessione, rimuoviGiocatoreSessione, **spostaGiocatore**/**riequilibraSeat** (seat), aggiungiEFaiEntrare, **esceDalTavolo** (R5: uscita/cash-out via `saldoUscita`+fiches_finali, congela timer).
@@ -48,6 +49,9 @@
 
 ## Feature grandi — stato
 - Auth (R2) ✅ · Poker integrato (R3) ✅ · Serata multi-gioco (R4) ✅ · **Tavolo live (R5) ✅**.
+- **Identità reale (R6)** 🟢 **costruita** (branch `rn-r6-identita`, non ancora mergiato): profiles +
+  username univoco (DB) + display name + deep link conferma email + "sei tu" per account.
+  ⏳ Azioni dashboard utente pendenti (applicare migration + Redirect URLs `whostheboss://**`).
 - R5a ✅ core (saldoUscita/tempoGiocoMs, test-first). R5b ✅ store (esceDalTavolo + timer cash in toggleEntrato).
   R5c ✅ UI TavoloView (sedie + cassa + menù rapido cash-out; timer statico sul posto). Sub-tab Tavolo default cash.
   Nota: il **seating cash c'era già** (toggleEntrato→assegnaPostoIngresso) — non duplicato.
