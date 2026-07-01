@@ -49,7 +49,7 @@ interface UiState {
   setupEditing: boolean; // true = sto modificando una serata 'pre' esistente
 
   // Live session (sub-tab attivo)
-  liveSubTab: 'orologio' | 'giocatori' | 'attivi' | 'premi';
+  liveSubTab: 'orologio' | 'tavolo' | 'giocatori' | 'attivi' | 'premi';
 
   // Torneo
   pendingPrizeNome: number | null;
@@ -428,7 +428,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         saveLega({ ...lega, sessioneAttiva: sess, serate_bg });
         set({
           serataView:   'live',
-          liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'giocatori',
+          liveSubTab:   sess.modalita === 'torneo' ? 'orologio' : 'tavolo',
           setupPartIds: new Set<number>(),
           setupEditing: false,
         });

@@ -31,7 +31,7 @@
 - **gioco/** SchermataGioco, SheetNuovaSessione, SheetEsitoPartita, PickChip.
 - **serata/** (R4) SheetNuovaSerata, SerateLista · hub in `app/serata/...`.
 - **auth/** LoginScreen, CredentialSheets.
-- **poker/** SerataFlow (state machine) → SetupForm, ConfigCash/ConfigTorneo, LiveCash (SubGiocatoriCash, SubAttivi, MoneyInput, ImportoSheet, CassaView), ChiusuraCash, LiveTorneo (SubOrologio, SubGiocatoriTorneo, PrizeModal, SubPremi), ChiusuraTorneo.
+- **poker/** SerataFlow (state machine) → SetupForm, ConfigCash/ConfigTorneo, LiveCash (sub-tab **Tavolo**/Giocatori/Conto), **TavoloView** (R5c: sedie+cassa+menù rapido/cash-out), SubGiocatoriCash, SubAttivi, MoneyInput, ImportoSheet, CassaView, ChiusuraCash, LiveTorneo (SubOrologio, SubGiocatoriTorneo, PrizeModal, SubPremi), ChiusuraTorneo.
 
 ## Logica in core (riusare, NON duplicare)
 - **Soldi**: `calcolaSettlement` (cash), `calcolaSettlementTorneo`, `computeLive` (conto live), **`saldoUscita`/`nettoUscita`/`mancante`** (R5, uscita).
@@ -49,8 +49,7 @@
 ## Feature grandi — stato
 - Auth (R2) ✅ · Poker integrato (R3) ✅ · Serata multi-gioco (R4) ✅ · **Tavolo live (R5) IN CORSO**.
 - R5a ✅ core (saldoUscita/tempoGiocoMs, test-first). R5b ✅ store (esceDalTavolo + timer cash in toggleEntrato).
+  R5c ✅ UI TavoloView (sedie + cassa + menù rapido cash-out; timer statico sul posto). Sub-tab Tavolo default cash.
   Nota: il **seating cash c'era già** (toggleEntrato→assegnaPostoIngresso) — non duplicato.
-- **R5 resta** (NON duplicare): **R5c UI** tavolo-con-sedie (rende `seat`) + widget Cassa (riusa CassaView) +
-  menù rapido sul giocatore (buy-in/rebuy/cash-out/esce) + "chi deve a chi" live (riusa computeLive/settlement);
-  **R5d** timer a schermo (`tempoGiocoMs`) + timer torneo (avviaTorneo/torneoElimina) + unificazione vista torneo.
+- **R5 resta**: **R5d** timer live che scorre (tick) + timer torneo (avviaTorneo/torneoElimina) + unificazione vista torneo sul tavolo.
 - **Backlog restyle** (R-erg): `_processo/ERGONOMIA_AUDIT.md` + IDEE. Seating grafico "bello" → restyle.

@@ -5,6 +5,7 @@ import { euro, fmtData, type Lega } from '@whos-the-boss/core';
 import { GameIcon, IconCoins, IconUsers } from '@/components/icons';
 import SubAttivi from '@/components/poker/SubAttivi';
 import SubGiocatoriCash from '@/components/poker/SubGiocatoriCash';
+import TavoloView from '@/components/poker/TavoloView';
 import { Button } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -28,7 +29,7 @@ export default function LiveCash({ lega }: { lega: Lega }) {
   ].filter(Boolean).join(' · ');
   const tot = sess.giocatori.length;
   const attivi = sess.giocatori.filter((g) => g.entrato).length;
-  const subTab = liveSubTab === 'attivi' ? 'attivi' : 'giocatori';
+  const subTab = liveSubTab === 'attivi' ? 'attivi' : liveSubTab === 'giocatori' ? 'giocatori' : 'tavolo';
 
   function chiudi() {
     if (apriChiusura(lega.id)) setSerataView('chiusura');
@@ -56,18 +57,24 @@ export default function LiveCash({ lega }: { lega: Lega }) {
       </View>
 
       <View style={[styles.subtabs, { backgroundColor: t.surface2 }]}>
+        <Pressable onPress={() => setLiveSubTab('tavolo')} style={[styles.subtab, subTab === 'tavolo' && { backgroundColor: t.surface }]}>
+          <IconCoins size={16} color={subTab === 'tavolo' ? t.accent : t.textMuted} />
+          <Text style={[styles.subtabText, { color: subTab === 'tavolo' ? t.text : t.textMuted }]}>Tavolo · {attivi}</Text>
+        </Pressable>
         <Pressable onPress={() => setLiveSubTab('giocatori')} style={[styles.subtab, subTab === 'giocatori' && { backgroundColor: t.surface }]}>
           <IconUsers size={16} color={subTab === 'giocatori' ? t.text : t.textMuted} />
           <Text style={[styles.subtabText, { color: subTab === 'giocatori' ? t.text : t.textMuted }]}>Giocatori · {tot}</Text>
         </Pressable>
         <Pressable onPress={() => setLiveSubTab('attivi')} style={[styles.subtab, subTab === 'attivi' && { backgroundColor: t.surface }]}>
           <GameIcon icona="picche" size={16} color={subTab === 'attivi' ? t.accent : t.textMuted} />
-          <Text style={[styles.subtabText, { color: subTab === 'attivi' ? t.text : t.textMuted }]}>Attivi · {attivi}</Text>
+          <Text style={[styles.subtabText, { color: subTab === 'attivi' ? t.text : t.textMuted }]}>Conto · {attivi}</Text>
         </Pressable>
       </View>
 
       <View style={styles.fill}>
-        {subTab === 'giocatori' ? <SubGiocatoriCash lega={lega} sess={sess} /> : <SubAttivi lega={lega} sess={sess} />}
+        {subTab === 'tavolo' ? <TavoloView lega={lega} sess={sess} />
+          : subTab === 'giocatori' ? <SubGiocatoriCash lega={lega} sess={sess} />
+          : <SubAttivi lega={lega} sess={sess} />}
       </View>
 
       <View style={[styles.bottom, { borderTopColor: t.border, backgroundColor: t.bg }]}>
