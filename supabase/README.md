@@ -9,6 +9,7 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | File | Fase | Cosa fa |
 |------|------|---------|
 | `migrations/20260701120000_r6_profiles_username.sql` | **R6** | Tabella `profiles` + **username univoco** (handle case-insensitive), RLS, trigger `handle_new_user`, RPC `username_available`, backfill account R2. |
+| `migrations/20260701140000_r6_hardening.sql` | **R6** | Hardening post red-team: profili **PRIVATI** (via il select pubblico), trigger **a prova di footgun** (username mancante/non conforme → handle derivato, mai blocca il signup). **Va applicata dopo la prima.** |
 
 ## Come applicarla
 
