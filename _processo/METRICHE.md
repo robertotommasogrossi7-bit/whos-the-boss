@@ -13,8 +13,9 @@
 |--------|--------|--------------|--------|--------|
 | R6.1–6.5 codice | `3471d13`→`cc0b360` | 11:59→12:37 | ~38' | 7 commit · +22 test core (163→185) |
 | Doc + red team (interno+esterno) | `b919675`→`dbb727b` | 12:38→13:31 | ~53' | 3 commit doc |
-| R6 hardening + cancellazione web | (questo passo) | 13:31→… | … | migration hardening + rimozione `apps/web` |
-| **R6 — totale finora** | | 11:59→… | **~1h30'+** | |
+| R6 hardening + web + doc | `8f4a988`→`b6fa07d` | ~13:52 | ~15' | migration hardening (RLS privati + trigger footgun) + rimozione `apps/web` (tag `archive/web-frozen`) + doc |
+| Infra — CI GitHub Actions | `2c6d02b`→`89827f2` | 13:58→18:31* | ~30' attivi | test + expo export + typecheck **verdi** (1 fix: `:` nello YAML → 0 job) |
+| **R6 + infra — totale** | | | **~2h15' attivi** | *il gap 13:58→18:31 è **idle/interruzione**, non lavoro continuo |
 
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
