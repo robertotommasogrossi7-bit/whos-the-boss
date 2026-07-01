@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 
 import { euro, fmtData, getNome, type Settlement } from '@whos-the-boss/core';
 
@@ -53,12 +53,26 @@ export default function DebitiScreen() {
     ]);
   }
 
+  // Condividi il resoconto "chi paga chi" (Share nativo → WhatsApp/Telegram/…).
+  const condividi = () => {
+    const righe = [`Chi paga chi — ${lega.nome}`];
+    for (const debtorId of debtorIds) {
+      for (const d of byDebtor.get(debtorId) ?? []) {
+        righe.push(`• ${getNome(lega, debtorId)} → ${getNome(lega, d.settlement.to)}: ${euro(d.settlement.amount)}`);
+      }
+    }
+    Share.share({ message: righe.join('\n') });
+  }
+
   return (
     <View style={[styles.fill, { backgroundColor: t.bg }]}>
       <Stack.Screen options={{ headerShown: true, title: 'Debiti' }} />
       <ScrollView contentContainerStyle={styles.content}>
         {debtorIds.length > 0 && (
-          <Button block onPress={doSaldaTuttiDebiti}>Salda tutti i debiti della lega</Button>
+          <>
+            <Button block onPress={doSaldaTuttiDebiti}>Salda tutti i debiti della lega</Button>
+            <Button variant="ghost" block onPress={condividi}>Condividi il resoconto</Button>
+          </>
         )}
 
         {debtorIds.length === 0 ? (
