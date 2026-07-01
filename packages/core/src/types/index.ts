@@ -64,13 +64,19 @@ export interface GiocatoreSessione {
   rebuys: Ricarica[];     // torneo: rebuy con pagata
   soldi_ricevuti: number; // cash legacy
   fiches_finali: number;  // cash
-  seat: Seat | null;      // torneo
+  seat: Seat | null;      // posto al tavolo (torneo; R5: anche cash)
   add_on_fatto: boolean;
   add_on_pagato: boolean;
   eliminato: boolean;
   posizione_finale: number | null;
   elim_ts_ms: number | null;
   prize_pagato: boolean;
+  // ── R5 (tavolo live): uscita a metà + timer per-persona (opzionali, additivi) ──
+  uscito?: boolean;         // è uscito dal tavolo a metà partita
+  valore_uscita?: number;   // fiche contate (cash) o premio (torneo) all'uscita
+  ora_uscita?: string;      // HH:MM dell'uscita
+  seduto_da_ms?: number;    // timestamp (ms) da quando è (ri)seduto; assente = non al tavolo
+  tempo_gioco_ms?: number;  // tempo accumulato nelle sedute precedenti (congelato)
 }
 
 export interface Sessione {
