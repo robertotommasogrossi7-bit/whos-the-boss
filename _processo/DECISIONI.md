@@ -639,6 +639,30 @@
 - **Sotto-fasi**: R7.1 schema SQL+RLS+diagramma → R7.2 layer sync (test-first) → R7.3 import one-shot
   (backup-first) → R7.4 aggancio store → R7.V verifica nel grande test finale. **Nessun codice prima dell'OK.**
 
+## 2026-07-01 (g) — R7 schema v2 post red-team esterno + modello ospiti (utente) — ⭐
+
+> Red team esterno (data-engineer) sullo schema vs app: verdetto CAMBIA (giunti portanti da rifare).
+> Verificato sul codice: leghe non cancellabili, partita salvata immutabile, eliminaGiocatore blocca
+> con storico poker. Dettaglio completo in `R7_SCHEMA.md` sez. v2. Concedo e adotto.
+
+- **Identità/ID**: **UUID client-side additivo** (`uid` per entità) = identità cloud; **gli id interi
+  locali restano** (niente refactor delle 185 pure) come handle, traduzione int↔uid solo al confine sync;
+  `local_id` mai chiave di sync → **uccide la collisione multi-device** del red team. "sei tu" **derivato**
+  per-viewer (già R6.5), mai salvato.
+- **Modello OSPITI (scelta utente)**: ogni ospite ha `created_by_account_id` (gestore, "vive nel suo
+  profilo"); creabile anche in sessione; aggiungibile a una lega da chi ha il potere (salvato su lega +
+  account gestore = base); **claim** delle partite di un ospite col **consenso del gestore** → set
+  `account_id` (flusso R8). Cross-lega ospiti = via claim (R8); hook additivi → R8 non distruttivo.
+- **Soldi**: **movimenti append-only** `poker_movimenti` (non JSONB) — preserva ricariche/pagamenti già
+  salvati, constraint per-elemento, pronto per R9. **Unità dichiarate** per colonna (euro vs chip separati).
+  **Riconciliazione all'import** (settlement→0), su mismatch flagga (non blocca).
+- **Sync**: `updated_at` **server-authoritative** (trigger `now()`, mai clock client); **import ≠ sync**
+  (import one-shot guardato da `profiles.imported_at`, RPC transazionale, poi off); FK **DEFERRABLE** +
+  dependency-order; **soft-delete** con tombstone-cascade app-side + classifiche tombstone/ancestor-aware.
+- **Fallback difensivi (richiesta utente)**: referenza orfana → "Sconosciuto"; import non-riconciliato →
+  importa+flag+quarantena; FK-violation → coda pending+retry; null → default sicuri; idempotenza per uid.
+- **Prossimo**: finalizzare v2 con l'utente → **R7.1 SQL**. Ancora nessun codice.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

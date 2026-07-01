@@ -152,3 +152,91 @@ tabella **`user_settings`** (account_id PK, jsonb) — oppure restano **solo loc
 1. OK su **D1** (live locale in R7, realtime in R9)? È la scelta che riduce di più il rischio.
 2. OK sul mix **D2/D3** (JSONB per gli array-foglia, tabelle-ponte per le referenze a giocatori)?
 3. Le **preferenze GameBar** (D5): le vuoi cross-device o le lasciamo locali?
+
+---
+
+# v2 — Revisione post RED TEAM esterno + modello ospiti + fallback (2026-07-01)
+
+> Red team esterno (data-engineer) su schema vs app: verdetto **CAMBIA** (scheletro sano, giunti
+> portanti da rifare). Verificato sul codice: **leghe non cancellabili**, **partita salvata
+> immutabile**, `eliminaGiocatore` blocca con storico poker (non multigioco). Sotto: cosa **adotto**,
+> le decisioni sul **modello ospiti** (scelta utente) e i **fallback** difensivi richiesti.
+
+## A. Identità & ID (i giunti portanti)
+- **A1 — UUID come identità cloud, generato dal client alla creazione.** Ogni entità sincronizzata
+  porta un **`uid` (uuid v4)** creato al momento della creazione su QUALSIASI device → due device non
+  generano mai lo stesso uid ⇒ **la collisione multi-device del red team NON può avvenire**. Gli **id
+  interi locali restano** (niente refactor delle 185 funzioni pure testate: lavorano sul modello int):
+  fanno da **handle locale**; la traduzione **int↔uid** avviene SOLO al **confine di sync**. `local_id`
+  = ponte d'import + alias locale, **mai chiave di upsert/sync** (la chiave è `uid`).
+- **A2 — "sei tu" DERIVATO per-viewer, mai salvato.** Già così da R6.5: `èSeiTuRecord(rec, viewerAccountId)`
+  = `account_id == auth.uid()`. In lega condivisa (R8) ci sono N "tu", uno per viewer → il flag stored
+  sarebbe un dead-end; noi non lo salviamo. ✅ già a posto.
+- **A3 — Modello OSPITI (decisione utente).** Ogni ospite (`giocatori.account_id = NULL`) ha un
+  **`created_by_account_id`** = l'account **gestore** che l'ha creato ("vive nel profilo di chi lo crea").
+  - Si può **creare un ospite anche in sessione in corso**; resta di proprietà del gestore.
+  - Chi ha il potere di aggiungere persone in una lega può **aggiungere l'ospite alla lega** → la riga
+    `giocatori` è nella lega **e** ha `created_by_account_id` del gestore (l'account gestore è la "base").
+  - **Claim**: un account può **richiedere tutte le partite di un ospite** → col **consenso del gestore**
+    (`created_by`) si valorizza `giocatori.account_id` sull'account richiedente. Flusso completo = **R8**.
+  - **Cross-lega ospiti**: NON auto-collegati in R7 (restano righe per-lega). Il collegamento
+    "stesso umano" arriva col **claim (R8)**. Le TUE stat cross-lega funzionano già (join su `account_id`).
+    *(Consapevole: niente classifica cross-lega per gli ospiti finché non sono reclamati — accettato.)*
+  - Gli hook (`created_by_account_id` + `account_id` nullable) rendono il person-layer/`lega_membri` di
+    R8 **additivo, senza migrazione distruttiva** (come consiglia il red team per `lega_membri`).
+
+## B. Soldi (il percorso più sensibile)
+- **B1 — Movimenti = tabella append-only immutabile** `poker_movimenti(uid, partita_giocatore_uid,
+  tipo enum{buyin,rebuy,addon,cashout,pagamento}, importo numeric(10,2), unita enum{euro,chip}, at)`.
+  Al posto del JSONB `ricariche`/`pagamenti`. Motivi: constraint per-elemento (`importo>0`), audit,
+  riconciliazione, e **zero conflitti** (eventi immutabili, mai mutati). *(In R7 il rischio-concorrenza
+  è comunque basso — partite salvate immutabili — ma i movimenti-riga sono giusti e pronti per R9.)*
+- **B2 — Unità DICHIARATE per colonna.** Soldi = `numeric(10,2)` **euro** (buy_in, versato, netto,
+  premio, settlement.amount, importi movimenti). **Chip** (fiche_iniziali, add_on.fiche, fiches_finali
+  torneo) = colonne separate **intere**, mai mischiate con gli euro. Ogni colonna numerica ha l'unità nel commento.
+- **B3 — Riconciliazione all'import (non copia cieca).** Verifica che i `settlements` di una partita
+  **sommino a zero** e i buy-in tornino; se non torna (drift float del locale) → **importa comunque ma
+  FLAGGA** l'anomalia (vedi Fallback F2), non bloccare né corrompere.
+- **B4 — `settlements(from,to,amount,pagato)`** resta tabella (giusto). `pagato` mutabile sotto LWW è
+  tollerabile (toggle booleano; conflitto solo se uno rimette `false`, raro).
+
+## C. Sync & tempo (LWW sicuro)
+- **C1 — `updated_at` SERVER-authoritative.** Trigger DB `BEFORE INSERT/UPDATE SET updated_at = now()`.
+  **Mai** il wall-clock del device (clock skew = perdita silenziosa). Kill del landmine LWW.
+- **C2 — Import e Sync = due percorsi separati.** Import = **one-shot**, guardato da
+  `profiles.imported_at`, **transazionale lato server (RPC)** all-or-nothing, poi **disabilitato**. Sync
+  incrementale = codice diverso. Non confonderli (un re-import cancellerebbe le edit server).
+- **C3 — Ordine FK.** Vincoli **`DEFERRABLE INITIALLY DEFERRED`** + sync in **dependency-order**
+  (giocatori → partite → figli). Import per-lega in **una transazione**.
+- **C4 — Soft-delete & tombstone.** `deleted_at` = "disattivato". Regole: **cascade dei tombstone
+  application-side nella stessa transazione** (una `serata` tombstonata tombstona figli); le **funzioni
+  classifica/storico contano lo storico anche dei disattivati** (rank per partecipazione, non per lista
+  attiva) e sono **ancestor-aware** (una `partita_gioco` con antenato tombstonato NON rientra).
+  Precedenza **delete-wins** (tombstone vince sulla rename); rischio minimo perché il locale non
+  cancella giocatori con storico poker.
+
+## D. Fallback difensivi (richiesta utente: "non far rompere tutto al primo errore")
+- **F1 — Referenza orfana** (uid/id_nome → giocatore mancante/disattivato): rendi **"Sconosciuto"**, mai
+  crash. Le funzioni pure di lookup tollerano il null (già `?? '?'` in `getNome`): estenderlo ovunque.
+- **F2 — Import che non riconcilia** (B3): importa + registra un **`sync_anomalies`** (o flag) + avviso
+  soft; **non** bloccare, **non** droppare. Metti in **quarantena** l'irrisolvibile, non lo perdi.
+- **F3 — Violazione FK in sync** (figlio prima del padre): **coda pending** + retry in dependency-order;
+  l'item non si perde. (Con C3 è raro.)
+- **F4 — Campi null/mancanti**: default sensati (soldi `0`, array `[]`, nome "Sconosciuto", enum ignoto → default sicuro, mai crash).
+- **F5 — Import parziale**: transazionale (C2) → niente stato a metà.
+- **F6 — Idempotenza**: upsert per `uid`; un doppio pull non duplica.
+
+## E. Rischi che restano (dichiarati, non risolti in R7)
+- Stato **live** senza backup cloud (device perso = sessione in corso persa) — R9.
+- **Cross-lega ospiti** non collegato finché non c'è claim (R8).
+- **Catalogo giochi globale** (es. "miglior giocatore di Briscola in assoluto"): `giochi_lega` è per-lega
+  → per i **preset** salviamo solo `gioco_key`+`attivo` e deriviamo il resto dal catalogo (`giochi.ts`),
+  riga piena solo per i **custom**; il catalogo globale cross-lega è un'evoluzione futura.
+
+## F. Domande aperte v2 (poche, il resto l'ho deciso io come chiesto)
+1. **Movimenti-riga (B1)** al posto del JSONB: è più lavoro ma è il "proper" e pronto per R9. **OK?**
+   *(In R7 anche il JSONB sarebbe sicuro, viste le partite immutabili — ma non lo consiglio.)*
+2. **Storico poker**: la card ri-espande i **singoli movimenti** (buy-in/rebuy/cash-out) o mostra solo
+   **netto + settlement**? *(Da questo dipende quanto dettaglio DEVE sopravvivere; verifico io nel codice
+   se preferisci, ma se lo sai a memoria fai prima.)*
+3. Confermi il **modello ospiti** (A3) e la scelta di **UUID additivo** (A1, niente refactor del core)?
