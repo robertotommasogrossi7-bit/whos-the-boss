@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import GameBar from '@/components/GameBar';
 import SchermataGioco from '@/components/gioco/SchermataGioco';
-import { GameIcon, IconUsers } from '@/components/icons';
+import { GameIcon, IconChevronRight, IconPlus, IconUsers } from '@/components/icons';
+import SheetNuovaSerata from '@/components/serata/SheetNuovaSerata';
 import { Avatar, Button, EmptyState } from '@/components/ui';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
@@ -17,6 +19,7 @@ export default function HomeScreen() {
   const giocoFiltro = useStore((s) => s.giocoFiltro);
   const personale = useStore((s) => s.db.leghe.find((l) => l.personale));
   const utente = useStore((s) => s.utente);
+  const [nuovaSerata, setNuovaSerata] = useState(false);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: t.bg }]}>
@@ -38,6 +41,19 @@ export default function HomeScreen() {
         </View>
       </View>
       <GameBar />
+      {personale ? (
+        <Pressable
+          onPress={() => setNuovaSerata(true)}
+          style={({ pressed }) => [styles.serataBtn, { backgroundColor: t.accentSoft, borderColor: t.accent }, pressed && styles.pressed]}
+        >
+          <IconPlus size={18} color={t.accent} />
+          <View style={styles.grow}>
+            <Text style={[styles.serataTitle, { color: t.accent }]}>Nuova serata</Text>
+            <Text style={[styles.serataSub, { color: t.textMuted }]} numberOfLines={1}>Più giochi in una sera, classifica unica</Text>
+          </View>
+          <IconChevronRight size={18} color={t.accent} />
+        </Pressable>
+      ) : null}
       {giocoFiltro === 'poker' ? (
         <View style={styles.pad}>
           <EmptyState
@@ -54,6 +70,10 @@ export default function HomeScreen() {
           <EmptyState title="Un attimo…" hint="Sto preparando il tuo spazio personale." />
         </View>
       )}
+
+      {nuovaSerata && personale && (
+        <SheetNuovaSerata lega={personale} onClose={() => setNuovaSerata(false)} />
+      )}
     </SafeAreaView>
   );
 }
@@ -64,4 +84,9 @@ const styles = StyleSheet.create({
   topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6 },
   brand: { fontSize: 20, fontWeight: '800', flex: 1 },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  serataBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginHorizontal: 16, marginTop: 12 },
+  serataTitle: { fontSize: 15, fontWeight: '800' },
+  serataSub: { fontSize: 12, marginTop: 1 },
+  grow: { flex: 1 },
+  pressed: { opacity: 0.85 },
 });

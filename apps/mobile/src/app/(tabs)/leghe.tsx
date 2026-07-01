@@ -92,10 +92,15 @@ export default function LegheScreen() {
               );
             })}
 
-            <Button variant="ghost" block onPress={() => router.push('/nuova-lega')}>+ Nuova lega</Button>
           </>
         )}
       </ScrollView>
+
+      {leghe.length > 0 ? (
+        <View style={[styles.footer, { borderTopColor: t.border, backgroundColor: t.bg }]}>
+          <Button block onPress={() => router.push('/nuova-lega')}>+ Nuova lega</Button>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -113,6 +118,7 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   content: { padding: 16, gap: 12 },
+  footer: { padding: 16, borderTopWidth: 1 },
   h: { fontSize: 24, fontWeight: '800' },
   pressed: { opacity: 0.85 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },

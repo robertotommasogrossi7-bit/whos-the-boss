@@ -182,6 +182,18 @@ export interface SessioneGioco {
   partecipanti: number[];  // id_nome di default per le partite
   partite: PartitaGioco[];
   esitoPareggio: boolean;  // true se la sessione è chiusa in pareggio
+  serataId?: number;       // R4: se la sessione fa parte di una serata multi-gioco
+}
+
+/* ─── SERATA MULTI-GIOCO (R4) ───
+   Contenitore leggero: una "serata" coi suoi partecipanti che raggruppa più
+   SessioneGioco (una per gioco). Ogni gioco resta un record a sé (salvabile /
+   migrabile 1:1 nel DB); la serata li lega via `SessioneGioco.serataId`. Il
+   poker NON entra qui (resta serata a parte, suo modello). */
+export interface SerataMulti {
+  id: number;
+  data: string;            // "YYYY-MM-DD"
+  partecipanti: number[];  // id_nome invitati alla serata
 }
 
 /* ─── LEGA ─── */
@@ -201,6 +213,8 @@ export interface Lega {
   giochi?: GiocoLega[];           // undefined = solo poker implicito
   sessioniGioco?: SessioneGioco[];
   _sgid?: number;                 // auto-increment id sessione gioco
+  serate?: SerataMulti[];         // R4: serate multi-gioco (raggruppano le sessioniGioco)
+  _serataId?: number;             // auto-increment id serata multi-gioco
   monoGiocoId?: string;           // (predisposizione M2d) lega mono-gioco: id del solo gioco attivo (admin/post-backend)
   adminIds?: number[];            // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
 }

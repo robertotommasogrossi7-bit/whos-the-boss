@@ -40,3 +40,12 @@
 - **Amicizie fra account** (richiesta utente 2026-06-12): poter fare "amicizia" tra account per
   semplificare il **contatto dentro e fuori le leghe** (invitare amici a una lega, mandare/ricevere
   richieste di storico, trovarsi più facilmente). Va **dopo** auth/identità (B1+).
+
+## 2026-07-01 — Backlog ERGONOMIA per il RESTYLE (R12, ipotesi Claude Design)
+
+> Dall'audit `_processo/ERGONOMIA_AUDIT.md` (sezione CERCA). Voci di SISTEMA/visual: rimandate al
+> restyle per non fare lavoro doppio prima del redesign. Ora applicate solo le cheap (E1/E2).
+- **R-erg1** — sistema **FAB** unificato per le azioni "crea" (bottom-right, thumb zone, una per schermata).
+- **R-erg2** — **swipe** tra le sub-tab della lega (serve un pager).
+- **R-erg3** — **stepper +/–** per gli input numerici (buy-in, n. giocatori).
+- **R-erg4** — ripensare **GameBar** (posizione/gesture).

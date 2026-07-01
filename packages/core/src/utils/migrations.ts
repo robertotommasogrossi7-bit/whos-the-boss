@@ -78,5 +78,7 @@ export function migrateLega(l: Lega): void {
   if (!l) return;
   if (l.sessioniGioco === undefined) l.sessioniGioco = [];
   if (l._sgid === undefined)         l._sgid = 1;
+  if (l.serate === undefined)        l.serate = [];      // R4: serate multi-gioco
+  if (l._serataId === undefined)     l._serataId = 1;
   if (l.personale === undefined)     l.personale = false;
 }

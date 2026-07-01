@@ -7,6 +7,7 @@ import { vociStorico } from '@whos-the-boss/core';
 import FiltroNome from '@/components/classifica/FiltroNome';
 import GameBar from '@/components/GameBar';
 import { IconHistory } from '@/components/icons';
+import SerateLista from '@/components/serata/SerateLista';
 import StoricoLista from '@/components/storico/StoricoLista';
 import { EmptyState } from '@/components/ui';
 import { useStore } from '@/store/useStore';
@@ -37,6 +38,7 @@ export default function StoricoScreen() {
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: t.bg }]}>
       <GameBar />
       <ScrollView contentContainerStyle={styles.content}>
+        <SerateLista lega={personale} />
         {(voci.length > 0 || query.trim().length > 0) && <FiltroNome value={query} onChange={setQuery} />}
         <StoricoLista lega={personale} voci={voci} query={query} />
       </ScrollView>
