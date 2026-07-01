@@ -300,8 +300,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   rapido sul giocatore con **ricarica** e **cash-out** via `esceDalTavolo`→`saldoUscita`, **timer per-persona**
   che scorre). Soldi d'uscita + timer = funzioni pure **test-first** (163 core). Torneo: timer per-persona.
   Vista torneo sul tavolo + **seating grafico "bello"** → rimandati al restyle. `_processo/MAPPA_CODICE.md` tiene feature→dove.
+- ✅ Quick-win in `main`: **condividi resoconto "chi paga chi"** (Share nativo, dai Debiti) + **fix sblocco GameBar**
+  (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
+  FR/ES) → **R12** restyle.
 - **Prossimo**: **R6 — Identità reale** (`profiles` + username univoco + R2.4 deep link) [inizio blocco BACKEND].
-  Prima però l'utente farà un **controllo generale** (Expo Go / APK) quando vuole.
+  Prima però l'utente farà un **controllo generale** (Expo Go / APK) quando vuole. Config EAS pronta (`apps/mobile/eas.json`).
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
