@@ -75,10 +75,12 @@ questo il processo fa parte del repo.
 
 ```bash
 pnpm install
-pnpm dev:web     # http://localhost:5173
+pnpm dev:mobile  # server Expo (apri in Expo Go)
 ```
 
-Login demo (qualsiasi nome) — i dati restano nel tuo browser.
+Auth reale (Supabase, email + password); i dati di gioco restano sul dispositivo per ora (sync cloud in corso).
+
+> La versione web originale (Vite + React) è archiviata al tag git `archive/web-frozen`, da quando il progetto è passato del tutto a React Native.
 
 ## Licenza
 

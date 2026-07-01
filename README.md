@@ -84,7 +84,7 @@ Few dependencies on purpose: small bundle, and a codebase that ports cleanly to 
 
 ```bash
 pnpm install
-pnpm dev:web     # http://localhost:5173
+pnpm dev:mobile  # Expo dev server (open in Expo Go)
 ```
 
 ```bash
@@ -93,15 +93,18 @@ pnpm lint        # ESLint
 pnpm build       # type-check + production build
 ```
 
-Demo login (any name) — your data stays in your browser.
+Auth is real (Supabase, email + password); game data stays on-device for now (cloud sync is in progress).
+
+> The original web version (Vite + React) was archived at git tag `archive/web-frozen` when the project moved fully to React Native. The path is in the git history.
 
 ## Project structure
 
 ```
 whos-the-boss/   ← pnpm + Turborepo monorepo
-├── apps/web/        ← the web app (Vite + React + TS) — frozen reference
-├── apps/mobile/     ← the React Native app (Expo) — current target
+├── apps/mobile/     ← the React Native app (Expo) — the app
 ├── packages/core/   ← shared logic (pure TS: settlement, standings, …) + tests
+├── packages/state/  ← shared store (Zustand: createAppStore)
+├── supabase/        ← DB schema as code (migrations: profiles, unique username, RLS)
 ├── _legacy/         ← historical: the original monolith + the vanilla-JS split
 ├── METODO.md        ← the AI-orchestration method (how this was built)
 ├── README.md / README.it.md
