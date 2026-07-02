@@ -377,6 +377,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
 ## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
+- **Closed testing Play Store — DA SPIEGARE all'utente quando arriviamo a RP** (2026-07-03): il
+  requisito Google "12 tester × 14 giorni per account personali nuovi" non gli è chiaro → prima di
+  pianificare RP, spiegarlo bene (cos'è, perché esiste, come si incastra col collaudo tra amici) e
+  decidere insieme. Non darlo per capito.
 - **Screenshot README**: si fanno **quando si arriva al backend** (app "tutto pronto"). Guida in
   `docs/screenshots/README.md`. La chat base **lo ricorda** all'utente al momento giusto.
 - **Showcase aggiornato**: `_processo/` è pubblico/tracciato → committare+pushare le modifiche ai

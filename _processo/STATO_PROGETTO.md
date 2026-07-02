@@ -59,6 +59,7 @@
     - build produzione **AAB** via EAS Build
     - ⚠️ **account personali nuovi**: Google richiede **closed testing con ≥12 tester per 14 giorni**
       prima dell'accesso a produzione → gli amici del GRANDE TEST *sono* i tester (i due passi si incastrano)
+      *(promemoria attivo in CONTESTO: da spiegare bene all'utente e decidere insieme quando arriviamo qui)*
     - store listing: **screenshot** (guida `docs/screenshots/README.md`), descrizione, icona, feature graphic
     - data safety + privacy URL (dal punto 7) → review → **produzione**
     - post-launch: aggiornamenti **OTA via EAS Update** (bugfix/UI senza review).
