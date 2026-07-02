@@ -3,6 +3,18 @@
 > Le chat base ci ripassano a inizio sessione e ai punti di svolta. Quando un'idea si **decide**,
 > migra in `DECISIONI.md` (e nella roadmap di `CONTESTO.md`).
 
+## 2026-07-01 — Analitiche & grafici (payoff dello schema relazionale) 📈
+
+> Idea utente durante R7.1: "possiamo fare grafici tipo il picco di un giocatore, in che periodo,
+> per quanto tempo?". SÌ — ed è **esattamente il vantaggio** del relazionale su JSONB: con
+> `partite_poker.data` + `partita_poker_giocatori.netto_finale` ordinati per data si calcola la
+> **curva cumulativa (bankroll)** di un giocatore → il **picco** = massimo della somma corrente, il
+> **"quando"** = la data del picco, il **"per quanto"** = durata sopra soglia / lunghezza streak.
+> Fattibile come **VIEW SQL** / funzione Postgres **o** client-side sui dati sincronizzati.
+> Colloca: **feature (R11)** o **R12**, oppure una vista "Andamento" dedicata. Ottimo pezzo da
+> **portfolio data-engineer** (SQL analitico + chart). Nota: `data` è a livello di giorno → per
+> l'ordine intra-giornaliero usare `local_id`/`created_at` come tie-break. **Non ora** (prima il sync).
+
 ## 2026-06-12 — feedback dopo collaudo browser (utente) + nodo Supabase
 
 ### Feature emerse (per lo più LOCALI — non richiedono il backend)
