@@ -663,6 +663,31 @@
   importa+flag+quarantena; FK-violation → coda pending+retry; null → default sicuri; idempotenza per uid.
 - **Prossimo**: finalizzare v2 con l'utente → **R7.1 SQL**. Ancora nessun codice.
 
+## 2026-07-03 (h) — AUDIT multi-agente completato + LINEA v3 (bonifica prima di R7.2) — ⭐
+
+> Audit "ALTO" (67 agenti, ~2,6M token; 6 revisori → ~50 verifiche adversariali → 4 ricerche online →
+> sintesi) eseguito in 2 sessioni: **Fable** (revisori+ricerche+parte verifiche; interrotto per limite
+> contesto 5h piano Max) → **resume su Opus** (cache: zero rilavorazione; verifiche restanti+sintesi).
+> Metodo aggiornato in `~/.claude/CLAUDE.md` (sez. «Audit multi-agente», livelli ALTO/MEDIO/BASSO).
+
+- **Esito**: **45 finding confermati / 11 confutati** → registro indicizzato **`AUDIT_R6_R7.md`**
+  (ID stabili A/M/B + fase assegnata + checkbox). 3 ALTA che rompono flussi vivi: `confirm()` nello
+  store (crash su Hermes — conferma che "mai girata su device" era il rischio n.1), add-on post-
+  consolidamento (settlement torneo sbilanciato), SetupForm username→id (regressione R6.5: non puoi
+  includerti nel poker Personale). Regressione identità R6.5 = **causa radice** (nelle leghe normali
+  nessun record riceve `accountId`) con 4 sintomi.
+- **Ricerca online**: le scelte del sync (LWW server-side, tombstone, UUID client, import≠sync, parser
+  fragment-first col default implicit di supabase-js v2, ledger append-only) = **allineate** allo stato
+  dell'arte, con fonti; il protocollo coincide col plugin Supabase di Legend-State. Deviazioni piccole e
+  assorbite nelle fasi (initplan caching, TO authenticated, migration repair, flowType esplicito, UUIDv7).
+- **LINEA v3 in `CONTESTO.md`**: blocco **R6-B bonifica** (B1 ALTA → B2 identità → B3 store → B4 doc →
+  B5 SQL → B6 test soldi) **prima di R7.2**; a R7.2 kickoff le decisioni sync a verbale (storage
+  per-account, LWW per-riga, UUIDv7, retention tombstone). Feature+restyle restano ultimissimi (utente).
+- **Nota Fable vs Opus** (domanda utente): A/B naturale su un finding verificato da entrambi (doppia
+  verifica post-interruzione) → **stesso verdetto, stessa precisione di prove (file:riga)**. Differenza
+  osservata = **capacità/contesto, non qualità**: Fable-max ha esaurito le 5h con ~26 agenti; Opus ha
+  chiuso i restanti 41. Conferma la regola di metodo: audit ALTO su Opus, recap su Fable.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

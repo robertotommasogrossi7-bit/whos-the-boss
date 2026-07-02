@@ -284,7 +284,26 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R12 — Restyle grande**: redesign completo sulla struttura finale + brand definitivo (ricerca UX, best-in-class).
   - **RP — Pubblicazione**: dev build → EAS Build → screenshot README → Play/App Store + EAS Update (OTA).
 
-### 🔁 LINEA DI PRODUZIONE riordinata (2026-07-01 (d), post RED TEAM) — AUTOREVOLE
+### 🔁🔁 LINEA v3 (2026-07-03, post AUDIT MULTI-AGENTE) — **AUTOREVOLE, supera la v2 qui sotto**
+
+> Audit "ALTO" (67 agenti: 6 revisori → verifiche adversariali → 4 ricerche online → sintesi) su tutto
+> il lavoro: **45 finding confermati / 11 confutati**. Registro indicizzato con ID e fasi:
+> **`_processo/AUDIT_R6_R7.md`** (spuntare lì). Scelte architetturali del sync = **allineate** allo
+> stato dell'arte (fonti nel registro). Stato reale ad oggi: **R6 completa · R7.1 schema FATTO e
+> APPLICATO (5/5 migration in dashboard, senza errori) · branch `rn-r6-identita`**.
+
+- **R6-B — BONIFICA AUDIT** (prima di R7.2, ordine di esecuzione):
+  - **R6-B1** fix 3 ALTA [S]: `confirm()` fuori dallo store (A1) · gate add-on post-consolidamento (A2) · SetupForm username→id (A3).
+  - **R6-B2** identità R6.5 alla radice [M]: `accountId` sul creatore in nuova-lega + migrazione claim-by-name (M7, risolve M6+B13) · 3 picker multigioco username→id (M5) · dedup displayName (M8).
+  - **R6-B3** store & auth [S/M]: orfani multigioco (M9) · posizioni provvisorie (M10) · rientro fantasma (M11) · updateEmail redirectTo (M13) · esiti discriminati/commenti (B19,B21,B22).
+  - **R6-B4** doc alla realtà [S]: R7_SCHEMA→SQL effettivo (M15, **prima di R7.2**) · banner SUPERATO su BACKEND_SPEC (M16) · README (M17) · CONTESTO §vecchi (M18) · MAPPA (B44) · nota Expo Go (B29).
+  - **R6-B5** hardening SQL [M]: migration forward (ON DELETE SET NULL M14 · WHEN distinct B31 · semantica poker_movimenti B32 · UNIQUE parziale B33 · (select auth.uid())+TO authenticated B34 · search_path B35) + `supabase migration repair` (history) + `flowType:'implicit'` esplicito + dedup deep link (B24).
+  - **R6-B6** rete test soldi [M]: calc.test + greedy invarianti + fix M4/B02/B05/B07/B04/B08.
+- **R7.2 — layer di sync** (kickoff = decisioni a verbale: storage per-account M12 · LWW per-riga · UUIDv7 · retention tombstone) → **R7.3** import one-shot → **R7.4** aggancio store → poi **R8** ruoli/inviti → **R9** realtime.
+- **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
+- **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
+
+### 🔁 LINEA DI PRODUZIONE riordinata (2026-07-01 (d), post RED TEAM) — ⚠️ superata dalla v3 sopra
 
 > Riordino dopo la revisione senior (`_processo/REVISIONE-ESTERNA.md`, finding F1–F14).
 > Principio: **de-risk PRIMA di aggiungere superficie.** Questo ordine **supera** l'elenco qui sopra

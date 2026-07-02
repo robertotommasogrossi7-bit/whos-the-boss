@@ -25,6 +25,8 @@
 | R7.1 schema SQL | `27dd34a`→`9171787` | — | **13 tabelle** in 3 migration (core/poker/multigioco) + RLS owner-only + trigger updated_at |
 | R7.1 applicazione (utente) | dashboard | — | ✅ 3 migration R7 applicate nel SQL Editor **senza errori** → schema validato su Postgres reale (R6 già applicate prima) |
 | Audit multi-agente (Fable max) | workflow `wf_79f14eaf` | — | 6 revisori + verifica adversariale per-finding + 4 ricerche online + sintesi |
+| Audit — esecuzione | 2 sessioni | 22:32→22:44 (Fable) + 00:34→00:58 (Opus resume) | **67 agenti · 2.638.212 token subagenti · 777 tool call · ~24' run finale**. Sessione Fable: 6 review+4 research+~16 verify → **interrotta (limite contesto 5h piano Max)**; resume Opus: cache al 100% dei completati, rieseguiti solo gli interrotti. Esito: **45 confermati / 11 confutati** → `AUDIT_R6_R7.md` |
+| Audit — lezione modelli | — | — | Qualità verifiche Fable≈Opus (A/B naturale su stesso finding: stesso verdetto+prove). Differenza = capacità contesto, non qualità → audit ALTO su Opus, recap su Fable (in metodo) |
 
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
