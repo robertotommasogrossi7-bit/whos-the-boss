@@ -22,7 +22,9 @@
 |--------|--------|--------|--------|
 | R7.0 design (ricerca + mappa) | (doc) | — | `R7_SCHEMA.md` (mappa viva) + diagramma ER + scelta relazionale. **Zero codice** (design-first) |
 | R7.0 red team (int+est) + v2 | `fcfde6e`→`524fab4` | — | 2 red team (mio + esterno data-engineer) → schema v2 (UUID, movimenti append-only, ospiti, fallback) |
-| R7.1 schema SQL | `27dd34a`→`9171787` | — | **13 tabelle** in 3 migration (core/poker/multigioco) + RLS owner-only + trigger updated_at. **Non ancora applicato** (validazione al grande test) |
+| R7.1 schema SQL | `27dd34a`→`9171787` | — | **13 tabelle** in 3 migration (core/poker/multigioco) + RLS owner-only + trigger updated_at |
+| R7.1 applicazione (utente) | dashboard | — | ✅ 3 migration R7 applicate nel SQL Editor **senza errori** → schema validato su Postgres reale (R6 già applicate prima) |
+| Audit multi-agente (Fable max) | workflow `wf_79f14eaf` | — | 6 revisori + verifica adversariale per-finding + 4 ricerche online + sintesi |
 
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte

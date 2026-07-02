@@ -15,8 +15,9 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | `migrations/20260701150200_r7_multigioco.sql` | **R7.1c** | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti partecipanti/vincitori. |
 
 > ⚠️ Le R7 vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
-> Lo schema R7 è **scritto ma non ancora applicato/validato**: si può incollare nel SQL Editor per un
-> parse-check, o si valida nel "grande test" finale (scelta di studio, `DECISIONI.md`).
+> ✅ **Tutte e 5 le migration sono APPLICATE** in dashboard (SQL Editor, 2026-07-01) senza errori:
+> lo schema è validato su Postgres reale. Il round-trip dati (sync vero) si valida nel "grande test"
+> finale (scelta di studio, `DECISIONI.md`).
 
 ## Come applicarla
 
