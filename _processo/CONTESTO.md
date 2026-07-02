@@ -291,6 +291,8 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 > **`_processo/AUDIT_R6_R7.md`** (spuntare lì). Scelte architetturali del sync = **allineate** allo
 > stato dell'arte (fonti nel registro). Stato reale ad oggi: **R6 completa · R7.1 schema FATTO e
 > APPLICATO (5/5 migration in dashboard, senza errori) · branch `rn-r6-identita`**.
+> 📦 **Flusso esecutivo completo fino al Play Store** (Fatto · Manca per pubblicare · Definitiva):
+> **`_processo/STATO_PROGETTO.md`** — si aggiorna a fine di ogni passo grande.
 
 - **R6-B — BONIFICA AUDIT** (prima di R7.2, ordine di esecuzione):
   - **R6-B1** fix 3 ALTA [S]: `confirm()` fuori dallo store (A1) · gate add-on post-consolidamento (A2) · SetupForm username→id (A3).
