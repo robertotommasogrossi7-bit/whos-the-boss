@@ -8,7 +8,9 @@
 ══════════════════════════════════════════════════════ */
 
 /** Normalizza un nome per confronti: trim → minuscolo → spazi collassati →
-    accenti/diacritici rimossi (NFD). Pura. */
+    accenti/diacritici rimossi (NFD). Pura. Usata per il match/dedup dei nomi
+    (guest, filtri classifica/storico). L'identità dell'utente loggato NON si
+    calcola più dal nome: si ancora all'account (`èSeiTuRecord` in personale.ts). */
 export function normalizzaNome(s: string): string {
   return s
     .trim()
@@ -16,14 +18,4 @@ export function normalizzaNome(s: string): string {
     .replace(/\s+/g, ' ')
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '');
-}
-
-/** True se `nome` corrisponde all'utente loggato (match per nome normalizzato).
-    False se lo username è nullo/vuoto. "sei tu" è SEMPRE calcolato così: niente
-    flag salvato nei dati (robusto alla beta, dove lo username può cambiare). */
-export function èSeiTu(nome: string, username?: string | null): boolean {
-  if (!username) return false;
-  const u = normalizzaNome(username);
-  if (!u) return false;
-  return normalizzaNome(nome) === u;
 }

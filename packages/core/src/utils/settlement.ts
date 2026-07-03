@@ -16,15 +16,20 @@ export function calcolaSettlement(players: PlayerInput[]): CashSettlementResult 
 
   // ── Passo 1: grandezze base ──────────────────────────────────
   const calcolati: GiocatoreCalcolato[] = players.map(p => {
+    // B05 (audit 2026-07-03): fiche negative (dato corrotto/UI senza guardia)
+    // genererebbero un debito fantasma a valle — difesa qui, alla sorgente
+    // del calcolo (la guardia "vera" sta comunque nello store, che non deve
+    // MAI produrre un valore negativo in primo luogo).
+    const fiche            = Math.max(0, p.fiche);
     const mancante         = r100(Math.max(0, p.dovuto - p.versato));
     const eccedenza        = r100(Math.max(0, p.versato - p.dovuto));
     const versatoLegittimo = r100(Math.min(p.versato, p.dovuto));
-    const netto            = r100(p.fiche - p.dovuto);
+    const netto            = r100(fiche - p.dovuto);
 
     // ── Passo 2: auto-compensazione ─────────────────────────────
-    const cancelled  = r100(Math.min(mancante, p.fiche));
+    const cancelled  = r100(Math.min(mancante, fiche));
     const mancanteP  = r100(mancante - cancelled);
-    const ficheP     = r100(p.fiche - cancelled);
+    const ficheP     = r100(fiche - cancelled);
 
     // ── Passo 3: bisogno ────────────────────────────────────────
     const bisogno = r100(Math.max(0, ficheP - versatoLegittimo));
@@ -35,7 +40,7 @@ export function calcolaSettlement(players: PlayerInput[]): CashSettlementResult 
       versato: r100(p.versato),
       mancante,
       mancanteP,
-      fiche:   r100(p.fiche),
+      fiche:   r100(fiche),
       ficheP,
       eccedenza,
       versatoLegittimo,
@@ -54,6 +59,11 @@ export function calcolaSettlement(players: PlayerInput[]): CashSettlementResult 
   creditori.forEach(c => { bisognoRem[c.id_nome] = c.bisogno; });
 
   const trasferimenti: Trasferimento[] = [];
+  // B07 (audit 2026-07-03): se il "bisogno" totale dei creditori non copre
+  // il "mancante" totale dei debitori (dati di ingresso non bilanciati:
+  // fiche totali ≠ dovuto totale), il resto del debitore va scartato —
+  // prima in silenzio, ora accumulato qui ed esposto nel risultato.
+  let sbilancio = 0;
 
   for (const d of debitori) {
     let rem = d.mancanteP;
@@ -66,6 +76,7 @@ export function calcolaSettlement(players: PlayerInput[]): CashSettlementResult 
       rem -= amt;
       bisognoRem[c.id_nome] = r100(avail - amt);
     }
+    if (rem > 0.005) sbilancio = r100(sbilancio + rem);
   }
 
   // ── Piatto ──────────────────────────────────────────────────
@@ -82,5 +93,6 @@ export function calcolaSettlement(players: PlayerInput[]): CashSettlementResult 
     piatto: { totaleVersato, totaleDovuto, breakdown },
     trasferimenti,
     giocatori: calcolati,
+    sbilancio,
   };
 }

@@ -17,14 +17,19 @@ Tracker"** (vedi `MULTIGIOCO_SPEC.md`). Il poker resta dentro, com'è, con un
 restyle grafico.
 
 ## Path
-`C:\Users\rober\Desktop\Programmi\poker\` (monorepo pnpm+Turborepo) — `apps/web/` (web, riferimento congelato), `apps/mobile/` (Expo, target), `packages/core/` (logica condivisa).
+`C:\Users\rober\Desktop\Programmi\poker\` (monorepo pnpm+Turborepo) — `apps/mobile/` (Expo, **l'app**),
+`packages/core/` (logica condivisa), `packages/state/` (store condiviso), `supabase/` (schema-as-code).
+⚠️ **`apps/web` è stata RIMOSSA** (2026-07-01, dopo il pivot React Native completo): archiviata al tag
+git `archive/web-frozen`, recuperabile con `git checkout archive/web-frozen -- apps/web`.
 I `.md` di processo stanno in `_processo/` (attivi) e `_processo/archivio/` (spenti).
 Node in `C:\Program Files\nodejs` (se `npm` non è nel PATH, usa il path completo).
 
 ## Stack
-Vite 6 + React 19 + TypeScript strict + Zustand (persist localStorage) +
-React Router 7 + Vitest. ESLint flat config. CSS con variabili (no Tailwind, no
-inline style — vedi memoria feedback).
+**Expo (React Native) + Expo Router** + TypeScript strict + Zustand (persist → AsyncStorage) +
+**Supabase** (Auth email+password + Postgres/RLS, schema-as-code in `supabase/migrations/`) +
+Vitest (202 test in `packages/core`). ESLint flat config. `StyleSheet` React Native (design token,
+tema scuro + accento per gioco — no Tailwind, no inline style, vedi memoria feedback).
+*(Storia: era Vite+React Router web fino al pivot RN del 2026-06-13/29, vedi sotto.)*
 
 ## File di riferimento (tutti LOCALI, leggere quando servono)
 - `METODO.md` (sul Desktop) — come si lavora: chat base orchestra, chat di fase implementano.
@@ -284,6 +289,47 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R12 — Restyle grande**: redesign completo sulla struttura finale + brand definitivo (ricerca UX, best-in-class).
   - **RP — Pubblicazione**: dev build → EAS Build → screenshot README → Play/App Store + EAS Update (OTA).
 
+### 🔁🔁 LINEA v3 (2026-07-03, post AUDIT MULTI-AGENTE) — **AUTOREVOLE, supera la v2 qui sotto**
+
+> Audit "ALTO" (67 agenti: 6 revisori → verifiche adversariali → 4 ricerche online → sintesi) su tutto
+> il lavoro: **45 finding confermati / 11 confutati**. Registro indicizzato con ID e fasi:
+> **`_processo/AUDIT_R6_R7.md`** (spuntare lì). Scelte architetturali del sync = **allineate** allo
+> stato dell'arte (fonti nel registro). Stato reale ad oggi: **R6 completa · R7.1 schema FATTO e
+> APPLICATO (5/5 migration in dashboard, senza errori) · branch `rn-r6-identita`**.
+> 📦 **Flusso esecutivo completo fino al Play Store** (Fatto · Manca per pubblicare · Definitiva):
+> **`_processo/STATO_PROGETTO.md`** — si aggiorna a fine di ogni passo grande.
+
+- **R6-B — BONIFICA AUDIT** ✅ **COMPLETATA** (B1→B6, 2026-07-03; unico residuo: applicare la migration
+  R6-B5 in dashboard quando comodo — non urgente, vedi `supabase/README.md`):
+  - **R6-B1** ✅ fix 3 ALTA: `confirm()` fuori dallo store (A1) · gate add-on post-consolidamento (A2) · SetupForm username→id (A3).
+  - **R6-B2** ✅ identità R6.5 alla radice: `accountId` sul creatore in nuova-lega + migrazione claim-by-name (M7, risolve M6+B13) · 3 picker multigioco username→id (M5) · dedup displayName (M8).
+  - **R6-B3** ✅ store & auth: orfani multigioco (M9) · posizioni provvisorie (M10) · rientro fantasma (M11) · updateEmail redirectTo (M13) · esiti discriminati/commenti (B19,B21,B22).
+  - **R6-B4** ✅ doc alla realtà: R7_SCHEMA→SQL effettivo (M15) · banner SUPERATO su BACKEND_SPEC (M16) · README (M17) · CONTESTO §vecchi (M18) · MAPPA (B44) · nota Expo Go (B29).
+  - **R6-B5** ✅ hardening SQL (scritto, **non ancora applicato**): ON DELETE SET NULL (M14) · trigger split B31/B35 · poker_movimenti append-only vero (B32) · UNIQUE parziale (B33) · RLS initplan+TO authenticated (B34) + flowType esplicito + dedup deep link (B24) + comandi migration repair (R-mig, azione utente).
+  - **R6-B6** ✅ rete test soldi: calc.test.ts nuovo (26 test) + greedy invarianti (B00) + fix M4/B02/B05/B07/B04/B08. **231 test core** (era 185 a inizio R6).
+- **R7.2 — layer di sync** (kickoff = decisioni a verbale: storage per-account M12 · LWW per-riga · UUIDv7 · retention tombstone) → **R7.3** import one-shot → **R7.4** aggancio store → poi **R8** ruoli/inviti → **R9** realtime.
+- **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
+- **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
+
+### 🔁 LINEA DI PRODUZIONE riordinata (2026-07-01 (d), post RED TEAM) — ⚠️ superata dalla v3 sopra
+
+> Riordino dopo la revisione senior (`_processo/REVISIONE-ESTERNA.md`, finding F1–F14).
+> Principio: **de-risk PRIMA di aggiungere superficie.** Questo ordine **supera** l'elenco qui sopra
+> per la sequenza; i contenuti dei blocchi restano.
+>
+> ⚠️ **AGGIORNAMENTO 2026-07-01 (e)** (dopo red team ESTERNO + scelta utente): l'app prosegue con
+> **costruzione COMPLETA + un unico test su device ALLA FINE** (SCELTA DI STUDIO, non de-risk) → quindi
+> **niente "device/CI prima"** e **R7/R8/R9 NON congelati** (si va avanti). Restano/fatti: **R6 hardening**
+> (profili privati + trigger footgun, migration `…140000`), **web congelata RIMOSSA** (tag
+> `archive/web-frozen`), **soldi float+r100 documentati**, **feature+restyle ultimissimi**. Token/tempo
+> in `_processo/METRICHE.md`. Dettaglio + confronto-con-All-for-Music: `DECISIONI.md` 2026-07-01 (e).
+
+- **TRACK 0 — Infrastruttura (subito)**: **I1** CI (Actions: test+build+tsc su push/PR) · **I2** CI migrations (`supabase db push`).
+- **R6 — chiusura vera (prima del merge)**: **R6.6** recupero password (deep link) · **R6.7** hardening (errore trigger preciso, ramo demo, enumerazione) · **R6.8** test dello store · **R6.V** verifica su **device reale** (signup + unicità + ritorno-mail) = **GATE** → poi merge `rn-r6-identita`→`main`.
+- **Backend**: **R7** sync cross-device (+ partition per account, F8) · **R8** ruoli/condivisione (+ enumerazione, F7) · **R9** realtime/social.
+- **Pre-pubblicazione (hardening)**: **H1** crash reporting · **H2** SMTP custom · **H3** privacy+ToS · **H4** pulizia debito (dep Expo R0.3, E2E, editor livelli, foto lega).
+- **Traguardo**: **R12** restyle · **RP** pubblicazione (EAS Build → store → OTA). (R11 feature nuove = slot in IDEE.)
+
 **Avanzamento (2026-07-01)**:
 - ✅ **Quick wins** mergiati in `main`: toast globale mobile + date-picker nativo (`DateField`).
 - ✅ **R3 (poker integrato)** mergiato in `main` (`1cfacaf` sul branch): poker non è più un'app-nell'app —
@@ -303,16 +349,35 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ✅ Quick-win in `main`: **condividi resoconto "chi paga chi"** (Share nativo, dai Debiti) + **fix sblocco GameBar**
   (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
   FR/ES) → **R12** restyle.
-- **Prossimo**: **R6 — Identità reale** (`profiles` + username univoco + R2.4 deep link) [inizio blocco BACKEND].
+- 🟢 **R6 — Identità reale COSTRUITA** (branch `rn-r6-identita`, non ancora mergiato in `main`; 202 core
+  + state test + mobile export/tsc verdi). Aperto il **blocco BACKEND**. Fatto: **profiles + username
+  UNIVOCO** (unique index `lower(username)` + trigger `handle_new_user` + RPC `username_available` +
+  backfill), **two-tier** handle/display name (registrazione + Profilo `@handle`), **deep link conferma
+  email (R2.4 chiuso)** senza nuove dep (`parseAuthRedirect` puro + `useDeepLinkAuth`), **"sei tu"
+  ancorato all'account** (`accountId` + `èSeiTuRecord`; **rimosso** il kludge `èSeiTu` per nome).
+  Vedi `DECISIONI.md` 2026-07-01 (c).
+  - ✅ **Migration R6 APPLICATE** (utente, dashboard SQL Editor) + **Redirect URLs = `whostheboss://**`
+    configurato**. Guida in `supabase/README.md`.
+  - ✅ **R7.1 — Schema relazionale sync SCRITTO E APPLICATO** (13 tabelle, 3 migration `20260701150xxx`,
+    tutte e **5 le migration R6+R7 sono live** su Postgres senza errori): `leghe/giocatori(perno)/
+    giochi_lega` + `partite_poker/partita_poker_giocatori/poker_movimenti(append-only)/settlements` +
+    `serate/sessioni_gioco/partite_gioco`+ponti. RLS owner-only, `updated_at` server-side. Design
+    completo in `R7_SCHEMA.md`. Vedi `DECISIONI.md` 2026-07-01 (f)+(g)+(h).
+  - ✅ **AUDIT multi-agente fatto** (67 agenti, 45 finding): registro **`AUDIT_R6_R7.md`**. **Bonifica
+    R6-B COMPLETATA** (B1→B6 tutti ✅, vedi LINEA v3 sopra) — **231 test core**. Unico residuo: applicare
+    la migration SQL di B5 in dashboard (scritta, non urgente).
+- **Prossimo**: **merge `rn-r6-identita`→`main`**, poi **R7.2 — layer di
+  sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
+  record via claim). Il pezzo grosso.
   ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
   pronta (`apps/mobile/eas.json`). Si fa al **controllo pre-pubblicazione** (dopo il primo build è 1 comando; poi OTA
   con EAS Update). Per sbirciare intanto: Expo Go (`npx expo start`). **Non insistere** con l'APK finché non serve.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
-  - ⏳ **Rimandato apposta da R0.2 → R2/mobile**: astrarre lo **storage** dello store (localStorage web /
-    AsyncStorage mobile) e il **client Supabase** (env per-app: `import.meta.env` web / `process.env.EXPO_PUBLIC_*`
-    mobile). Oggi `store/` + `lib/supabase.ts` stanno **ancora in `apps/web`** (hanno pezzi platform-specifici).
+  - ✅ **Risolto** (era "rimandato da R0.2 → R2/mobile"): storage e client Supabase per-app astratti —
+    mobile ha il suo `lib/supabase.ts` (AsyncStorage) e `store/authSlice.ts` indipendenti; con `apps/web`
+    rimossa il debito è chiuso definitivamente.
 > Storia (superata dal pivot RN): "backend su web B0-B4" + "Play Store via PWA/TWA" → ora l'OTA è **EAS
 > Update**. Il branch `backend-b1-auth` (auth web, verde, non mergiato) resta come **logica-sorgente riusabile**.
 
@@ -326,6 +391,24 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
 ## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
+- **SQL da applicare in dashboard Supabase — 1 su 6 pendente** (2026-07-03, R6-B5): l'utente ha
+  applicato i primi **5** file di `supabase/migrations/` (confermato più volte in sessione — vedi
+  anche `supabase/README.md` "Tutte e 5 le migration sono APPLICATE"). **Manca solo il 6°:
+  `20260703100000_r6b5_hardening.sql`** (hardening post-audit: M14/B31-B35, vedi `AUDIT_R6_R7.md`).
+  **NON urgente** — non blocca il lavoro in corso, si applica quando l'utente vuole. Inventario
+  completo e numerato in `supabase/README.md` (tabella "Migrazioni") — **la chat base lo ricorda
+  ogni volta che si torna sull'argomento backend/SQL**, anche dopo un reset di contesto (rileggere
+  questo file + `supabase/README.md` prima di dire "tutto applicato").
+  **Verificato 2026-07-03** (l'utente non ricordava con certezza quanti/quali file ci fossero):
+  ricerca esaustiva `**/*.sql` + blocchi ` ```sql ` nei `.md` + `git log --all` su TUTTA la storia
+  → **esistono e sono sempre esistiti solo questi 6 file**, nessuno mai cancellato, nessuno sparso
+  altrove. L'inventario numerato è **completo e affidabile**. Se in futuro nasce un dubbio simile,
+  **ripetere questa stessa verifica** prima di rispondere a naso (best practice ora nel metodo
+  globale, sez. "Supabase: un solo posto per l'SQL").
+- **Closed testing Play Store — DA SPIEGARE all'utente quando arriviamo a RP** (2026-07-03): il
+  requisito Google "12 tester × 14 giorni per account personali nuovi" non gli è chiaro → prima di
+  pianificare RP, spiegarlo bene (cos'è, perché esiste, come si incastra col collaudo tra amici) e
+  decidere insieme. Non darlo per capito.
 - **Screenshot README**: si fanno **quando si arriva al backend** (app "tutto pronto"). Guida in
   `docs/screenshots/README.md`. La chat base **lo ricorda** all'utente al momento giusto.
 - **Showcase aggiornato**: `_processo/` è pubblico/tracciato → committare+pushare le modifiche ai
@@ -348,15 +431,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 
 ## Comandi rapidi (dalla root del monorepo)
 ```
-pnpm dev:web        # server dev web (Vite, porta 5173)
-pnpm run test       # tutti i test via Turbo (147: 138 @whos-the-boss/core + 9 web)
+pnpm dev:mobile     # server dev Expo (apri in Expo Go)
+pnpm run test       # tutti i test via Turbo (202 @whos-the-boss/core + state)
+pnpm run typecheck  # tsc mobile (dopo un expo export, per i typed routes)
 pnpm run lint       # ESLint via Turbo
 pnpm run build      # build di tutti i pacchetti via Turbo
 pnpm --filter @whos-the-boss/core test   # solo i test della logica condivisa
+pnpm --filter @whos-the-boss/mobile exec expo export --platform android   # verifica che il bundle compili
 ```
 (serve `pnpm` sul PATH: `npm i -g pnpm@9`. Turbo orchestra i pacchetti.)
 
 ## Repo
 GitHub **pubblico**: `https://github.com/robertotommasogrossi7-bit/whos-the-boss`
-(Su GitHub: **monorepo** `apps/web` + `packages/core` + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del
-processo AI) + README + LICENSE. Default branch `main`.)
+(Su GitHub: **monorepo** `apps/mobile` + `packages/core` + `packages/state` + `supabase/` (schema-as-
+code) + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del processo AI) + README + LICENSE.
+`apps/web` rimossa, archiviata al tag `archive/web-frozen`. Default branch `main`.)

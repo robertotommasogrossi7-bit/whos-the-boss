@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { IconChevronLeft } from '@/components/icons';
 import CassaView from '@/components/poker/CassaView';
@@ -32,9 +32,15 @@ export default function ChiusuraScreen() {
     setSettlement(null);
     setSerataView('live');
   }
-  function conferma() {
-    confermaChiusura(legaId, oraFine);
-    setSerataView('hub');
+  function conferma(force?: boolean) {
+    const esito = confermaChiusura(legaId, oraFine, force);
+    if (esito.ok) { setSerataView('hub'); return; }
+    if (esito.motivo === 'warning') {
+      Alert.alert('Attenzione', esito.messaggio, [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Salva comunque', style: 'destructive', onPress: () => conferma(true) },
+      ]);
+    }
   }
 
   return (
@@ -66,7 +72,7 @@ export default function ChiusuraScreen() {
         </>
       ) : null}
 
-      <Button block onPress={conferma}>Conferma e salva serata</Button>
+      <Button block onPress={() => conferma()}>Conferma e salva serata</Button>
     </ScrollView>
   );
 }

@@ -4,6 +4,8 @@ import {
   Text, TextInput, View,
 } from 'react-native';
 
+import { validaUsername } from '@whos-the-boss/core';
+
 import { GameIcon } from '@/components/icons';
 import { Button } from '@/components/ui';
 import { useStore } from '@/store/useStore';
@@ -31,8 +33,13 @@ export default function LoginScreen() {
   const [liEmail, setLiEmail] = useState('');
   const [liPwd, setLiPwd] = useState('');
   const [rgUser, setRgUser] = useState('');
+  const [rgDisplay, setRgDisplay] = useState('');
   const [rgMail, setRgMail] = useState('');
   const [rgPwd, setRgPwd] = useState('');
+
+  // Validazione handle in tempo reale (pura): mostra il perche' sotto al campo.
+  const rgUserCheck = rgUser.trim() ? validaUsername(rgUser) : null;
+  const rgUserErr = rgUserCheck && !rgUserCheck.ok ? rgUserCheck.error : null;
 
   async function doLogin() {
     if (busy) return;
@@ -46,7 +53,7 @@ export default function LoginScreen() {
   async function doRegister() {
     if (busy) return;
     setBusy(true); setMsg(null);
-    const err = await register(rgUser, rgMail, rgPwd);
+    const err = await register(rgUser, rgMail, rgPwd, rgDisplay);
     setBusy(false);
     if (err) {
       // "Registrazione ok — conferma la mail…" e' un'info, non un errore
@@ -109,8 +116,17 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <Field label="Username" t={t}>
                 <TextInput
-                  style={inputStyle} placeholder="Scegli un username" placeholderTextColor={t.textMuted}
+                  style={inputStyle} placeholder="es. mario_rossi" placeholderTextColor={t.textMuted}
                   autoCapitalize="none" autoCorrect={false} value={rgUser} onChangeText={setRgUser}
+                />
+                <Text style={[styles.hint, { color: rgUserErr ? t.danger : t.textMuted }]}>
+                  {rgUserErr ?? 'Minuscole, numeri, punto e underscore. È il tuo nome univoco.'}
+                </Text>
+              </Field>
+              <Field label="Nome visualizzato (opzionale)" t={t}>
+                <TextInput
+                  style={inputStyle} placeholder="es. Mario Rossi" placeholderTextColor={t.textMuted}
+                  autoCapitalize="words" autoCorrect={false} value={rgDisplay} onChangeText={setRgDisplay}
                 />
               </Field>
               <Field label="Email" t={t}>
@@ -177,6 +193,7 @@ const styles = StyleSheet.create({
   fieldRow: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600' },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, fontSize: 15, minHeight: 44 },
+  hint: { fontSize: 12, marginTop: 2 },
   banner: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   note: { fontSize: 12, textAlign: 'center', marginTop: 2 },
 });

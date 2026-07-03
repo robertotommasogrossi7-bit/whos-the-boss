@@ -8,7 +8,10 @@ export function calcolaMontepremi(sess: Sessione): number {
     if (!g.entrato) return;
     totale += sess.buy_in;
     (g.rebuys ?? []).forEach(r => { totale += r.importo; });
-    if (g.add_on_fatto && sess.add_on) totale += sess.add_on.prezzo;
+    // B08 (audit 2026-07-03): `sess.add_on` è un oggetto sempre presente
+    // (campo non opzionale su Sessione) → un check di verità su di esso è
+    // sempre true e la guardia ".abilitato" non scattava mai davvero.
+    if (g.add_on_fatto && sess.add_on?.abilitato) totale += sess.add_on.prezzo;
   });
   return Math.round(totale * 100) / 100;
 }
@@ -20,7 +23,7 @@ export function calcolaMontepremiIncassato(sess: Sessione): number {
     if (!g.entrato) return;
     if (g.buy_in_pagato) totale += sess.buy_in;
     (g.rebuys ?? []).forEach(r => { if (r.pagata) totale += r.importo; });
-    if (g.add_on_fatto && g.add_on_pagato && sess.add_on) totale += sess.add_on.prezzo;
+    if (g.add_on_fatto && g.add_on_pagato && sess.add_on?.abilitato) totale += sess.add_on.prezzo;
   });
   return Math.round(totale * 100) / 100;
 }
@@ -55,10 +58,21 @@ export function calcolaPremi(montepremi: number, num_giocatori_entrati: number):
   else if (num_giocatori_entrati <= 15) payouts = [0.50, 0.30, 0.20];
   else if (num_giocatori_entrati <= 27) payouts = [0.45, 0.27, 0.18, 0.10];
   else                                  payouts = [0.40, 0.25, 0.16, 0.10, 0.06, 0.03];
+
+  const r100 = (n: number) => Math.round(n * 100) / 100;
+  const importi = payouts.map(p => r100(montepremi * p));
+  // B02 (audit 2026-07-03): l'arrotondamento per-posizione può far divergere
+  // la somma dal montepremi (es. 42,50 → 42,51). Il 1° posto assorbe il
+  // residuo esatto: Σimporti === montepremi SEMPRE, per costruzione.
+  if (importi.length > 0) {
+    const sommaAltri = importi.slice(1).reduce((a, x) => a + x, 0);
+    importi[0] = r100(montepremi - sommaAltri);
+  }
+
   return payouts.map((p, i) => ({
     posizione: i + 1,
     percentuale: Math.round(p * 100),
-    importo: Math.round(montepremi * p * 100) / 100,
+    importo: importi[i]!,
   }));
 }
 

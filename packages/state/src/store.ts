@@ -10,9 +10,9 @@ import {
   nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
   type EsitoPartitaInput,
 } from '@whos-the-boss/core';
-import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@whos-the-boss/core';
-import { èSeiTu, normalizzaNome } from '@whos-the-boss/core';
-import { validaRinomina } from '@whos-the-boss/core';
+import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi, reclamaGiocatoreInLega } from '@whos-the-boss/core';
+import { èSeiTuRecord, normalizzaNome } from '@whos-the-boss/core';
+import { validaRinomina, giocatoreInUso } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
@@ -79,6 +79,31 @@ interface UiState {
   gameBarPinned: boolean;    // gioco "fisso" (pin) — predisposizione
 }
 
+/* Esiti espliciti per le azioni "chiusura torneo" (R6-B1/A1): lo store è puro,
+   niente `confirm()` browser-global (crasha su RN/Hermes). Quando serve una
+   conferma dell'utente, l'azione ritorna un esito che descrive COSA chiedere;
+   la UI mostra l'Alert nativo e, se confermato, richiama l'azione con `force`. */
+export type EsitoChiusuraTorneo =
+  | { ok: true }
+  | { ok: false; motivo: 'sessione-assente' | 'pochi-giocatori' }
+  | { ok: false; motivo: 'vivi-multipli'; count: number; primoNome: string };
+
+export type EsitoConfermaChiusura =
+  | { ok: true }
+  | { ok: false; motivo: 'nessun-settlement' | 'lega-assente' }
+  | { ok: false; motivo: 'warning'; messaggio: string };
+
+/* Esito esplicito di addGiocatoreSessione (R6-B3/B19): prima ritornava
+   `string | null`, con `null` sia per "aggiunto" sia per "già nella serata"
+   (già toastato) — indistinguibili per chi chiama. `torneoAggiungiGiocatore`
+   ne approfittava per leggere "l'ultimo giocatore dell'array" e assegnargli
+   un posto: su un no-op (già in sessione) poteva assegnare il seat a un
+   giocatore SBAGLIATO. Ora l'esito porta sempre l'`idNome` esatto. */
+export type EsitoAggiungiGiocatoreSessione =
+  | { ok: true; idNome: number }
+  | { ok: false; motivo: 'gia-in-sessione' }
+  | { ok: false; motivo: 'errore'; messaggio: string };
+
 interface StoreActions {
   // DB
   saveLega: (updated: Lega) => void;
@@ -87,7 +112,7 @@ interface StoreActions {
 
   // Auth (Supabase) — async; ritorna messaggio d'errore o null se OK
   login: (email: string, password: string) => Promise<string | null>;
-  register: (username: string, email: string, password: string) => Promise<string | null>;
+  register: (username: string, email: string, password: string, displayName?: string) => Promise<string | null>;
   logout: () => Promise<void>;
   // Cambio credenziali (R2.6) — richiedono la vecchia password come verifica
   updatePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
@@ -167,7 +192,7 @@ interface StoreActions {
   modificaRicarica:          (legaId: number, idNome: number, idx: number, importo: number) => void;
   toggleRicaricaPagata:      (legaId: number, idNome: number, idx: number) => void;
   aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
-  addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
+  addGiocatoreSessione:      (legaId: number, nome: string) => EsitoAggiungiGiocatoreSessione;
   rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
   spostaGiocatore:           (legaId: number, idNome: number, tavolo: number, posto: number) => void;
   riequilibraSeat:           (legaId: number) => void;
@@ -196,12 +221,12 @@ interface StoreActions {
 
   // Settlement — chiusura serata
   apriChiusura:           (legaId: number) => boolean;
-  apriChiusuraTorneo:     (legaId: number) => boolean;
+  apriChiusuraTorneo:     (legaId: number, forzaVivi?: boolean) => EsitoChiusuraTorneo;
   setAllocazione:         (legaId: number, loserId: number, winnerId: number, amount: number) => void;
   setTrasferimento:       (legaId: number, idx: number, importo: number) => void;
   addTrasferimento:       (legaId: number, t: { from: number; to: number; importo: number }) => void;
   removeTrasferimento:    (legaId: number, idx: number) => void;
-  confermaChiusura:       (legaId: number, oraFine: string) => void;
+  confermaChiusura:       (legaId: number, oraFine: string, force?: boolean) => EsitoConfermaChiusura;
 
   // Sessioni gioco (multigioco non-poker, M3) — su lega.sessioniGioco
   // `serataId` opzionale (R4): lega la sessione a una serata multi-gioco.
@@ -235,16 +260,30 @@ function sessioneTorneoAttiva(sess: Sessione): Sessione {
     inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0), trascorso_ms: 0 };
 }
 
-/* mapAuthError vive ora in apps/web/src/store/authSlice.ts (logica Supabase). */
+/* mapAuthError vive in apps/mobile/src/store/authSlice.ts (logica Supabase). */
 
-/* ── #4.5: assicura che l'utente loggato sia un giocatore reale del Personale.
-   Chiamata a login/register riusciti. Difensiva: se il Personale non esiste
-   ancora (runMigrations lo crea al boot) salta senza crashare. ── */
-function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, username: string): void {
+/* ── #4.5/R6: assicura che l'utente loggato sia un giocatore reale del Personale,
+   ancorato all'account (accountId). Chiamata a login/register riusciti. Difensiva:
+   se il Personale non esiste ancora (runMigrations lo crea al boot) salta. ── */
+function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, user: User): void {
   const personale = db.leghe.find(l => l.personale);
   if (!personale) return;
-  const aggiornata = assicuraGiocatorePersonale(personale, username);
+  const aggiornata = assicuraGiocatorePersonale(personale, user);
   if (aggiornata !== personale) saveLega(aggiornata);
+}
+
+/* ── R6-B2/M7: migrazione one-shot — nelle leghe NORMALI (non Personale) create
+   prima di R6.5, il creatore/i partecipanti erano record "liberi" (nome per
+   nome, nessun accountId). Al login li reclama per nome (solo reclama, MAI
+   crea: a differenza del Personale non ha senso aggiungerti a una lega dove
+   non compari già). Chiamata a ogni applyUtente: idempotente, costa poco
+   (early-return per-lega se già reclamata o già migrata da R6.5+). ── */
+function assicuraTuNelleLeghe(db: Db, saveLega: (l: Lega) => void, user: User): void {
+  for (const lega of db.leghe) {
+    if (lega.personale) continue; // il Personale lo gestisce assicuraTuNelPersonale
+    const aggiornata = reclamaGiocatoreInLega(lega, user);
+    if (aggiornata !== lega) saveLega(aggiornata);
+  }
 }
 
 /* Storage iniettato da createAppStore: web = localStorage retrocompat
@@ -319,7 +358,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       applyUtente: (user) => {
         set({ utente: user });
         // #4.5: aggancia "te" come giocatore reale del Personale
-        if (user) assicuraTuNelPersonale(get().db, get().saveLega, user.username);
+        if (user) assicuraTuNelPersonale(get().db, get().saveLega, user);
+        // R6-B2/M7: migrazione one-shot — reclama il tuo record nelle leghe
+        // normali create prima di R6.5 (creatore senza accountId)
+        if (user) assicuraTuNelleLeghe(get().db, get().saveLega, user);
       },
       setAuthLoading: (loading) => set({ authLoading: loading }),
       initAuth: () => set({ authLoading: false }),
@@ -342,7 +384,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         set(s => {
           // #4.5: l'id "sei tu" nel Personale è bloccato-incluso → toggle no-op
           const lega = s.db.leghe.find(l => l.id === s.db._currentLegaId);
-          if (lega && idBloccatiInclusi(lega, s.utente?.username).includes(id)) return s;
+          if (lega && idBloccatiInclusi(lega, s.utente?.id).includes(id)) return s;
           const next = new Set(s.setupPartIds);
           if (next.has(id)) next.delete(id); else next.add(id);
           return { setupPartIds: next };
@@ -407,8 +449,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         set({ serataView: 'live', overlayOpen: true });
       },
 
+      // La conferma "sei sicuro" la fa la UI (Alert.alert) PRIMA di chiamare
+      // questa azione (LiveCash/LiveTorneo): lo store resta puro, niente
+      // confirm() browser-global (A1 — crashava su RN/Hermes).
       annullaSessione: (legaId) => {
-        if (!confirm('Annullare la serata in corso? Tutti i dati saranno persi.')) return;
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
@@ -494,14 +538,14 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         // #4.5: non puoi rimuovere te stesso dal Personale
         if (lega.personale) {
           const rec = lega.nomi.find(n => n.id === idNome);
-          if (rec && èSeiTu(rec.nome, get().utente?.username)) {
+          if (rec && èSeiTuRecord(rec, get().utente?.id)) {
             return 'Non puoi rimuovere te stesso dal Personale';
           }
         }
-        const inUso = lega.partite.some(p =>
-          p.giocatori.some(g => g.id_nome === idNome),
-        );
-        if (inUso) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
+        // M9 (audit 2026-07-03): copre TUTTI i contenitori (poker salvato/live
+        // + multigioco sessioni/partite/serate), non solo le partite poker —
+        // altrimenti restavano orfani in storico/classifiche multigioco.
+        if (giocatoreInUso(lega, idNome)) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
         saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
         return null;
       },
@@ -511,7 +555,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return 'Lega non trovata';
-        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.username);
+        const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.id);
         if (err) return err;
         const n = nuovoNome.trim();
         saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? { ...x, nome: n } : x)) });
@@ -601,13 +645,18 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
 
         if (!g.entrato) {
           // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC) +
-          // avvia il timer per-persona (R5: seduto_da_ms = ora).
+          // avvia il timer per-persona (R5: seduto_da_ms = ora). Se il
+          // giocatore era "uscito" (esceDalTavolo) e rientra, azzera lo stato
+          // di uscita (M11, audit 2026-07-03): altrimenti resta "fantasma" —
+          // ha un seat ma la UI lo lista ancora tra gli usciti con dati vecchi.
           const seduti = sess.giocatori.map(x => ({ id_nome: x.id_nome, seat: x.seat }));
           const nuoviSeduti = assegnaPostoIngresso(seduti, idNome);
           const nuovoSeat = nuoviSeduti.find(s => s.id_nome === idNome)?.seat ?? null;
           const nEntrati = sess.giocatori.filter(x => x.entrato).length + 1;
           const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now() } : x,
+            x.id_nome === idNome
+              ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now(), uscito: false, valore_uscita: undefined, ora_uscita: undefined }
+              : x,
           );
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(nEntrati) } });
         } else {
@@ -628,6 +677,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         const now = Date.now();
+        const v = Math.max(0, valore); // B05: niente valori negativi -> debito fantasma
         // Registra il valore d'uscita in fiches_finali: il settlement esistente
         // (calcolaSettlement) lo conteggia -> niente math duplicata (USCITA_CASH_SPEC §7).
         // Libera il posto e congela il timer per-persona.
@@ -637,8 +687,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           return {
             ...g,
             uscito: true,
-            valore_uscita: valore,
-            fiches_finali: valore,
+            valore_uscita: v,
+            fiches_finali: v,
             ora_uscita: nowHHMM(),
             seat: null,
             tempo_gioco_ms: frozen,
@@ -758,8 +808,9 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
+        const v = Math.max(0, val); // B05: niente fiche negative -> debito fantasma
         const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, fiches_finali: val } : g,
+          g.id_nome === idNome ? { ...g, fiches_finali: v } : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
@@ -767,15 +818,15 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       addGiocatoreSessione: (legaId, nome) => {
         const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return 'Sessione non trovata';
+        if (!lega?.sessioneAttiva) return { ok: false, motivo: 'errore', messaggio: 'Sessione non trovata' };
         const sess = lega.sessioneAttiva;
         const inSess = new Set(sess.giocatori.map(g => g.id_nome));
         const n = nome.trim();
-        if (!n) return 'Inserisci un nome';
+        if (!n) return { ok: false, motivo: 'errore', messaggio: 'Inserisci un nome' };
         let nomi = [...lega.nomi];
         let _nid = lega._nid;
         let existing = nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
-        if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return null; }
+        if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return { ok: false, motivo: 'gia-in-sessione' }; }
         if (!existing) {
           existing = { id: _nid++, nome: n };
           nomi = [...nomi, existing];
@@ -783,7 +834,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
         saveLega({ ...lega, nomi, _nid, sessioneAttiva: { ...sess, giocatori } });
         toast(`${n} aggiunto alla serata`);
-        return null;
+        return { ok: true, idNome: existing.id };
       },
 
       rimuoviGiocatoreSessione: (legaId, idNome) => {
@@ -879,17 +930,15 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         }
 
         // Aggiunge alla sessione (e alla rubrica se il nome è nuovo)
-        const err = get().addGiocatoreSessione(legaId, n);
-        if (err) { toast(err); return; }
+        const res = get().addGiocatoreSessione(legaId, n);
+        if (!res.ok) { if (res.motivo === 'errore') toast(res.messaggio); return; }
 
-        // Rilegge la lega aggiornata e fa entrare il nuovo giocatore
+        // Fa entrare subito il giocatore APPENA aggiunto (per id_nome esatto,
+        // non ri-cercato per nome — B19, audit 2026-07-03)
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
-        if (!legaUpd?.sessioneAttiva) return;
-        const nomeTrovatoUpd = legaUpd.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
-        if (!nomeTrovatoUpd) return;
-        const nuovoG = legaUpd.sessioneAttiva.giocatori.find(g => g.id_nome === nomeTrovatoUpd.id);
+        const nuovoG = legaUpd?.sessioneAttiva?.giocatori.find(g => g.id_nome === res.idNome);
         if (!nuovoG || nuovoG.entrato) return;
-        get().toggleEntrato(legaId, nomeTrovatoUpd.id);
+        get().toggleEntrato(legaId, res.idNome);
       },
 
       /* ── Torneo live — timer & stato ── */
@@ -954,14 +1003,14 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         saveLega({ ...lega, sessioneAttiva: sess });
       },
 
+      // Conferma "sei sicuro" spostata in UI (Alert.alert, SubOrologio) — A1.
       avanzaLivelloManuale: (legaId) => {
-        if (!confirm('Passare al livello successivo?')) return;
         get().avanzaLivelloAuto(legaId);
         get().toast('Livello successivo');
       },
 
+      // Conferma "sei sicuro" spostata in UI (Alert.alert, SubOrologio) — A1.
       stopTorneo: (legaId) => {
-        if (!confirm('Concludere il torneo? Lo stato verrà bloccato e potrai chiudere la serata.')) return;
         const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
@@ -1009,14 +1058,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           toast('Late reg chiusa — non puoi aggiungere altri giocatori');
           return null;
         }
-        const err = get().addGiocatoreSessione(legaId, nome);
-        if (err) return err;
-        // Rilegge la lega aggiornata per assegnare il posto
+        const res = get().addGiocatoreSessione(legaId, nome);
+        if (!res.ok) return res.motivo === 'errore' ? res.messaggio : null;
+        // Rilegge la lega aggiornata e assegna il posto al giocatore APPENA
+        // aggiunto, per id_nome esatto — non "l'ultimo dell'array" (B19, audit
+        // 2026-07-03): su un no-op quel giocatore poteva essere un altro.
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
         if (!legaUpd?.sessioneAttiva) return null;
         const sessUpd = legaUpd.sessioneAttiva;
-        const last = sessUpd.giocatori[sessUpd.giocatori.length - 1];
-        if (last && !last.seat) {
+        const target = sessUpd.giocatori.find(g => g.id_nome === res.idNome);
+        if (target && !target.seat) {
           const used = new Set(
             sessUpd.giocatori
               .filter(g => g.seat)
@@ -1027,8 +1078,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           outer: for (let t = 1; t <= numT + 1; t++) {
             for (let p = 1; p <= 9; p++) {
               if (!used.has(`T${t}P${p}`)) {
-                const giocatori = sessUpd.giocatori.map((g, i) =>
-                  i === sessUpd.giocatori.length - 1
+                const giocatori = sessUpd.giocatori.map(g =>
+                  g.id_nome === res.idNome
                     ? { ...g, seat: { tavolo: t, posto: p } }
                     : g,
                 );
@@ -1251,32 +1302,41 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         return true;
       },
 
-      apriChiusuraTorneo: (legaId) => {
-        const { db, saveLega, toast, setSettlement } = get();
+      apriChiusuraTorneo: (legaId, forzaVivi) => {
+        const { db, setSettlement } = get();
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return false;
+        if (!lega?.sessioneAttiva) return { ok: false, motivo: 'sessione-assente' };
 
         /* Lavoriamo su una copia mutabile della sessione */
         const sess = JSON.parse(JSON.stringify(lega.sessioneAttiva)) as Sessione;
         const entrati = sess.giocatori.filter(g => g.entrato);
         if (entrati.length < 2) {
-          toast('Almeno 2 giocatori devono essere entrati');
-          return false;
+          return { ok: false, motivo: 'pochi-giocatori' };
         }
 
-        /* Forza consolidamento premi */
-        if (!sess.premi_consolidati) {
-          sess.premi = calcolaPremi(calcolaMontepremi(sess), entrati.length);
+        /* Consolida i premi sul montepremi ATTUALE, o RI-consolida se diverge
+           da quello congelato (A2): l'add-on non ha un gate di livello come il
+           rebuy, quindi può essere preso dopo che premi_consolidati è già
+           true (timing normale nel poker) — senza questo ricalcolo il monte
+           premi resterebbe congelato su un totale più piccolo di quello
+           realmente dovuto dai giocatori. Tolleranza > il normale
+           arrotondamento per-posizione di calcolaPremi (pochi centesimi). */
+        const montepremiOra = calcolaMontepremi(sess);
+        const montepremiCongelato = (sess.premi ?? []).reduce((a, p) => a + p.importo, 0);
+        if (!sess.premi_consolidati || Math.abs(montepremiOra - montepremiCongelato) > 0.05) {
+          sess.premi = calcolaPremi(montepremiOra, entrati.length);
           sess.premi_consolidati = true;
         }
 
-        /* Assegna posizioni ai vivi */
+        /* Assegna posizioni ai vivi. Se sono in più di uno, serve una conferma
+           esplicita dell'utente (A1 — lo store non chiede più da solo con
+           confirm(): la UI mostra l'Alert e ri-chiama con forzaVivi=true). */
         const vivi = entrati.filter(g => !g.eliminato);
         if (vivi.length > 1) {
-          const n = lega.nomi.find(nm => nm.id === vivi[0]?.id_nome)?.nome ?? '?';
-          if (!confirm(
-            `Ci sono ancora ${vivi.length} giocatori in gioco.\n\nProcedendo, ${n} verrà assegnato al 1° posto, gli altri a seguire. Vuoi continuare?\n(Puoi prima eliminare i giocatori per scegliere l'ordine corretto).`
-          )) return false;
+          if (!forzaVivi) {
+            const n = lega.nomi.find(nm => nm.id === vivi[0]?.id_nome)?.nome ?? '?';
+            return { ok: false, motivo: 'vivi-multipli', count: vivi.length, primoNome: n };
+          }
           vivi.forEach((g, i) => { if (!g.posizione_finale) g.posizione_finale = i + 1; });
         } else if (vivi.length === 1 && vivi[0] && !vivi[0].posizione_finale) {
           vivi[0].posizione_finale = 1;
@@ -1284,14 +1344,19 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         let nextPos = entrati.length;
         entrati.forEach(g => { if (!g.posizione_finale) g.posizione_finale = nextPos--; });
 
-        /* Salva posizioni aggiornate */
-        saveLega({ ...lega, sessioneAttiva: sess });
+        /* Le posizioni (anche quelle auto-assegnate/provvisorie qui sopra)
+           restano SOLO nella copia locale `sess`, usata per costruire il
+           settlement qui sotto — NON si persistono su `lega.sessioneAttiva`
+           (M10, audit 2026-07-03): se l'utente torna al live invece di
+           confermare la chiusura, la sessione live deve restare quella VERA,
+           non quella con le posizioni provvisorie. Il salvataggio reale
+           avviene in `confermaChiusura`, che sostituisce `sessioneAttiva`. */
 
         /* Costruisci entrati per settlement */
         const arr: SettlementEntrato[] = entrati.map(g => {
           const ricarTot  = (g.rebuys ?? []).reduce((a, r) => a + r.importo, 0);
           const ricarPaid = (g.rebuys ?? []).reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
-          const addOnAmt  = (g.add_on_fatto && sess.add_on) ? sess.add_on.prezzo : 0;
+          const addOnAmt  = (g.add_on_fatto && sess.add_on?.abilitato) ? sess.add_on.prezzo : 0; // B08
           const addOnPaid = (g.add_on_fatto && g.add_on_pagato) ? (sess.add_on?.prezzo ?? 0) : 0;
           const contributo_dovuto  = sess.buy_in + ricarTot + addOnAmt;
           const contributo_pagato  = (g.buy_in_pagato ? sess.buy_in : 0) + ricarPaid + addOnPaid;
@@ -1324,7 +1389,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
 
         setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arrComp, losers, winners, neutri, allocazioni });
         set({ serataView: 'chiusura' });
-        return true;
+        return { ok: true };
       },
 
       setAllocazione: (legaId, loserId, winnerId, amount) => {
@@ -1370,11 +1435,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         setSettlement({ ...settlement, trasferimentiOverride: current.filter((_, i) => i !== idx) });
       },
 
-      confermaChiusura: (legaId, oraFine) => {
+      confermaChiusura: (legaId, oraFine, force) => {
         const { db, saveLega, settlement, setSettlement, toast } = get();
-        if (!settlement) return;
+        if (!settlement) return { ok: false, motivo: 'nessun-settlement' };
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega) return;
+        if (!lega) return { ok: false, motivo: 'lega-assente' };
 
         const salvaPartita = (partita: Partita) => {
           const serate_bg = [...(lega.serate_bg ?? [])];
@@ -1393,12 +1458,18 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           const trasf: Trasferimento[] = settlement.trasferimentiOverride ?? cr.trasferimenti;
 
           /* Check bilanciamento (non bloccante) */
-          const sbilancio = Math.abs(cr.giocatori.reduce((a, g) => a + g.netto, 0));
+          const sbilancioFiches = Math.abs(cr.giocatori.reduce((a, g) => a + g.netto, 0));
           let warning = '';
-          if (sbilancio > 0.01) {
-            warning = `Sbilancio globale fiches: €${sbilancio.toFixed(2).replace('.', ',')}\n(le fiches non tornano al totale stake)\n\n`;
+          if (sbilancioFiches > 0.01) {
+            warning += `Sbilancio globale fiches: €${sbilancioFiches.toFixed(2).replace('.', ',')}\n(le fiches non tornano al totale stake)\n\n`;
           }
-          if (warning && !confirm(`${warning}Salvare comunque?`)) return;
+          // B07 (audit 2026-07-03): debito residuo che l'algoritmo di settlement
+          // non è riuscito ad abbinare a un creditore (di solito coincide col
+          // caso sopra, ma è un segnale distinto: lo esponiamo comunque).
+          if (cr.sbilancio > 0.005) {
+            warning += `Debito non abbinato: €${cr.sbilancio.toFixed(2).replace('.', ',')}\n(qualcuno resta senza una controparte per il pagamento)\n\n`;
+          }
+          if (warning && !force) return { ok: false, motivo: 'warning', messaggio: `${warning}Salvare comunque?` };
 
           /* Costruisci GiocatorePartita[] */
           const giocatori: GiocatorePartita[] = cr.giocatori.map(gc => {
@@ -1449,7 +1520,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             modalita: sa.modalita, buy_in: sa.buy_in,
             giocatori, settlements,
           });
-          return;
+          return { ok: true };
         }
 
         /* ── TORNEO (vecchio modello, invariato) ── */
@@ -1463,20 +1534,23 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             warning += `• ${nome}: allocati €${tot.toFixed(2).replace('.', ',')} su €${debito.toFixed(2).replace('.', ',')}\n`;
           }
         });
-        if (warning && !confirm(`Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?`)) return;
+        if (warning && !force) return { ok: false, motivo: 'warning', messaggio: `Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?` };
 
         const giocatori: GiocatorePartita[] = settlement.entrati.map(c => {
           const isDebtor = c.contributo_residuo > 0.005;
           const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
             ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
             : [];
-          const pagamenti_ricevuti: PagamentoRicevuto[] = c.netto > 0.005
-            ? settlement.losers.flatMap(l =>
-                (settlement.allocazioni[l.id_nome] ?? [])
-                  .filter(a => a.to === c.id_nome)
-                  .map(a => ({ from: l.id_nome, amount: a.amount }))
-              )
-            : [];
+          // B04 (audit 2026-07-03): niente gate su c.netto (dovuto-vs-premio
+          // teorico) — un giocatore può ricevere allocazioni reali anche con
+          // netto <= 0 (es. molti rebuy che pesano più del premio vinto).
+          // Costruito direttamente dal flusso delle allocazioni: se nessun
+          // loser gli ha allocato nulla, il risultato è comunque [].
+          const pagamenti_ricevuti: PagamentoRicevuto[] = settlement.losers.flatMap(l =>
+            (settlement.allocazioni[l.id_nome] ?? [])
+              .filter(a => a.to === c.id_nome)
+              .map(a => ({ from: l.id_nome, amount: a.amount }))
+          );
           return {
             id_nome:             c.id_nome,
             entrate:             sa.buy_in,
@@ -1521,6 +1595,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
         });
+        return { ok: true };
       },
 
       /* ══════════════════════════════════════════════════════
@@ -1671,8 +1746,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         db.leghe.forEach(lega => {
           let dirty = false;
-          migrateSessione(lega.sessioneAttiva);
-          (lega.serate_bg ?? []).forEach(s => migrateSessione(s));
+          // migrateSessione muta in place (retrocompat ricariche legacy): non
+          // sappiamo a buon mercato se ha cambiato qualcosa, quindi se c'è una
+          // sessione da processare la persistiamo sempre (idempotente, costa
+          // poco al boot) — altrimenti la mutazione non veniva mai salvata né
+          // notificava i subscriber (B21, audit 2026-07-03).
+          if (lega.sessioneAttiva) { migrateSessione(lega.sessioneAttiva); dirty = true; }
+          if ((lega.serate_bg ?? []).length) {
+            lega.serate_bg.forEach(s => migrateSessione(s));
+            dirty = true;
+          }
           (lega.partite ?? []).forEach(p => {
             if (!p.settlements) { migratePartita(p); dirty = true; }
           });

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { euroSigned, èSeiTu, type Lega } from '@whos-the-boss/core';
+import { euroSigned, èSeiTuRecord, type Lega } from '@whos-the-boss/core';
 
 import { GameIcon, IconChevronRight, IconTrophy } from '@/components/icons';
 import { Button, Card, EmptyState } from '@/components/ui';
@@ -11,8 +11,8 @@ import { useTheme } from '@/theme/ThemeContext';
 
 /* R1.4 — Le tue leghe (port di ListaLeghe web). Lista dallo store + stats
    personali (rendimento/vittorie) per lega; tap apre la lega. */
-function statsUtente(lega: Lega, username?: string) {
-  const meId = lega.nomi.find((n) => èSeiTu(n.nome, username))?.id;
+function statsUtente(lega: Lega, accountId?: string) {
+  const meId = lega.nomi.find((n) => èSeiTuRecord(n, accountId))?.id;
   if (meId === undefined) return { rendimento: 0, vittorie: 0 };
   let rendimento = 0;
   let vittorie = 0;
@@ -56,7 +56,7 @@ export default function LegheScreen() {
             {leghe.map((lega) => {
               const np = lega.nomi.length;
               const ng = lega.partite.length;
-              const { rendimento, vittorie } = statsUtente(lega, utente?.username);
+              const { rendimento, vittorie } = statsUtente(lega, utente?.id);
               const rendColor = rendimento > 0 ? t.ok : rendimento < 0 ? t.danger : t.textMuted;
               const preview =
                 lega.nomi.slice(0, 3).map((n) => n.nome).join(', ') +

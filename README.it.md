@@ -5,8 +5,9 @@
 
 🇬🇧 [Read in English](README.md)
 
-**Stato:** 🚧 In sviluppo attivo — **pre-backend** (gira in locale, login demo, i dati
-restano nel tuo browser). Costruita e testata allo scoperto.
+**Stato:** 🚧 In sviluppo attivo — app React Native (Expo) con **auth reale**
+(Supabase, email + password); i dati di gioco restano sul dispositivo per ora, il sync
+cloud (multi-dispositivo) è in corso. Costruita e testata allo scoperto.
 
 ---
 
@@ -24,8 +25,8 @@ Apri l'app, scegli un gioco, segni le partite, guardi le classifiche. È tutto q
   (chi deve cosa a chi) e un tavolo interattivo (posti automatici, spostamenti, riequilibrio).
 - **Classifiche** — per gioco, più una vista personale cross-contesto: quanto sei bravo a un
   gioco, tra le tue partite da solo **e** in tutte le tue leghe.
-- **Offline-first** — tutto in `localStorage`. Un backend vero (account, multi-dispositivo,
-  ruoli) è in programma.
+- **Dati sul dispositivo, account veri** — l'auth è reale (Supabase); i dati di gioco restano
+  sul dispositivo (AsyncStorage) per ora. Sync cloud (multi-dispositivo) e ruoli sono in corso.
 
 ## Screenshot
 
@@ -63,22 +64,24 @@ questo il processo fa parte del repo.
 
 | Livello | Tecnologia |
 |---|---|
-| Build | Vite 6 |
+| App | Expo (React Native) + Expo Router |
 | UI | React 19 + TypeScript 5.8 (strict) |
-| Stato | Zustand 5 (persist) |
-| Routing | React Router 7 |
-| Test | Vitest |
-| Stile | CSS puro (design token / variabili CSS) |
-| Persistenza | localStorage (backend Supabase in programma) |
+| Stato | Zustand 5 (persist → AsyncStorage) |
+| Backend | Supabase — Auth (email+password) + Postgres (schema-as-code, RLS) |
+| Test | Vitest (logica condivisa, 202 test) |
+| Stile | `StyleSheet` React Native (design token, tema scuro + accento per gioco) |
+| Monorepo | pnpm workspaces + Turborepo (`packages/core` logica, `packages/state` store) |
 
 ## Avvio in locale
 
 ```bash
 pnpm install
-pnpm dev:web     # http://localhost:5173
+pnpm dev:mobile  # server Expo (apri in Expo Go)
 ```
 
-Login demo (qualsiasi nome) — i dati restano nel tuo browser.
+Auth reale (Supabase, email + password); i dati di gioco restano sul dispositivo per ora (sync cloud in corso).
+
+> La versione web originale (Vite + React) è archiviata al tag git `archive/web-frozen`, da quando il progetto è passato del tutto a React Native.
 
 ## Licenza
 

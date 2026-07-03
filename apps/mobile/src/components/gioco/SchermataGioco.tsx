@@ -44,7 +44,7 @@ export default function SchermataGioco({ legaId, giocoId }: Props) {
   const nomeGioco = gioco?.nome ?? 'Gioco';
   const icona = gioco?.icona ?? 'mazzo';
   const nome = (id: number) => lega.nomi.find((n) => n.id === id)?.nome ?? '?';
-  const bloccati = idBloccatiInclusi(lega, utente?.username);
+  const bloccati = idBloccatiInclusi(lega, utente?.id);
 
   const corrente = (lega.sessioniGioco ?? [])
     .filter((s) => s.giocoId === giocoId && s.stato !== 'chiusa')

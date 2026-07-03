@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { èSeiTu, type Lega } from '@whos-the-boss/core';
+import { èSeiTuRecord, type Lega } from '@whos-the-boss/core';
 
 import { IconCheck, IconClose, IconEdit, IconTrash, IconUser } from '@/components/icons';
 import { Button, Card, EmptyState } from '@/components/ui';
@@ -74,7 +74,7 @@ export default function LegaGiocatori({ lega }: { lega: Lega }) {
         ) : (
           lega.nomi.map((nm) => {
             const np = nPartite(nm.id);
-            const seiTu = èSeiTu(nm.nome, utente?.username);
+            const seiTu = èSeiTuRecord(nm, utente?.id);
             const bloccato = lega.personale && seiTu;
             const inEdit = editId === nm.id;
 

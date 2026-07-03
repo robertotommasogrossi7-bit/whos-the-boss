@@ -6,7 +6,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "dev:web": "pnpm --filter @whos-the-boss/web dev"
+    "typecheck": "tsc -p apps/mobile/tsconfig.json --noEmit",
+    "dev:mobile": "pnpm --filter @whos-the-boss/mobile start"
   },
   "devDependencies": {
     "turbo": "^2.3.0"

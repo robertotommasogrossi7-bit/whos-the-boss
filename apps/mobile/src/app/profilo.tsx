@@ -29,8 +29,11 @@ export default function ProfiloScreen() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.wrap}>
       <View style={styles.head}>
-        <Avatar nome={utente?.username} size="lg" />
-        <Text style={[styles.name, { color: t.text }]}>{utente?.username ?? 'Utente'}</Text>
+        <Avatar nome={utente?.displayName ?? utente?.username} size="lg" />
+        <Text style={[styles.name, { color: t.text }]}>{utente?.displayName ?? utente?.username ?? 'Utente'}</Text>
+        {utente?.displayName && utente?.username
+          ? <Text style={[styles.handle, { color: t.textMuted }]}>@{utente.username}</Text>
+          : null}
         {utente?.email ? <Text style={[styles.email, { color: t.textMuted }]}>{utente.email}</Text> : null}
       </View>
 
@@ -76,6 +79,7 @@ const styles = StyleSheet.create({
   wrap: { padding: 16, gap: 16 },
   head: { alignItems: 'center', gap: 8, paddingVertical: 12 },
   name: { fontSize: 20, fontWeight: '800' },
+  handle: { fontSize: 14, fontWeight: '600' },
   email: { fontSize: 14 },
   card: { gap: 10 },
   section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },

@@ -540,6 +540,154 @@
 - **Nord per R5 (tavolo live)**: adottare le feature best-in-class dei poker-timer (clock grande,
   editor struttura blind, seating, payout; più avanti cast a TV/secondo schermo).
 
+## 2026-07-01 (c) — R6 identità reale COSTRUITA (profiles + username univoco + deep link + "sei tu" per account)
+
+> Blocco 2 (backend) aperto. R6 costruito a micro-step su `rn-r6-identita` (6.1→6.5), tutto verde
+> headless (185 core + web/state test + mobile export/tsc). Ricerca-prima-della-spec rispettata:
+> Discord/Instagram (two-tier), doc Supabase (profiles/trigger, native deep linking).
+
+- **Two-tier identità (come Discord/Instagram)**: `username` = **handle univoco** (minuscole,
+  `[a-z0-9._]`, 3–20) per identità/ricerca/amici; `display_name` = nome visualizzato libero
+  (opzionale). Il soprannome per-lega resta (override locale). Profilo mostra display + `@handle`.
+- **Univocità garantita dal DB**: tabella `profiles` (unique index su `lower(username)`) + trigger
+  `handle_new_user` (SECURITY DEFINER, legge i metadata del signUp) + RPC `username_available` per
+  il pre-check. Verità = DB (race-safe); il pre-check è solo UX. Migration **versionata** in
+  `supabase/migrations/` (showcase). Azioni dashboard utente: applicare migration + Redirect URLs.
+- **"sei tu" ancorato all'ACCOUNT, non al nome (R6.5)** — *pulizia/lezione richiesta dall'utente*:
+  il match-per-nome `èSeiTu` era **scaffold pre-backend**. Ora `NomeGiocatore.accountId` +
+  `èSeiTuRecord(rec, accountId)` puro. `assicuraGiocatorePersonale` prende lo `User`, timbra il
+  record dell'account, **migra una volta** il vecchio record creato per nome, non ruba record di
+  altri account (multi-login). **`èSeiTu(nome)` RIMOSSA da core** (orfana dopo lo swap): niente
+  codice morto. `normalizzaNome` resta (match/dedup guest + filtri classifica/storico).
+- **Deep link conferma email (R2.4, CHIUSO) SENZA nuove dipendenze**: parser puro `parseAuthRedirect`
+  in core (token/errore dal fragment) + hook `useDeepLinkAuth` (expo-linking, già presente) →
+  `supabase.auth.setSession`. `register` passa `emailRedirectTo = whostheboss://auth-callback`.
+  Scartato `expo-auth-session` (anti-bloat, coerente col debito dep R0.3).
+- **Contratto `register` esteso con `displayName?` opzionale**: la web congelata resta compatibile
+  senza modifiche (parametro opzionale). Web toccata solo per coerenza identità (2 file → `èSeiTuRecord`).
+- **`accountId` in R6 solo sul record Personale "sei tu"**; il binding su TUTTI i `giocatori`
+  (tabella cloud) resta a **R7 sync** (dove nasce lato server). Deciso col piano 2026-07-01.
+
+## 2026-07-01 (d) — RED TEAM senior + linea di produzione riordinata (de-risk first) — ⭐ lezione
+
+> L'utente ha chiesto un red team "senior" su tutto il processo/risultato e di **riordinare la linea
+> di produzione** includendo tutte le critiche. Registro completo in `_processo/REVISIONE-ESTERNA.md`
+> (finding F1–F14 con severità e "dove si risolve"). Migration R6 applicata dall'utente + Redirect URL
+> `whostheboss://**` configurato (F2/F3 mitigati; resta la prova signup su device = R6.V).
+
+- **Lezione di costruzione (per SideKick)**: dopo 304 commit e un pivot (web→RN) l'app non era mai
+  girata su un device reale, senza CI, senza recupero password, senza test d'integrazione — mentre si
+  costruiva backend. **Principio adottato: DE-RISK prima di aggiungere superficie.** Prima far
+  funzionare/proteggere ciò che c'è (device, CI, auth completa, test dello store), poi il resto.
+- **Ordine autorevole in `CONTESTO.md`** (sezione "LINEA DI PRODUZIONE riordinata"): TRACK 0
+  infrastruttura (I1 CI, I2 CI migrations) → **R6 chiusura vera** (R6.6 recupero password · R6.7
+  hardening · R6.8 test store · **R6.V verifica device = GATE** → merge) → R7/R8/R9 backend →
+  H1–H4 hardening pre-pubblicazione (crash reporting, SMTP, privacy/ToS, debito) → R12 restyle → RP.
+- **Nessun codice toccato in questo passo**: solo registrazione critiche + riordino (richiesta esplicita
+  "prima segnati tutte le critiche e crea la linea"). Esecuzione dal prossimo passo (consiglio: I1 CI).
+
+## 2026-07-01 (e) — RED TEAM ESTERNO integrato + reframe "serio = invisibile" — ⭐ lezione
+
+> Red team esterno (chat base non contaminata) su flusso + piano. Finding E1–E11 in
+> `REVISIONE-ESTERNA.md`. Verdetto: CAMBIA (scheletro sano, sequenza sbagliata, peso morto).
+> Concessione: il mio piano mascherava "l'app non è MAI stata eseguita" dietro il gate R6.V
+> (razionalizzazione) → **owned**.
+
+- **Steer utente**: feature + restyle **ultimissimi** (li vuole, ma dopo tutto il resto); "apriamola per
+  vedere se va" ma **il feedback amici serve dopo**; intanto **le cose importanti per un'app "seria"**.
+- **Reframe adottato**: "serio" = **qualità invisibile da senior** (correttezza, sicurezza, verifica,
+  test, doc) su **ciò che ESISTE**, NON più superficie/feature. (Music-marketplace review: non ti
+  comprano l'app, ti "comprano" te → conta l'invisibile + saper **difendere le decisioni, non il codice**.)
+- **Verificato dal codice** (il senior aveva detto di controllare): soldi = float + round-a-centesimi
+  (`r100`) → difendibile, non landmine; **nessun segreto hardcoded**; RLS esiste ma `select` pubblico.
+- **Concessioni tecniche adottate** (BLOCCO A/B in `REVISIONE-ESTERNA`): profili **RLS privati**;
+  **trigger** a prova di footgun + mapping stretto; **audit RLS**; deep link **verificato su device**
+  (swap a `expo-linking` se serve); recupero password **rimandato** (local-only = ri-signup gratis);
+  **Supabase CLI + README** al posto dello step manuale (niente CI-migration); CI ridotta a test+tsc.
+- **DECISIONI PRESE (utente, risposte 2026-07-01 (e))**:
+  1. **Web congelata → RIMOSSA** da `main` (tag `archive/web-frozen`, recuperabile). Toglie la tassa
+     di compilazione e la confusione sul repo pubblico (E8). ✅ fatto.
+  2. **R7/R8/R9 NON congelati → si prosegue** — ma **marcato come SCELTA DI STUDIO** (per i senior, non
+     è una svista): questa app = *costruzione COMPLETA + un unico test gigante su device ALLA FINE*;
+     **All for Music** = APK incrementale con test a ogni tot. L'utente confronta i due approcci via
+     **SideKick**. ⇒ **tracciare token + tempo** in `_processo/METRICHE.md` (istruzione permanente).
+  3. **Soldi → tenere float + arrotondamento `r100` e DOCUMENTARE** (niente migrazione a interi ora).
+- **PRIMA MOSSA rivista**: la "V0 device ORA" è **annullata** dalla scelta di studio (il test è alla
+  fine). Si prosegue la costruzione: **R6 hardening applicato** (profili privati + trigger footgun,
+  migration `…140000`), poi **R7 sync** (mini-spec prima — backend/dati = "design prima del codice").
+
+## 2026-07-01 (f) — R7 sync: scelto RELAZIONALE + mappa viva (design prima del codice)
+
+> Ricerca fatta (local-first RN+Supabase, LWW, import one-shot) + review del modello dati reale.
+> Scelta utente: **relazionale normalizzato** (non JSONB-per-lega) — "programmato con calma, review di
+> tutto il codice, un file con tutte le relazioni, non perdere niente, chiaro per poterne parlare".
+> Mappa completa in **`_processo/R7_SCHEMA.md`** (documento VIVO) + diagramma ER.
+
+- **Scope R7** = sync dei **dati propri** (le tue leghe) sul **tuo account, multi-device**. Condivisione
+  tra account + ruoli = **R8** (lì servono `lega_membri` + RLS per-membro).
+- **Local-first PRESERVATO + layer di sync** (push/pull, **LWW su `updated_at`**, tombstone `deleted_at`).
+  **NON online-required** → *course-correction di `BACKEND_SPEC`*: diceva online-required "perché è una
+  demo", ma R1–R5 l'hanno resa un vero local-first offline; online-required riscriverebbe ~50 azioni e
+  toglierebbe l'offline. (Lezione per SideKick: le assunzioni dello spec vanno riverificate quando l'app cambia.)
+- **Stato LIVE non sincronizzato in R7** (`sessioneAttiva`/`serate_bg`, timer/seat/livelli): resta locale,
+  al **realtime R9**. Si sincronizza solo lo **storico salvato** (Partite chiuse, SessioniGioco). Grande de-risk.
+- **Tabelle**: profiles(R6) · leghe · **giocatori (perno: risolve `id_nome`)** · giochi_lega · partite_poker ·
+  partita_poker_giocatori · **settlements (= i debiti)** · serate · sessioni_gioco · partite_gioco + ponti
+  partecipanti/vincitori. **Soldi = `numeric(10,2)`**. Ogni riga tiene `local_id` (mapping int→uuid) + `updated_at`.
+- **Decisioni proposte (D1–D8 in `R7_SCHEMA.md`)**, aperte per l'utente: D1 live-locale, D2 array-foglia JSONB
+  (ricariche/pagamenti), D3 ponti per partecipanti/vincitori, D5 preferenze GameBar (locali vs cloud).
+- **Sotto-fasi**: R7.1 schema SQL+RLS+diagramma → R7.2 layer sync (test-first) → R7.3 import one-shot
+  (backup-first) → R7.4 aggancio store → R7.V verifica nel grande test finale. **Nessun codice prima dell'OK.**
+
+## 2026-07-01 (g) — R7 schema v2 post red-team esterno + modello ospiti (utente) — ⭐
+
+> Red team esterno (data-engineer) sullo schema vs app: verdetto CAMBIA (giunti portanti da rifare).
+> Verificato sul codice: leghe non cancellabili, partita salvata immutabile, eliminaGiocatore blocca
+> con storico poker. Dettaglio completo in `R7_SCHEMA.md` sez. v2. Concedo e adotto.
+
+- **Identità/ID**: **UUID client-side additivo** (`uid` per entità) = identità cloud; **gli id interi
+  locali restano** (niente refactor delle 185 pure) come handle, traduzione int↔uid solo al confine sync;
+  `local_id` mai chiave di sync → **uccide la collisione multi-device** del red team. "sei tu" **derivato**
+  per-viewer (già R6.5), mai salvato.
+- **Modello OSPITI (scelta utente)**: ogni ospite ha `created_by_account_id` (gestore, "vive nel suo
+  profilo"); creabile anche in sessione; aggiungibile a una lega da chi ha il potere (salvato su lega +
+  account gestore = base); **claim** delle partite di un ospite col **consenso del gestore** → set
+  `account_id` (flusso R8). Cross-lega ospiti = via claim (R8); hook additivi → R8 non distruttivo.
+- **Soldi**: **movimenti append-only** `poker_movimenti` (non JSONB) — preserva ricariche/pagamenti già
+  salvati, constraint per-elemento, pronto per R9. **Unità dichiarate** per colonna (euro vs chip separati).
+  **Riconciliazione all'import** (settlement→0), su mismatch flagga (non blocca).
+- **Sync**: `updated_at` **server-authoritative** (trigger `now()`, mai clock client); **import ≠ sync**
+  (import one-shot guardato da `profiles.imported_at`, RPC transazionale, poi off); FK **DEFERRABLE** +
+  dependency-order; **soft-delete** con tombstone-cascade app-side + classifiche tombstone/ancestor-aware.
+- **Fallback difensivi (richiesta utente)**: referenza orfana → "Sconosciuto"; import non-riconciliato →
+  importa+flag+quarantena; FK-violation → coda pending+retry; null → default sicuri; idempotenza per uid.
+- **Prossimo**: finalizzare v2 con l'utente → **R7.1 SQL**. Ancora nessun codice.
+
+## 2026-07-03 (h) — AUDIT multi-agente completato + LINEA v3 (bonifica prima di R7.2) — ⭐
+
+> Audit "ALTO" (67 agenti, ~2,6M token; 6 revisori → ~50 verifiche adversariali → 4 ricerche online →
+> sintesi) eseguito in 2 sessioni: **Fable** (revisori+ricerche+parte verifiche; interrotto per limite
+> contesto 5h piano Max) → **resume su Opus** (cache: zero rilavorazione; verifiche restanti+sintesi).
+> Metodo aggiornato in `~/.claude/CLAUDE.md` (sez. «Audit multi-agente», livelli ALTO/MEDIO/BASSO).
+
+- **Esito**: **45 finding confermati / 11 confutati** → registro indicizzato **`AUDIT_R6_R7.md`**
+  (ID stabili A/M/B + fase assegnata + checkbox). 3 ALTA che rompono flussi vivi: `confirm()` nello
+  store (crash su Hermes — conferma che "mai girata su device" era il rischio n.1), add-on post-
+  consolidamento (settlement torneo sbilanciato), SetupForm username→id (regressione R6.5: non puoi
+  includerti nel poker Personale). Regressione identità R6.5 = **causa radice** (nelle leghe normali
+  nessun record riceve `accountId`) con 4 sintomi.
+- **Ricerca online**: le scelte del sync (LWW server-side, tombstone, UUID client, import≠sync, parser
+  fragment-first col default implicit di supabase-js v2, ledger append-only) = **allineate** allo stato
+  dell'arte, con fonti; il protocollo coincide col plugin Supabase di Legend-State. Deviazioni piccole e
+  assorbite nelle fasi (initplan caching, TO authenticated, migration repair, flowType esplicito, UUIDv7).
+- **LINEA v3 in `CONTESTO.md`**: blocco **R6-B bonifica** (B1 ALTA → B2 identità → B3 store → B4 doc →
+  B5 SQL → B6 test soldi) **prima di R7.2**; a R7.2 kickoff le decisioni sync a verbale (storage
+  per-account, LWW per-riga, UUIDv7, retention tombstone). Feature+restyle restano ultimissimi (utente).
+- **Nota Fable vs Opus** (domanda utente): A/B naturale su un finding verificato da entrambi (doppia
+  verifica post-interruzione) → **stesso verdetto, stessa precisione di prove (file:riga)**. Differenza
+  osservata = **capacità/contesto, non qualità**: Fable-max ha esaurito le 5h con ~26 agenti; Opus ha
+  chiuso i restanti 41. Conferma la regola di metodo: audit ALTO su Opus, recap su Fable.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
