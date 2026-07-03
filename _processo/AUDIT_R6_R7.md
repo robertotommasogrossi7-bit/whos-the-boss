@@ -14,6 +14,13 @@ Zero catastrofi; 3 bug ALTA che rompono flussi reali oggi; le scelte architettur
 allineate allo stato dell'arte 2025-26; il debito più grosso è documentale (5 doc descrivono un mondo
 che non esiste più).
 
+## ✅ BLOCCO R6-B COMPLETATO (2026-07-03) — B1→B6, tutti chiusi
+Ogni finding ha una checkbox/commit qui sotto. Unica cosa **ancora pendente**: la migration SQL di B5
+(`20260703100000_r6b5_hardening.sql`) è **scritta e pushata ma non ancora applicata** in dashboard —
+non urgente, vedi `supabase/README.md` (inventario numerato, fonte di verità) e il promemoria in
+`CONTESTO.md`. A parte quello, il codice/test/doc del blocco R6-B sono tutti verdi e mergeabili.
+**Prossimo**: R7.2 (layer di sync), previo kickoff con le 4 decisioni a verbale (vedi LINEA v3).
+
 ---
 
 ## 🔴 ALTA — rompono flussi vivi (fase: R6-B1, subito)
@@ -74,14 +81,14 @@ che non esiste più).
 
 | ID | Cosa | Fix | Stato |
 |----|------|-----|-------|
-| **M4** | settlementTorneo: **debito residuo non allocabile perso in silenzio** (premi già pagati + loser moroso) | Ritorna `residuoNonAllocato` + mostra in UI + test "loser senza controparte" | ☐ |
-| **B02** | `calcolaPremi`: arrotondamenti per-premio → somma premi ≠ montepremi | Residuo al 1° posto (`montepremi − Σaltri`) | ☐ |
-| **B05** | Fiche negative non clampate → debito fantasma | `Math.max(0,…)` in aggiornaFiches/esceDalTavolo + difesa in settlement | ☐ |
-| **B07** | Cash sbilanciato: `mancanteP` residuo scartato senza traccia | Campo `sbilancio` nel `CashSettlementResult` | ☐ |
-| **B04** | Winner con netto negativo perde i `pagamenti_ricevuti` | Costruisci dai flussi delle allocazioni, senza gate sul netto | ☐ |
-| **B08** | Guardia morta `sess.add_on` (invece di `.abilitato`) nel montepremi | Usa `.abilitato` nei 3 punti | ☐ |
-| **B06** | `calc.ts` = unico file soldi **senza alcun test** | `calc.test.ts`: somma-premi==montepremi, soglie, consolidamento | ☐ |
-| **B00** | Greedy cash multi-debitore×multi-creditore mai esercitato | 2-3 test con split+centesimi + property-test invarianti | ☐ |
+| **M4** | settlementTorneo: **debito residuo non allocabile perso in silenzio** (premi già pagati + loser moroso) | Ritorna `residuoNonAllocato` + mostra in UI + test "loser senza controparte" | ✅ `f0412e6` (campo esposto+testato; UI già coperta da un controllo equivalente esistente in `confermaChiusura`, non duplicato) |
+| **B02** | `calcolaPremi`: arrotondamenti per-premio → somma premi ≠ montepremi | Residuo al 1° posto (`montepremi − Σaltri`) | ✅ `f0412e6` |
+| **B05** | Fiche negative non clampate → debito fantasma | `Math.max(0,…)` in aggiornaFiches/esceDalTavolo + difesa in settlement | ✅ `f0412e6` |
+| **B07** | Cash sbilanciato: `mancanteP` residuo scartato senza traccia | Campo `sbilancio` nel `CashSettlementResult` | ✅ `f0412e6` (wired nell'avviso esistente) |
+| **B04** | Winner con netto negativo perde i `pagamenti_ricevuti` | Costruisci dai flussi delle allocazioni, senza gate sul netto | ✅ `f0412e6` |
+| **B08** | Guardia morta `sess.add_on` (invece di `.abilitato`) nel montepremi | Usa `.abilitato` nei 3 punti | ✅ `f0412e6` (calc.ts×2 + store.ts×1) |
+| **B06** | `calc.ts` = unico file soldi **senza alcun test** | `calc.test.ts`: somma-premi==montepremi, soglie, consolidamento | ✅ `f0412e6` (nuovo file, 26 test) |
+| **B00** | Greedy cash multi-debitore×multi-creditore mai esercitato | 2-3 test con split+centesimi + property-test invarianti | ✅ `f0412e6` |
 
 ## 🟡 BASSA — rimandati a fasi già previste
 

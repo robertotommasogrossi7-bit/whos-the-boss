@@ -299,13 +299,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 > 📦 **Flusso esecutivo completo fino al Play Store** (Fatto · Manca per pubblicare · Definitiva):
 > **`_processo/STATO_PROGETTO.md`** — si aggiorna a fine di ogni passo grande.
 
-- **R6-B — BONIFICA AUDIT** (prima di R7.2, ordine di esecuzione):
-  - **R6-B1** fix 3 ALTA [S]: `confirm()` fuori dallo store (A1) · gate add-on post-consolidamento (A2) · SetupForm username→id (A3).
-  - **R6-B2** identità R6.5 alla radice [M]: `accountId` sul creatore in nuova-lega + migrazione claim-by-name (M7, risolve M6+B13) · 3 picker multigioco username→id (M5) · dedup displayName (M8).
-  - **R6-B3** store & auth [S/M]: orfani multigioco (M9) · posizioni provvisorie (M10) · rientro fantasma (M11) · updateEmail redirectTo (M13) · esiti discriminati/commenti (B19,B21,B22).
-  - **R6-B4** doc alla realtà [S]: R7_SCHEMA→SQL effettivo (M15, **prima di R7.2**) · banner SUPERATO su BACKEND_SPEC (M16) · README (M17) · CONTESTO §vecchi (M18) · MAPPA (B44) · nota Expo Go (B29).
-  - **R6-B5** hardening SQL [M]: migration forward (ON DELETE SET NULL M14 · WHEN distinct B31 · semantica poker_movimenti B32 · UNIQUE parziale B33 · (select auth.uid())+TO authenticated B34 · search_path B35) + `supabase migration repair` (history) + `flowType:'implicit'` esplicito + dedup deep link (B24).
-  - **R6-B6** rete test soldi [M]: calc.test + greedy invarianti + fix M4/B02/B05/B07/B04/B08.
+- **R6-B — BONIFICA AUDIT** ✅ **COMPLETATA** (B1→B6, 2026-07-03; unico residuo: applicare la migration
+  R6-B5 in dashboard quando comodo — non urgente, vedi `supabase/README.md`):
+  - **R6-B1** ✅ fix 3 ALTA: `confirm()` fuori dallo store (A1) · gate add-on post-consolidamento (A2) · SetupForm username→id (A3).
+  - **R6-B2** ✅ identità R6.5 alla radice: `accountId` sul creatore in nuova-lega + migrazione claim-by-name (M7, risolve M6+B13) · 3 picker multigioco username→id (M5) · dedup displayName (M8).
+  - **R6-B3** ✅ store & auth: orfani multigioco (M9) · posizioni provvisorie (M10) · rientro fantasma (M11) · updateEmail redirectTo (M13) · esiti discriminati/commenti (B19,B21,B22).
+  - **R6-B4** ✅ doc alla realtà: R7_SCHEMA→SQL effettivo (M15) · banner SUPERATO su BACKEND_SPEC (M16) · README (M17) · CONTESTO §vecchi (M18) · MAPPA (B44) · nota Expo Go (B29).
+  - **R6-B5** ✅ hardening SQL (scritto, **non ancora applicato**): ON DELETE SET NULL (M14) · trigger split B31/B35 · poker_movimenti append-only vero (B32) · UNIQUE parziale (B33) · RLS initplan+TO authenticated (B34) + flowType esplicito + dedup deep link (B24) + comandi migration repair (R-mig, azione utente).
+  - **R6-B6** ✅ rete test soldi: calc.test.ts nuovo (26 test) + greedy invarianti (B00) + fix M4/B02/B05/B07/B04/B08. **231 test core** (era 185 a inizio R6).
 - **R7.2 — layer di sync** (kickoff = decisioni a verbale: storage per-account M12 · LWW per-riga · UUIDv7 · retention tombstone) → **R7.3** import one-shot → **R7.4** aggancio store → poi **R8** ruoli/inviti → **R9** realtime.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
@@ -362,10 +363,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     giochi_lega` + `partite_poker/partita_poker_giocatori/poker_movimenti(append-only)/settlements` +
     `serate/sessioni_gioco/partite_gioco`+ponti. RLS owner-only, `updated_at` server-side. Design
     completo in `R7_SCHEMA.md`. Vedi `DECISIONI.md` 2026-07-01 (f)+(g)+(h).
-  - 🟢 **AUDIT multi-agente fatto** (67 agenti, 45 finding): registro **`AUDIT_R6_R7.md`**. **Bonifica
-    R6-B in corso** (vedi LINEA v3 sopra): **B1 ✅ B2 ✅ B3 ✅**, **B4 (doc) in corso** — B5 (SQL
-    hardening) e B6 (test soldi) restano prima di R7.2 e del merge in `main`.
-- **Prossimo**: chiudere **R6-B4/B5/B6**, poi **merge `rn-r6-identita`→`main`**, poi **R7.2 — layer di
+  - ✅ **AUDIT multi-agente fatto** (67 agenti, 45 finding): registro **`AUDIT_R6_R7.md`**. **Bonifica
+    R6-B COMPLETATA** (B1→B6 tutti ✅, vedi LINEA v3 sopra) — **231 test core**. Unico residuo: applicare
+    la migration SQL di B5 in dashboard (scritta, non urgente).
+- **Prossimo**: **merge `rn-r6-identita`→`main`**, poi **R7.2 — layer di
   sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
   record via claim). Il pezzo grosso.
   ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
