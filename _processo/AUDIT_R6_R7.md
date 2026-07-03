@@ -20,9 +20,9 @@ che non esiste più).
 
 | ID | Cosa | Dove | Fix | Stato |
 |----|------|------|-----|-------|
-| **A1** | `confirm()` browser-global in **6 azioni store** → `ReferenceError`/crash su RN-Hermes (annulla sessione, avanza livello, stop torneo, chiusure) | `packages/state/src/store.ts:411,958,964,1277,1401,1466` | Store puro senza global DOM: ritorna `{needsConfirm}` o param `force`; `Alert.alert` in UI. + test che vieta i global DOM nello store | ☐ |
-| **A2** | **Add-on dopo il consolidamento premi**: montepremi cresce ma `premi` è congelato → i vincitori reclamano più del piatto | `store.ts:1076-1092` (`torneoAddOn`) | Gate dopo `premi_consolidati` **oppure** ricalcolo premi in `apriChiusuraTorneo` se il montepremi diverge | ☐ |
-| **A3** | **Personale+poker: impossibile includerti** — `SetupForm` passa `username` a `idBloccatiInclusi` che da R6.5 vuole l'`accountId` | `apps/mobile/src/components/poker/SetupForm.tsx:60` | `idBloccatiInclusi(lega, utente?.id)` | ☐ |
+| **A1** | `confirm()` browser-global in **6 azioni store** → `ReferenceError`/crash su RN-Hermes (annulla sessione, avanza livello, stop torneo, chiusure) | `packages/state/src/store.ts:411,958,964,1277,1401,1466` | Store puro senza global DOM: ritorna `{needsConfirm}` o param `force`; `Alert.alert` in UI. + test che vieta i global DOM nello store | ✅ `2e00be7` |
+| **A2** | **Add-on dopo il consolidamento premi**: montepremi cresce ma `premi` è congelato → i vincitori reclamano più del piatto | `store.ts:1076-1092` (`torneoAddOn`) | Gate dopo `premi_consolidati` **oppure** ricalcolo premi in `apriChiusuraTorneo` se il montepremi diverge | ✅ `2e00be7` (ricalcolo in `apriChiusuraTorneo`, tolleranza 0.05) |
+| **A3** | **Personale+poker: impossibile includerti** — `SetupForm` passa `username` a `idBloccatiInclusi` che da R6.5 vuole l'`accountId` | `apps/mobile/src/components/poker/SetupForm.tsx:60` | `idBloccatiInclusi(lega, utente?.id)` | ✅ `2e00be7` |
 
 ## 🟠 MEDIA — identità R6.5 alla radice (fase: R6-B2)
 

@@ -29,6 +29,11 @@
 | Audit — lezione modelli | — | — | Qualità verifiche Fable≈Opus (A/B naturale su stesso finding: stesso verdetto+prove). Differenza = capacità contesto, non qualità → audit ALTO su Opus, recap su Fable (in metodo) |
 | Ricerca modelli/effort | workflow `wf_206d7abe` | ~5' | **5 agenti (4 Sonnet + 1 Opus) · 688.672 token** — verdetto: Sonnet/high per fix scoped, Opus/xhigh per delicato, mai max su task lunghi, ultracode solo audit. → regola nel metodo + dossier in SideKick `esperimenti/ricerca-modelli-effort-2026-07.md` |
 
+## R6-B — Bonifica audit (2026-07-03)
+| Blocco | Commit | Modello | Volume |
+|--------|--------|---------|--------|
+| R6-B1 — 3 fix ALTA | `2e00be7` | **Sonnet 5, effort high** (prima applicazione della regola "modello per passo") | A1 (confirm() rimosso da 6 azioni store, 2 nuovi tipi esito, 4 file UI aggiornati) · A2 (ri-consolidamento premi in apriChiusuraTorneo) · A3 (fix chip Personale) · +1 test nuovo (no-dom-globals). 6 file, +118/-37 righe. 185 core + 1 state verdi, typecheck+export ok |
+
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
 > dell'esperimento da valutare.
