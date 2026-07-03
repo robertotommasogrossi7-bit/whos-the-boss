@@ -79,6 +79,20 @@ interface UiState {
   gameBarPinned: boolean;    // gioco "fisso" (pin) — predisposizione
 }
 
+/* Esiti espliciti per le azioni "chiusura torneo" (R6-B1/A1): lo store è puro,
+   niente `confirm()` browser-global (crasha su RN/Hermes). Quando serve una
+   conferma dell'utente, l'azione ritorna un esito che descrive COSA chiedere;
+   la UI mostra l'Alert nativo e, se confermato, richiama l'azione con `force`. */
+export type EsitoChiusuraTorneo =
+  | { ok: true }
+  | { ok: false; motivo: 'sessione-assente' | 'pochi-giocatori' }
+  | { ok: false; motivo: 'vivi-multipli'; count: number; primoNome: string };
+
+export type EsitoConfermaChiusura =
+  | { ok: true }
+  | { ok: false; motivo: 'nessun-settlement' | 'lega-assente' }
+  | { ok: false; motivo: 'warning'; messaggio: string };
+
 interface StoreActions {
   // DB
   saveLega: (updated: Lega) => void;
@@ -196,12 +210,12 @@ interface StoreActions {
 
   // Settlement — chiusura serata
   apriChiusura:           (legaId: number) => boolean;
-  apriChiusuraTorneo:     (legaId: number) => boolean;
+  apriChiusuraTorneo:     (legaId: number, forzaVivi?: boolean) => EsitoChiusuraTorneo;
   setAllocazione:         (legaId: number, loserId: number, winnerId: number, amount: number) => void;
   setTrasferimento:       (legaId: number, idx: number, importo: number) => void;
   addTrasferimento:       (legaId: number, t: { from: number; to: number; importo: number }) => void;
   removeTrasferimento:    (legaId: number, idx: number) => void;
-  confermaChiusura:       (legaId: number, oraFine: string) => void;
+  confermaChiusura:       (legaId: number, oraFine: string, force?: boolean) => EsitoConfermaChiusura;
 
   // Sessioni gioco (multigioco non-poker, M3) — su lega.sessioniGioco
   // `serataId` opzionale (R4): lega la sessione a una serata multi-gioco.
@@ -407,8 +421,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         set({ serataView: 'live', overlayOpen: true });
       },
 
+      // La conferma "sei sicuro" la fa la UI (Alert.alert) PRIMA di chiamare
+      // questa azione (LiveCash/LiveTorneo): lo store resta puro, niente
+      // confirm() browser-global (A1 — crashava su RN/Hermes).
       annullaSessione: (legaId) => {
-        if (!confirm('Annullare la serata in corso? Tutti i dati saranno persi.')) return;
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
@@ -954,14 +970,14 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         saveLega({ ...lega, sessioneAttiva: sess });
       },
 
+      // Conferma "sei sicuro" spostata in UI (Alert.alert, SubOrologio) — A1.
       avanzaLivelloManuale: (legaId) => {
-        if (!confirm('Passare al livello successivo?')) return;
         get().avanzaLivelloAuto(legaId);
         get().toast('Livello successivo');
       },
 
+      // Conferma "sei sicuro" spostata in UI (Alert.alert, SubOrologio) — A1.
       stopTorneo: (legaId) => {
-        if (!confirm('Concludere il torneo? Lo stato verrà bloccato e potrai chiudere la serata.')) return;
         const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
@@ -1251,32 +1267,41 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         return true;
       },
 
-      apriChiusuraTorneo: (legaId) => {
-        const { db, saveLega, toast, setSettlement } = get();
+      apriChiusuraTorneo: (legaId, forzaVivi) => {
+        const { db, saveLega, setSettlement } = get();
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return false;
+        if (!lega?.sessioneAttiva) return { ok: false, motivo: 'sessione-assente' };
 
         /* Lavoriamo su una copia mutabile della sessione */
         const sess = JSON.parse(JSON.stringify(lega.sessioneAttiva)) as Sessione;
         const entrati = sess.giocatori.filter(g => g.entrato);
         if (entrati.length < 2) {
-          toast('Almeno 2 giocatori devono essere entrati');
-          return false;
+          return { ok: false, motivo: 'pochi-giocatori' };
         }
 
-        /* Forza consolidamento premi */
-        if (!sess.premi_consolidati) {
-          sess.premi = calcolaPremi(calcolaMontepremi(sess), entrati.length);
+        /* Consolida i premi sul montepremi ATTUALE, o RI-consolida se diverge
+           da quello congelato (A2): l'add-on non ha un gate di livello come il
+           rebuy, quindi può essere preso dopo che premi_consolidati è già
+           true (timing normale nel poker) — senza questo ricalcolo il monte
+           premi resterebbe congelato su un totale più piccolo di quello
+           realmente dovuto dai giocatori. Tolleranza > il normale
+           arrotondamento per-posizione di calcolaPremi (pochi centesimi). */
+        const montepremiOra = calcolaMontepremi(sess);
+        const montepremiCongelato = (sess.premi ?? []).reduce((a, p) => a + p.importo, 0);
+        if (!sess.premi_consolidati || Math.abs(montepremiOra - montepremiCongelato) > 0.05) {
+          sess.premi = calcolaPremi(montepremiOra, entrati.length);
           sess.premi_consolidati = true;
         }
 
-        /* Assegna posizioni ai vivi */
+        /* Assegna posizioni ai vivi. Se sono in più di uno, serve una conferma
+           esplicita dell'utente (A1 — lo store non chiede più da solo con
+           confirm(): la UI mostra l'Alert e ri-chiama con forzaVivi=true). */
         const vivi = entrati.filter(g => !g.eliminato);
         if (vivi.length > 1) {
-          const n = lega.nomi.find(nm => nm.id === vivi[0]?.id_nome)?.nome ?? '?';
-          if (!confirm(
-            `Ci sono ancora ${vivi.length} giocatori in gioco.\n\nProcedendo, ${n} verrà assegnato al 1° posto, gli altri a seguire. Vuoi continuare?\n(Puoi prima eliminare i giocatori per scegliere l'ordine corretto).`
-          )) return false;
+          if (!forzaVivi) {
+            const n = lega.nomi.find(nm => nm.id === vivi[0]?.id_nome)?.nome ?? '?';
+            return { ok: false, motivo: 'vivi-multipli', count: vivi.length, primoNome: n };
+          }
           vivi.forEach((g, i) => { if (!g.posizione_finale) g.posizione_finale = i + 1; });
         } else if (vivi.length === 1 && vivi[0] && !vivi[0].posizione_finale) {
           vivi[0].posizione_finale = 1;
@@ -1324,7 +1349,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
 
         setSettlement({ legaId, isTorneo: true, sessione: sess, entrati: arrComp, losers, winners, neutri, allocazioni });
         set({ serataView: 'chiusura' });
-        return true;
+        return { ok: true };
       },
 
       setAllocazione: (legaId, loserId, winnerId, amount) => {
@@ -1370,11 +1395,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         setSettlement({ ...settlement, trasferimentiOverride: current.filter((_, i) => i !== idx) });
       },
 
-      confermaChiusura: (legaId, oraFine) => {
+      confermaChiusura: (legaId, oraFine, force) => {
         const { db, saveLega, settlement, setSettlement, toast } = get();
-        if (!settlement) return;
+        if (!settlement) return { ok: false, motivo: 'nessun-settlement' };
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega) return;
+        if (!lega) return { ok: false, motivo: 'lega-assente' };
 
         const salvaPartita = (partita: Partita) => {
           const serate_bg = [...(lega.serate_bg ?? [])];
@@ -1398,7 +1423,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           if (sbilancio > 0.01) {
             warning = `Sbilancio globale fiches: €${sbilancio.toFixed(2).replace('.', ',')}\n(le fiches non tornano al totale stake)\n\n`;
           }
-          if (warning && !confirm(`${warning}Salvare comunque?`)) return;
+          if (warning && !force) return { ok: false, motivo: 'warning', messaggio: `${warning}Salvare comunque?` };
 
           /* Costruisci GiocatorePartita[] */
           const giocatori: GiocatorePartita[] = cr.giocatori.map(gc => {
@@ -1449,7 +1474,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             modalita: sa.modalita, buy_in: sa.buy_in,
             giocatori, settlements,
           });
-          return;
+          return { ok: true };
         }
 
         /* ── TORNEO (vecchio modello, invariato) ── */
@@ -1463,7 +1488,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             warning += `• ${nome}: allocati €${tot.toFixed(2).replace('.', ',')} su €${debito.toFixed(2).replace('.', ',')}\n`;
           }
         });
-        if (warning && !confirm(`Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?`)) return;
+        if (warning && !force) return { ok: false, motivo: 'warning', messaggio: `Allocazioni non bilanciate:\n\n${warning}\nSalvare comunque?` };
 
         const giocatori: GiocatorePartita[] = settlement.entrati.map(c => {
           const isDebtor = c.contributo_residuo > 0.005;
@@ -1521,6 +1546,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
         });
+        return { ok: true };
       },
 
       /* ══════════════════════════════════════════════════════

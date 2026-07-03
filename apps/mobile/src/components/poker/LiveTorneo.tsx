@@ -45,8 +45,20 @@ export default function LiveTorneo({ lega }: { lega: Lega }) {
   const totGioc = sess.giocatori.length;
 
   function chiudi() {
-    if (apriChiusuraTorneo(lega.id)) setSerataView('chiusura');
-    else Alert.alert('Non posso chiudere', 'Imposta le posizioni finali dei giocatori (premi).');
+    const esito = apriChiusuraTorneo(lega.id);
+    if (esito.ok) { setSerataView('chiusura'); return; }
+    if (esito.motivo === 'vivi-multipli') {
+      Alert.alert(
+        'Giocatori ancora in gioco',
+        `Ci sono ancora ${esito.count} giocatori in gioco.\n\nProcedendo, ${esito.primoNome} verrà assegnato al 1° posto, gli altri a seguire. Vuoi continuare?\n(Puoi prima eliminare i giocatori per scegliere l'ordine corretto).`,
+        [
+          { text: 'No', style: 'cancel' },
+          { text: 'Continua', onPress: () => { if (apriChiusuraTorneo(lega.id, true).ok) setSerataView('chiusura'); } },
+        ],
+      );
+      return;
+    }
+    Alert.alert('Non posso chiudere', 'Imposta le posizioni finali dei giocatori (premi).');
   }
 
   function annulla() {

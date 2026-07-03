@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { calcolaMontepremi, euro, type Lega, type Sessione } from '@whos-the-boss/core';
 
@@ -38,6 +38,22 @@ export default function SubOrologio({ lega, sess, clockStr }: { lega: Lega; sess
   const monte = calcolaMontepremi(sess);
   const lateRegOpen = gameLvlNum <= sess.late_reg.fino_a_livello;
 
+  // Conferme "sei sicuro" (A1 — spostate qui dallo store, che non può usare
+  // confirm() browser-global su React Native).
+  function chiediAvanza() {
+    Alert.alert('Passare al livello successivo?', undefined, [
+      { text: 'No', style: 'cancel' },
+      { text: 'Avanza', onPress: () => avanzaLivelloManuale(lega.id) },
+    ]);
+  }
+
+  function chiediStop() {
+    Alert.alert('Concludere il torneo?', 'Lo stato verrà bloccato e potrai chiudere la serata.', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Concludi', style: 'destructive', onPress: () => stopTorneo(lega.id) },
+    ]);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <View style={[styles.timerCard, { backgroundColor: t.surface, borderColor: isPausa ? t.warn : t.accent }]}>
@@ -67,14 +83,14 @@ export default function SubOrologio({ lega, sess, clockStr }: { lega: Lega; sess
           {sess.stato === 'attivo' && (
             <>
               <TcBtn label="Pausa" icon={<IconPause size={14} color={t.text} />} onPress={() => pausaTorneo(lega.id)} />
-              <TcBtn label="Prossimo" icon={<IconSkip size={14} color={t.text} />} onPress={() => avanzaLivelloManuale(lega.id)} />
-              <TcBtn label="Stop" icon={<IconStop size={14} color={t.text} />} onPress={() => stopTorneo(lega.id)} />
+              <TcBtn label="Prossimo" icon={<IconSkip size={14} color={t.text} />} onPress={chiediAvanza} />
+              <TcBtn label="Stop" icon={<IconStop size={14} color={t.text} />} onPress={chiediStop} />
             </>
           )}
           {sess.stato === 'pausa' && (
             <>
               <TcBtn primary label="Riprendi" icon={<IconPlay size={14} color={t.accentInk} />} onPress={() => riprendiTorneo(lega.id)} />
-              <TcBtn label="Stop" icon={<IconStop size={14} color={t.text} />} onPress={() => stopTorneo(lega.id)} />
+              <TcBtn label="Stop" icon={<IconStop size={14} color={t.text} />} onPress={chiediStop} />
             </>
           )}
           {sess.stato === 'concluso' && <Text style={[styles.note, { color: t.textMuted }]}>Procedi alla chiusura</Text>}

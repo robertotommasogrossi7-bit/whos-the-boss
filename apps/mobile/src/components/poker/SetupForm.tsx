@@ -57,7 +57,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
     );
   }
 
-  const bloccati = idBloccatiInclusi(lega, utente?.username);
+  const bloccati = idBloccatiInclusi(lega, utente?.id);
   const isSel = (id: number) => setupPartIds.has(id) || bloccati.includes(id);
 
   function avvia() {
