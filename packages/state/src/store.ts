@@ -10,7 +10,7 @@ import {
   nuovaSessioneGioco, nuovaPartitaGioco, prossimoIdPartita,
   type EsitoPartitaInput,
 } from '@whos-the-boss/core';
-import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi } from '@whos-the-boss/core';
+import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi, reclamaGiocatoreInLega } from '@whos-the-boss/core';
 import { èSeiTuRecord, normalizzaNome } from '@whos-the-boss/core';
 import { validaRinomina } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
@@ -261,6 +261,20 @@ function assicuraTuNelPersonale(db: Db, saveLega: (l: Lega) => void, user: User)
   if (aggiornata !== personale) saveLega(aggiornata);
 }
 
+/* ── R6-B2/M7: migrazione one-shot — nelle leghe NORMALI (non Personale) create
+   prima di R6.5, il creatore/i partecipanti erano record "liberi" (nome per
+   nome, nessun accountId). Al login li reclama per nome (solo reclama, MAI
+   crea: a differenza del Personale non ha senso aggiungerti a una lega dove
+   non compari già). Chiamata a ogni applyUtente: idempotente, costa poco
+   (early-return per-lega se già reclamata o già migrata da R6.5+). ── */
+function assicuraTuNelleLeghe(db: Db, saveLega: (l: Lega) => void, user: User): void {
+  for (const lega of db.leghe) {
+    if (lega.personale) continue; // il Personale lo gestisce assicuraTuNelPersonale
+    const aggiornata = reclamaGiocatoreInLega(lega, user);
+    if (aggiornata !== lega) saveLega(aggiornata);
+  }
+}
+
 /* Storage iniettato da createAppStore: web = localStorage retrocompat
    (vanillaCompatStorage.ts), mobile = AsyncStorage (R1.4+). */
 
@@ -334,6 +348,9 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         set({ utente: user });
         // #4.5: aggancia "te" come giocatore reale del Personale
         if (user) assicuraTuNelPersonale(get().db, get().saveLega, user);
+        // R6-B2/M7: migrazione one-shot — reclama il tuo record nelle leghe
+        // normali create prima di R6.5 (creatore senza accountId)
+        if (user) assicuraTuNelleLeghe(get().db, get().saveLega, user);
       },
       setAuthLoading: (loading) => set({ authLoading: loading }),
       initAuth: () => set({ authLoading: false }),

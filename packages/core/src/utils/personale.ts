@@ -35,21 +35,48 @@ export function èSeiTuRecord(rec: Pick<NomeGiocatore, 'accountId'>, accountId?:
   return !!accountId && rec.accountId === accountId;
 }
 
+/** Reclama (per nome) un record ESISTENTE non ancora legato a un account, in
+    QUALSIASI lega (Personale o normale) — senza crearne di nuovi (a
+    differenza di `assicuraGiocatorePersonale`, che sul Personale può anche
+    creare). Migrazione one-shot (R6-B2/M7): le leghe create prima di R6.5
+    avevano il creatore/i partecipanti come record "liberi" (nome = username o
+    displayName, nessun `accountId`) — al primo login post-R6 li aggancia.
+    Match su username O displayName normalizzati (M8: evita di creare un
+    doppione quando il tuo displayName combacia con un ospite preesistente ma
+    lo username no). Pura e idempotente: se già reclamato o nessun match →
+    stesso riferimento (lega invariata). */
+export function reclamaGiocatoreInLega(lega: Lega, user: User): Lega {
+  const accountId = user.id;
+  if (!accountId) return lega;
+  if (lega.nomi.some(n => n.accountId === accountId)) return lega; // già reclamato
+
+  const uUsername = normalizzaNome(user.username);
+  const uDisplay = user.displayName ? normalizzaNome(user.displayName) : '';
+  const idx = lega.nomi.findIndex(n => {
+    if (n.accountId) return false;
+    const nn = normalizzaNome(n.nome);
+    return (!!uUsername && nn === uUsername) || (!!uDisplay && nn === uDisplay);
+  });
+  if (idx < 0) return lega;
+
+  return { ...lega, nomi: lega.nomi.map((n, i) => (i === idx ? { ...n, accountId } : n)) };
+}
+
 /** Assicura che nel Personale esista IL giocatore dell'utente loggato (R6).
     Identità ancorata all'`accountId`, non più al nome. Pura e idempotente:
     1) se un record ha già il tuo accountId → invariato;
-    2) se un record "libero" (senza accountId) combacia per nome normalizzato
-       col tuo username → lo RECLAMA (timbra accountId) — migra il vecchio
-       record #4.5 creato per nome, una volta sola;
-    3) altrimenti crea un nuovo record (nome = displayName o username).
+    2) se un record "libero" combacia per nome (username o displayName) → lo
+       RECLAMA (`reclamaGiocatoreInLega`, migra il vecchio record #4.5);
+    3) altrimenti crea un nuovo record (nome = displayName o username) — SOLO
+       il Personale può creare; le leghe normali (`reclamaGiocatoreInLega`) no.
     Fallback difensivo per il login demo senza `id`: comportamento per-nome. */
 export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   const accountId = user.id;
   const display = (user.displayName?.trim() || user.username).trim();
-  const u = normalizzaNome(user.username);
 
   if (!accountId) {
     // niente account (demo): dedup per nome come prima
+    const u = normalizzaNome(user.username);
     if (!u || personale.nomi.some(n => normalizzaNome(n.nome) === u)) return personale;
     return { ...personale, nomi: [...personale.nomi, { id: personale._nid, nome: display }], _nid: personale._nid + 1 };
   }
@@ -58,10 +85,8 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   if (personale.nomi.some(n => n.accountId === accountId)) return personale;
 
   // 2) reclama un record libero che combacia per nome (migrazione del vecchio)
-  const idx = personale.nomi.findIndex(n => !n.accountId && !!u && normalizzaNome(n.nome) === u);
-  if (idx >= 0) {
-    return { ...personale, nomi: personale.nomi.map((n, i) => (i === idx ? { ...n, accountId } : n)) };
-  }
+  const reclamata = reclamaGiocatoreInLega(personale, user);
+  if (reclamata !== personale) return reclamata;
 
   // 3) nuovo record dell'account
   return {

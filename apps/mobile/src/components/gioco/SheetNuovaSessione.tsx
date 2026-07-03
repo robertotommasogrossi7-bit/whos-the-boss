@@ -30,7 +30,7 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
   const [newName, setNewName] = useState('');
   const [data, setData] = useState(oggi());
 
-  const bloccati = idBloccatiInclusi(lega, utente?.username);
+  const bloccati = idBloccatiInclusi(lega, utente?.id);
 
   function toggle(id: number) {
     if (bloccati.includes(id)) return;

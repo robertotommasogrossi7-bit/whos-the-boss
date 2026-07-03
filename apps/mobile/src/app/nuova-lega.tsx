@@ -20,7 +20,7 @@ export default function NuovaLega() {
   const setCurrentLega = useStore((s) => s.setCurrentLega);
   const utente = useStore((s) => s.utente);
 
-  const tuoNome = utente?.username?.trim() ?? '';
+  const tuoNome = (utente?.displayName?.trim() || utente?.username?.trim()) ?? '';
 
   const [nome, setNome] = useState('');
   const [partecipanti, setPartecipanti] = useState<string[]>(['', '']);
@@ -38,7 +38,10 @@ export default function NuovaLega() {
     let tuoId: number | null = null;
     if (tuoNome) {
       tuoId = nid;
-      nomiList.push({ id: nid++, nome: tuoNome });
+      // R6-B2/M7: il creatore nasce già agganciato al TUO account (accountId),
+      // non solo per nome — altrimenti "sei tu"/stats/lock restano vuoti nella
+      // lega finché non scatta la migrazione one-shot al prossimo login.
+      nomiList.push({ id: nid++, nome: tuoNome, ...(utente?.id ? { accountId: utente.id } : {}) });
     }
     partecipanti.forEach((p) => {
       const v = p.trim();
