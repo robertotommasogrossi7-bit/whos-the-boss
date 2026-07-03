@@ -27,6 +27,7 @@
 | Audit multi-agente (Fable max) | workflow `wf_79f14eaf` | — | 6 revisori + verifica adversariale per-finding + 4 ricerche online + sintesi |
 | Audit — esecuzione | 2 sessioni | 22:32→22:44 (Fable) + 00:34→00:58 (Opus resume) | **67 agenti · 2.638.212 token subagenti · 777 tool call · ~24' run finale**. Sessione Fable: 6 review+4 research+~16 verify → **interrotta (limite contesto 5h piano Max)**; resume Opus: cache al 100% dei completati, rieseguiti solo gli interrotti. Esito: **45 confermati / 11 confutati** → `AUDIT_R6_R7.md` |
 | Audit — lezione modelli | — | — | Qualità verifiche Fable≈Opus (A/B naturale su stesso finding: stesso verdetto+prove). Differenza = capacità contesto, non qualità → audit ALTO su Opus, recap su Fable (in metodo) |
+| Ricerca modelli/effort | workflow `wf_206d7abe` | ~5' | **5 agenti (4 Sonnet + 1 Opus) · 688.672 token** — verdetto: Sonnet/high per fix scoped, Opus/xhigh per delicato, mai max su task lunghi, ultracode solo audit. → regola nel metodo + dossier in SideKick `esperimenti/ricerca-modelli-effort-2026-07.md` |
 
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
