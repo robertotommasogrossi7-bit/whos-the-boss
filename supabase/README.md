@@ -13,11 +13,15 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | `migrations/20260701150000_r7_core.sql` | **R7.1a** | Nucleo sync: `set_updated_at()` (trigger server), `owns_lega()` (RLS), `profiles.imported_at`; tabelle **leghe · giocatori · giochi_lega**. RLS solo-proprietario. |
 | `migrations/20260701150100_r7_poker.sql` | **R7.1b** | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti` (append-only) `· settlements`. |
 | `migrations/20260701150200_r7_multigioco.sql` | **R7.1c** | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti partecipanti/vincitori. |
+| `migrations/20260703100000_r6b5_hardening.sql` | **R6-B5** | Hardening post-audit: `ON DELETE SET NULL` su `giocatori.account_id`/`created_by_account_id` (cancellazione account, M14) · trigger `updated_at` split insert/update senza bump su no-op (B31+B35) · `poker_movimenti` **append-only vero** (RLS: solo select+insert, B32) · `UNIQUE(partita_id,giocatore_id)` parziale (B33) · RLS `(select auth.uid())`/`(select owns_lega(...))` + `TO authenticated` su tutte le policy (B34). Contiene una query di verifica commentata per M14 (i nomi-vincolo sono assunti standard, non verificati in esecuzione). |
 
 > ⚠️ Le R7 vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
-> ✅ **Tutte e 5 le migration sono APPLICATE** in dashboard (SQL Editor, 2026-07-01) senza errori:
+> La R6-B5 va applicata **dopo** tutte le altre (assume che le tabelle esistano già).
+> ✅ **Le prime 5 migration sono APPLICATE** in dashboard (SQL Editor, 2026-07-01) senza errori:
 > lo schema è validato su Postgres reale. Il round-trip dati (sync vero) si valida nel "grande test"
-> finale (scelta di studio, `DECISIONI.md`).
+> finale (scelta di studio, `DECISIONI.md`). ⏳ **La R6-B5 (2026-07-03) è scritta ma non ancora
+> applicata** — va incollata nel SQL Editor come le altre, poi eseguire la query di verifica in fondo
+> al file (M14) per confermare che i nomi dei vincoli combacino.
 
 ## Come applicarla
 
@@ -44,3 +48,24 @@ supabase db push
 
 > Piano Free: il progetto va in pausa dopo ~1 settimana di inattività (si riattiva da dashboard).
 > Vedi `_processo/BACKEND_SPEC.md`.
+
+## ⏳ Azione utente pendente — sanare la migration history (R-mig, audit 2026-07-03)
+
+Le prime 5 migration sono state applicate **incollandole nel SQL Editor**, non con la CLI: la
+tabella `supabase_migrations.schema_migrations` (che la CLI usa per sapere cos'è già applicato)
+**non le conosce**. Un futuro `supabase db push` proverebbe a ri-applicarle da zero e fallirebbe
+(tabelle/policy già esistenti). Fix una-tantum, quando si installa la Supabase CLI:
+
+```bash
+supabase link --project-ref <PROJECT_REF>
+supabase migration repair --status applied 20260701120000
+supabase migration repair --status applied 20260701140000
+supabase migration repair --status applied 20260701150000
+supabase migration repair --status applied 20260701150100
+supabase migration repair --status applied 20260701150200
+# la R6-B5 invece si applica con `supabase db push` (non è ancora eseguita) —
+# a quel punto la CLI la marca "applied" da sola, nessun repair necessario.
+```
+
+Da quel momento in poi: **solo `supabase db push`** per le nuove migration (niente più copia-incolla
+in dashboard), così la history resta sincronizzata.

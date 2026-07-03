@@ -1,6 +1,6 @@
 import { parseAuthRedirect } from '@whos-the-boss/core';
 import * as Linking from 'expo-linking';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
@@ -13,10 +13,14 @@ import { useStore } from '@/store/useStore';
    Config una-tantum in dashboard: Redirect URLs = whostheboss://** (vedi supabase/README). */
 export function useDeepLinkAuth(): void {
   const toast = useStore((s) => s.toast);
+  // B24 (audit 2026-07-03): cold start puo' far scattare SIA getInitialURL()
+  // SIA l'evento 'url' con lo STESSO link -> senza dedup, doppio setSession.
+  const ultimoUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     async function handle(url: string | null): Promise<void> {
-      if (!url) return;
+      if (!url || url === ultimoUrlRef.current) return;
+      ultimoUrlRef.current = url;
       const r = parseAuthRedirect(url);
       if (r.kind === 'session') {
         const { error } = await supabase.auth.setSession({

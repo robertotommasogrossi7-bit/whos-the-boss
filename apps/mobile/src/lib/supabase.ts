@@ -23,5 +23,11 @@ export const supabase = createClient(url ?? '', anon ?? '', {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Esplicito (R-flow, audit 2026-07-03): oggi e' gia' il default di
+    // supabase-js v2, ma @supabase/ssr defaulta a 'pkce' -> un futuro bump
+    // di libreria potrebbe cambiare il default e rompere in silenzio il
+    // parser fragment-first di useDeepLinkAuth (che legge access_token/
+    // refresh_token dal fragment, non un ?code= PKCE).
+    flowType: 'implicit',
   },
 });
