@@ -28,11 +28,11 @@ che non esiste più).
 
 | ID | Cosa | Dove | Fix | Stato |
 |----|------|------|-----|-------|
-| **M7** | **Causa radice**: nelle leghe non-Personale nessun record riceve mai `accountId` (il creatore nasce `{id,nome}`) | `apps/mobile/src/app/nuova-lega.tsx:41` | Creatore con `accountId: utente?.id` + **migrazione one-shot claim-by-name** per le leghe esistenti | ☐ |
-| **M5** | Lock "sempre incluso" rotto nei **picker multigioco** (3 call-site passano ancora `username`) | `SheetNuovaSessione.tsx:33` · `SheetNuovaSerata.tsx:31` · `SchermataGioco.tsx:47` | `utente?.username` → `utente?.id` nei 3 file | ☐ |
-| **M6** | Stats "Le tue leghe" (Vittorie/Netto) **sempre 0** nelle leghe normali | `(tabs)/leghe.tsx:15` | Si risolve con M7 (nessun cambio qui). Verifica: stats riappaiono | ☐ |
-| **B13** | Badge "sei tu" mai mostrato nelle leghe normali (+ matita rinomina visibile sul tuo record) | `LegaGiocatori.tsx` | Si risolve con M7 | ☐ |
-| **M8** | `assicuraGiocatorePersonale` può creare un **doppione** (claim solo per username, non per displayName) | `packages/core/src/utils/personale.ts:66-71` | Claim anche per `displayName` normalizzato, o disambigua alla collisione | ☐ |
+| **M7** | **Causa radice**: nelle leghe non-Personale nessun record riceve mai `accountId` (il creatore nasce `{id,nome}`) | `apps/mobile/src/app/nuova-lega.tsx:41` | Creatore con `accountId: utente?.id` + **migrazione one-shot claim-by-name** per le leghe esistenti | ✅ `bb418b5` (`assicuraTuNelleLeghe` in store, chiamata a ogni `applyUtente`) |
+| **M5** | Lock "sempre incluso" rotto nei **picker multigioco** (3 call-site passano ancora `username`) | `SheetNuovaSessione.tsx:33` · `SheetNuovaSerata.tsx:31` · `SchermataGioco.tsx:47` | `utente?.username` → `utente?.id` nei 3 file | ✅ `bb418b5` |
+| **M6** | Stats "Le tue leghe" (Vittorie/Netto) **sempre 0** nelle leghe normali | `(tabs)/leghe.tsx:15` | Si risolve con M7 (nessun cambio qui). Verifica: stats riappaiono | ✅ risolto da M7 |
+| **B13** | Badge "sei tu" mai mostrato nelle leghe normali (+ matita rinomina visibile sul tuo record) | `LegaGiocatori.tsx` | Si risolve con M7 | ✅ risolto da M7 |
+| **M8** | `assicuraGiocatorePersonale` può creare un **doppione** (claim solo per username, non per displayName) | `packages/core/src/utils/personale.ts:66-71` | Claim anche per `displayName` normalizzato, o disambigua alla collisione | ✅ `bb418b5` (nuova `reclamaGiocatoreInLega`, match username OR displayName) |
 
 ## 🟠 MEDIA — store & auth (fase: R6-B3)
 
