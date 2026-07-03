@@ -688,6 +688,28 @@
   osservata = **capacità/contesto, non qualità**: Fable-max ha esaurito le 5h con ~26 agenti; Opus ha
   chiuso i restanti 41. Conferma la regola di metodo: audit ALTO su Opus, recap su Fable.
 
+## 2026-07-03 (i) — R6 mergiata in `main` (`849acb5`) + best practice SQL Supabase
+
+> Chiusura del blocco R6-B (bonifica dell'audit): verifica finale completa (231 test core + 1 state,
+> typecheck state, `expo export` android, typecheck mobile — tutti verdi), poi merge delegato
+> dall'utente ("lo fai tu da solo di solito, vai con il merge").
+
+- **Merge `rn-r6-identita` → `main`** (`--no-ff`, `849acb5`, 41 commit): identità reale (R6.1-6.5),
+  red team interno+esterno, schema R7.1 relazionale (13 tabelle, 5 migration applicate su Postgres),
+  audit multi-agente (67 agenti, 45 finding) e bonifica completa B1-B6. Nessun conflitto (le
+  cancellazioni `apps/web` erano già coerenti tra i due rami). Branch cancellato local+remoto.
+- **Nuova best practice di metodo** (generale, non solo per questo progetto): quando si usa Supabase,
+  **un solo posto per l'SQL** — cartella versionata unica, inventario numerato dichiarato fonte di
+  verità unica, "applicato" segnato **solo su conferma esplicita dell'utente**, mai per supposizione.
+  Nata da un caso reale: l'utente non ricordava con certezza quali migration avesse applicato dei 6
+  file totali; una ricerca esaustiva (`**/*.sql` + blocchi \`\`\`sql nei `.md` + `git log --all` su
+  tutta la storia) ha confermato che l'inventario in `supabase/README.md` era già completo e
+  accurato, ma ha rivelato la necessità di rendere la verifica una regola esplicita. Sincronizzata
+  in `~/.claude/CLAUDE.md` e in SideKick `COSTITUZIONE.md` (metodo v1.4).
+- **Prossimo**: R7.2 — layer di sync (kickoff = 4 decisioni a verbale: storage per-account, LWW
+  per-riga, UUIDv7, retention tombstone). Residuo non urgente: applicare la 6ª migration
+  (`20260703100000_r6b5_hardening.sql`) in dashboard quando comodo.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è

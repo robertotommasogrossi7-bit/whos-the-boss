@@ -295,7 +295,8 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 > il lavoro: **45 finding confermati / 11 confutati**. Registro indicizzato con ID e fasi:
 > **`_processo/AUDIT_R6_R7.md`** (spuntare lì). Scelte architetturali del sync = **allineate** allo
 > stato dell'arte (fonti nel registro). Stato reale ad oggi: **R6 completa · R7.1 schema FATTO e
-> APPLICATO (5/5 migration in dashboard, senza errori) · branch `rn-r6-identita`**.
+> APPLICATO (5/5 migration in dashboard, senza errori) · ✅ MERGIATA in `main` (`849acb5`, 2026-07-03;
+> branch `rn-r6-identita` cancellato)**.
 > 📦 **Flusso esecutivo completo fino al Play Store** (Fatto · Manca per pubblicare · Definitiva):
 > **`_processo/STATO_PROGETTO.md`** — si aggiorna a fine di ogni passo grande.
 
@@ -349,8 +350,9 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ✅ Quick-win in `main`: **condividi resoconto "chi paga chi"** (Share nativo, dai Debiti) + **fix sblocco GameBar**
   (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
   FR/ES) → **R12** restyle.
-- 🟢 **R6 — Identità reale COSTRUITA** (branch `rn-r6-identita`, non ancora mergiato in `main`; 202 core
-  + state test + mobile export/tsc verdi). Aperto il **blocco BACKEND**. Fatto: **profiles + username
+- ✅ **R6 — Identità reale COSTRUITA e MERGIATA** (`849acb5`, 2026-07-03; **231 core + 1 state test**,
+  mobile export/tsc verdi; branch `rn-r6-identita` cancellato). Chiuso il **blocco BACKEND** R6+R7.1.
+  Fatto: **profiles + username
   UNIVOCO** (unique index `lower(username)` + trigger `handle_new_user` + RPC `username_available` +
   backfill), **two-tier** handle/display name (registrazione + Profilo `@handle`), **deep link conferma
   email (R2.4 chiuso)** senza nuove dep (`parseAuthRedirect` puro + `useDeepLinkAuth`), **"sei tu"
@@ -366,7 +368,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - ✅ **AUDIT multi-agente fatto** (67 agenti, 45 finding): registro **`AUDIT_R6_R7.md`**. **Bonifica
     R6-B COMPLETATA** (B1→B6 tutti ✅, vedi LINEA v3 sopra) — **231 test core**. Unico residuo: applicare
     la migration SQL di B5 in dashboard (scritta, non urgente).
-- **Prossimo**: **merge `rn-r6-identita`→`main`**, poi **R7.2 — layer di
+  - ✅ **MERGIATA in `main`** (`849acb5`, 2026-07-03, `--no-ff`; branch `rn-r6-identita` cancellato
+    local+remoto). 41 commit: identità R6.1-6.5, red team interno+esterno, schema R7.1 (13 tabelle),
+    audit multi-agente, bonifica B1-B6. **231 core + 1 state test**, expo export + typecheck verdi.
+- **Prossimo**: **R7.2 — layer di
   sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
   record via claim). Il pezzo grosso.
   ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
