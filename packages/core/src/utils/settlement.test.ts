@@ -184,3 +184,73 @@ describe('calcolaSettlement §14', () => {
   });
 
 });
+
+describe('calcolaSettlement — B05 (fiche negative clampate)', () => {
+  it('fiche negativa in input → trattata come 0, niente debito fantasma', () => {
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 25, versato: 25, fiche: -10 }, // dato corrotto
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 50 },
+    ]);
+    const a = res.giocatori.find(g => g.id_nome === 1)!;
+    expect(a.fiche).toBe(0);       // clampata, non -10
+    expect(a.netto).toBe(r(-25));  // 0 - 25, non -10 - 25
+  });
+});
+
+describe('calcolaSettlement — B07 (sbilancio esposto, non più scartato)', () => {
+  it('scenario bilanciato (§14 ES.1): sbilancio = 0', () => {
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 25, versato: 25, fiche: 40 },
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 10 },
+    ]);
+    expect(res.sbilancio).toBe(0);
+  });
+
+  it('dati NON bilanciati (fiche totali << dovuto totale): sbilancio > 0, pari al debito senza controparte', () => {
+    // A: dovuto 25, versato 0, fiche 0 → mancanteP=25, bisogno=0
+    // B: dovuto 25, versato 25, fiche 10 → mancante=0, bisogno=0 (10-25<0)
+    // Totale fiche (10) molto sotto il totale dovuto (50): dato rotto in ingresso.
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 25, versato: 0,  fiche: 0  },
+      { id_nome: 2, dovuto: 25, versato: 25, fiche: 10 },
+    ]);
+    expect(res.sbilancio).toBe(25); // il mancanteP di A non trova nessun creditore
+    expect(transfers(res)).toHaveLength(0); // nessuna controparte -> nessun trasferimento generato
+  });
+});
+
+describe('calcolaSettlement — B00 (greedy multi-debitore × multi-creditore)', () => {
+  it('2 debitori, 2 creditori: ogni euro trova casa, niente sbilancio', () => {
+    const res = calcolaSettlement([
+      { id_nome: 1, dovuto: 100, versato: 0,   fiche: 0   }, // D1: mancanteP=100
+      { id_nome: 2, dovuto: 50,  versato: 0,   fiche: 0   }, // D2: mancanteP=50
+      { id_nome: 3, dovuto: 25,  versato: 25,  fiche: 100 }, // C1: bisogno=75
+      { id_nome: 4, dovuto: 25,  versato: 25,  fiche: 100 }, // C2: bisogno=75
+    ]);
+    expect(res.sbilancio).toBe(0);
+
+    // Invarianti (indipendenti dall'ordine interno dell'algoritmo greedy):
+    // ogni debitore paga esattamente il suo mancanteP, ogni creditore riceve
+    // esattamente il suo bisogno, nessun trasferimento verso sé stessi.
+    const perId = (id: number) => res.trasferimenti.filter(t => t.from === id || t.to === id);
+    const pagatoDa = (id: number) => r(res.trasferimenti.filter(t => t.from === id).reduce((a, t) => a + t.importo, 0));
+    const ricevutoDa = (id: number) => r(res.trasferimenti.filter(t => t.to === id).reduce((a, t) => a + t.importo, 0));
+
+    expect(pagatoDa(1)).toBe(100);
+    expect(pagatoDa(2)).toBe(50);
+    expect(ricevutoDa(3)).toBe(75);
+    expect(ricevutoDa(4)).toBe(75);
+    expect(res.trasferimenti.every(t => t.from !== t.to)).toBe(true);
+    expect(perId(1).every(t => t.from === 1)).toBe(true); // D1 mai creditore
+    expect(perId(3).every(t => t.to === 3)).toBe(true);   // C1 mai debitore
+
+    // Traccia esatta nota (documentazione, non solo invariante): con l'ordine
+    // di ingresso [D1,D2,C1,C2] e creditori a pari bisogno, il sort stabile
+    // di JS mantiene C1 prima di C2.
+    expect(res.trasferimenti).toEqual([
+      { from: 1, to: 3, importo: 75 },
+      { from: 1, to: 4, importo: 25 },
+      { from: 2, to: 4, importo: 50 },
+    ]);
+  });
+});

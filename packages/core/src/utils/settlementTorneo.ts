@@ -20,6 +20,12 @@ export interface TorneoSettlementResult {
   winners:     SettlementEntrato[];
   neutri:      SettlementEntrato[];
   allocazioni: Record<number, SettlementAlloc[]>;
+  /** Debito residuo di un loser che NON ha trovato controparte, per id_nome
+      (M4, audit 2026-07-03): il premio_residuo totale dei winners non basta
+      a coprire il contributo_residuo totale dei losers — capita se dei premi
+      sono già stati segnati pagati (confirmaPremio) prima di questa chiusura.
+      Normalmente vuoto; se un id compare, l'UI deve segnalarlo prima di salvare. */
+  residuoNonAllocato: Record<number, number>;
 }
 
 export function calcolaSettlementTorneo(entrati: SettlementEntrato[]): TorneoSettlementResult {
@@ -49,6 +55,7 @@ export function calcolaSettlementTorneo(entrati: SettlementEntrato[]): TorneoSet
   winners.forEach(w => { winnersRem[w.id_nome] = w.premio_residuo; });
 
   const allocazioni: Record<number, SettlementAlloc[]> = {};
+  const residuoNonAllocato: Record<number, number> = {};
   losers.forEach(l => {
     allocazioni[l.id_nome] = [];
     let rem = l.contributo_residuo;
@@ -62,7 +69,8 @@ export function calcolaSettlementTorneo(entrati: SettlementEntrato[]): TorneoSet
       rem = r100(rem - amt);
       winnersRem[w.id_nome] = r100(avail - amt);
     }
+    if (rem > 0.005) residuoNonAllocato[l.id_nome] = rem; // M4
   });
 
-  return { arr, losers, winners, neutri, allocazioni };
+  return { arr, losers, winners, neutri, allocazioni, residuoNonAllocato };
 }

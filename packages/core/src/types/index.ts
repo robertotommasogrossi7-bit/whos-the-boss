@@ -274,6 +274,10 @@ export interface CashSettlementResult {
   };
   trasferimenti: Trasferimento[];
   giocatori:     GiocatoreCalcolato[];
+  /** Debito residuo NON abbinato a un creditore dopo l'abbinamento greedy
+      (B07, audit 2026-07-03). Normalmente 0: un residuo >0 segnala che i
+      dati di ingresso non sono bilanciati (fiche totali ≠ dovuto totale). */
+  sbilancio: number;
 }
 
 /** Snapshot di un giocatore nel settlement (cash e torneo condiviso) */

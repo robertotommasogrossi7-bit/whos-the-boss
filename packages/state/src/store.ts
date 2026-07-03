@@ -677,6 +677,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
         const now = Date.now();
+        const v = Math.max(0, valore); // B05: niente valori negativi -> debito fantasma
         // Registra il valore d'uscita in fiches_finali: il settlement esistente
         // (calcolaSettlement) lo conteggia -> niente math duplicata (USCITA_CASH_SPEC §7).
         // Libera il posto e congela il timer per-persona.
@@ -686,8 +687,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           return {
             ...g,
             uscito: true,
-            valore_uscita: valore,
-            fiches_finali: valore,
+            valore_uscita: v,
+            fiches_finali: v,
             ora_uscita: nowHHMM(),
             seat: null,
             tempo_gioco_ms: frozen,
@@ -807,8 +808,9 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return;
         const sess = lega.sessioneAttiva;
+        const v = Math.max(0, val); // B05: niente fiche negative -> debito fantasma
         const giocatori = sess.giocatori.map(g =>
-          g.id_nome === idNome ? { ...g, fiches_finali: val } : g,
+          g.id_nome === idNome ? { ...g, fiches_finali: v } : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
       },
@@ -1354,7 +1356,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const arr: SettlementEntrato[] = entrati.map(g => {
           const ricarTot  = (g.rebuys ?? []).reduce((a, r) => a + r.importo, 0);
           const ricarPaid = (g.rebuys ?? []).reduce((a, r) => a + (r.pagata ? r.importo : 0), 0);
-          const addOnAmt  = (g.add_on_fatto && sess.add_on) ? sess.add_on.prezzo : 0;
+          const addOnAmt  = (g.add_on_fatto && sess.add_on?.abilitato) ? sess.add_on.prezzo : 0; // B08
           const addOnPaid = (g.add_on_fatto && g.add_on_pagato) ? (sess.add_on?.prezzo ?? 0) : 0;
           const contributo_dovuto  = sess.buy_in + ricarTot + addOnAmt;
           const contributo_pagato  = (g.buy_in_pagato ? sess.buy_in : 0) + ricarPaid + addOnPaid;
@@ -1456,10 +1458,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           const trasf: Trasferimento[] = settlement.trasferimentiOverride ?? cr.trasferimenti;
 
           /* Check bilanciamento (non bloccante) */
-          const sbilancio = Math.abs(cr.giocatori.reduce((a, g) => a + g.netto, 0));
+          const sbilancioFiches = Math.abs(cr.giocatori.reduce((a, g) => a + g.netto, 0));
           let warning = '';
-          if (sbilancio > 0.01) {
-            warning = `Sbilancio globale fiches: €${sbilancio.toFixed(2).replace('.', ',')}\n(le fiches non tornano al totale stake)\n\n`;
+          if (sbilancioFiches > 0.01) {
+            warning += `Sbilancio globale fiches: €${sbilancioFiches.toFixed(2).replace('.', ',')}\n(le fiches non tornano al totale stake)\n\n`;
+          }
+          // B07 (audit 2026-07-03): debito residuo che l'algoritmo di settlement
+          // non è riuscito ad abbinare a un creditore (di solito coincide col
+          // caso sopra, ma è un segnale distinto: lo esponiamo comunque).
+          if (cr.sbilancio > 0.005) {
+            warning += `Debito non abbinato: €${cr.sbilancio.toFixed(2).replace('.', ',')}\n(qualcuno resta senza una controparte per il pagamento)\n\n`;
           }
           if (warning && !force) return { ok: false, motivo: 'warning', messaggio: `${warning}Salvare comunque?` };
 
@@ -1533,13 +1541,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
             ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
             : [];
-          const pagamenti_ricevuti: PagamentoRicevuto[] = c.netto > 0.005
-            ? settlement.losers.flatMap(l =>
-                (settlement.allocazioni[l.id_nome] ?? [])
-                  .filter(a => a.to === c.id_nome)
-                  .map(a => ({ from: l.id_nome, amount: a.amount }))
-              )
-            : [];
+          // B04 (audit 2026-07-03): niente gate su c.netto (dovuto-vs-premio
+          // teorico) — un giocatore può ricevere allocazioni reali anche con
+          // netto <= 0 (es. molti rebuy che pesano più del premio vinto).
+          // Costruito direttamente dal flusso delle allocazioni: se nessun
+          // loser gli ha allocato nulla, il risultato è comunque [].
+          const pagamenti_ricevuti: PagamentoRicevuto[] = settlement.losers.flatMap(l =>
+            (settlement.allocazioni[l.id_nome] ?? [])
+              .filter(a => a.to === c.id_nome)
+              .map(a => ({ from: l.id_nome, amount: a.amount }))
+          );
           return {
             id_nome:             c.id_nome,
             entrate:             sa.buy_in,

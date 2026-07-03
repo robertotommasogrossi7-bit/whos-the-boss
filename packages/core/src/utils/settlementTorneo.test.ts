@@ -62,4 +62,29 @@ describe('calcolaSettlementTorneo — auto-compensazione contributo↔premio', (
     expect(res.allocazioni[1]).toEqual([{ to: 2, amount: 10 }]); // paga il residuo a un altro winner
   });
 
+  it('scenario normale (compensato): residuoNonAllocato vuoto', () => {
+    const res = calcolaSettlementTorneo([te(1, 25, 100), te(2, 25, 0), te(3, 0, 0), te(4, 0, 0)]);
+    expect(res.residuoNonAllocato).toEqual({});
+  });
+
+});
+
+describe('calcolaSettlementTorneo — M4 (loser senza controparte, premi già pagati)', () => {
+  it('premio_residuo totale dei winners insufficiente: il resto va in residuoNonAllocato, non sparisce', () => {
+    // L1 deve 100, L2 deve 50 (totale 150). Un solo winner con 75 di premio
+    // ancora da incassare (gli altri premi sono già stati segnati pagati,
+    // es. via confirmaPremio prima della chiusura) -> 75 restano scoperti.
+    const res = calcolaSettlementTorneo([
+      te(1, 100, 0), // L1
+      te(2, 50, 0),  // L2
+      te(3, 0, 75),  // unico winner con residuo
+    ]);
+    expect(res.losers.map(l => l.id_nome)).toEqual([1, 2]);
+    expect(res.residuoNonAllocato[1]).toBe(25); // ha pagato 75 dei suoi 100
+    expect(res.residuoNonAllocato[2]).toBe(50); // non ha trovato nessuna controparte residua
+
+    // L'importo scoperto è tracciato per intero: niente soldi persi in silenzio.
+    const totScoperto = Object.values(res.residuoNonAllocato).reduce((a, x) => a + x, 0);
+    expect(totScoperto).toBe(75); // = 150 dovuti - 75 disponibili
+  });
 });
