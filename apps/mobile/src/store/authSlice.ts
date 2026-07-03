@@ -113,9 +113,13 @@ export const supabaseAuth: AuthInjector = (get) => ({
     const bad = await verifyCurrentPassword(email, currentPassword);
     if (bad) return bad;
     // Supabase invia la conferma a vecchia + nuova email (secure email change):
-    // il cambio si completa solo dopo il click sul link. (Il ritorno in app sara'
-    // fluido con il deep link, R2.4.)
-    const { error } = await supabase.auth.updateUser({ email: e });
+    // il cambio si completa solo dopo il click sul link. emailRedirectTo (come
+    // in register) fa tornare il link nell'app via deep link (useDeepLinkAuth,
+    // R6.4) invece che sulla Site URL di default (M13, audit 2026-07-03).
+    const { error } = await supabase.auth.updateUser(
+      { email: e },
+      { emailRedirectTo: Linking.createURL('auth-callback') },
+    );
     return error ? mapAuthError(error.message) : null;
   },
 });

@@ -27,8 +27,10 @@ export default function SubGiocatoriCash({ lega, sess }: { lega: Lega; sess: Ses
   function aggiungi(nome: string) {
     const n = nome.trim();
     if (!n) return;
-    const err = addGiocatoreSessione(lega.id, n);
-    if (err) { Alert.alert('Attenzione', err); return; }
+    const res = addGiocatoreSessione(lega.id, n);
+    // "già in sessione" è già toastato dallo store: nessun Alert, ma il flusso
+    // prosegue com'era (chiude comunque il foglio) — solo un vero errore blocca.
+    if (!res.ok && res.motivo === 'errore') { Alert.alert('Attenzione', res.messaggio); return; }
     setAddOpen(false);
     setNewName('');
   }

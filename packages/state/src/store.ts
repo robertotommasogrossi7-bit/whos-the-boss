@@ -12,7 +12,7 @@ import {
 } from '@whos-the-boss/core';
 import { creaLegaPersonale, assicuraGiocatorePersonale, idBloccatiInclusi, reclamaGiocatoreInLega } from '@whos-the-boss/core';
 import { èSeiTuRecord, normalizzaNome } from '@whos-the-boss/core';
-import { validaRinomina } from '@whos-the-boss/core';
+import { validaRinomina, giocatoreInUso } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
@@ -92,6 +92,17 @@ export type EsitoConfermaChiusura =
   | { ok: true }
   | { ok: false; motivo: 'nessun-settlement' | 'lega-assente' }
   | { ok: false; motivo: 'warning'; messaggio: string };
+
+/* Esito esplicito di addGiocatoreSessione (R6-B3/B19): prima ritornava
+   `string | null`, con `null` sia per "aggiunto" sia per "già nella serata"
+   (già toastato) — indistinguibili per chi chiama. `torneoAggiungiGiocatore`
+   ne approfittava per leggere "l'ultimo giocatore dell'array" e assegnargli
+   un posto: su un no-op (già in sessione) poteva assegnare il seat a un
+   giocatore SBAGLIATO. Ora l'esito porta sempre l'`idNome` esatto. */
+export type EsitoAggiungiGiocatoreSessione =
+  | { ok: true; idNome: number }
+  | { ok: false; motivo: 'gia-in-sessione' }
+  | { ok: false; motivo: 'errore'; messaggio: string };
 
 interface StoreActions {
   // DB
@@ -181,7 +192,7 @@ interface StoreActions {
   modificaRicarica:          (legaId: number, idNome: number, idx: number, importo: number) => void;
   toggleRicaricaPagata:      (legaId: number, idNome: number, idx: number) => void;
   aggiornaFiches:            (legaId: number, idNome: number, val: number) => void;
-  addGiocatoreSessione:      (legaId: number, nome: string) => string | null;
+  addGiocatoreSessione:      (legaId: number, nome: string) => EsitoAggiungiGiocatoreSessione;
   rimuoviGiocatoreSessione:  (legaId: number, idNome: number) => void;
   spostaGiocatore:           (legaId: number, idNome: number, tavolo: number, posto: number) => void;
   riequilibraSeat:           (legaId: number) => void;
@@ -249,7 +260,7 @@ function sessioneTorneoAttiva(sess: Sessione): Sessione {
     inizio_livello_ms: Date.now() - (sess.trascorso_ms || 0), trascorso_ms: 0 };
 }
 
-/* mapAuthError vive ora in apps/web/src/store/authSlice.ts (logica Supabase). */
+/* mapAuthError vive in apps/mobile/src/store/authSlice.ts (logica Supabase). */
 
 /* ── #4.5/R6: assicura che l'utente loggato sia un giocatore reale del Personale,
    ancorato all'account (accountId). Chiamata a login/register riusciti. Difensiva:
@@ -531,10 +542,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             return 'Non puoi rimuovere te stesso dal Personale';
           }
         }
-        const inUso = lega.partite.some(p =>
-          p.giocatori.some(g => g.id_nome === idNome),
-        );
-        if (inUso) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
+        // M9 (audit 2026-07-03): copre TUTTI i contenitori (poker salvato/live
+        // + multigioco sessioni/partite/serate), non solo le partite poker —
+        // altrimenti restavano orfani in storico/classifiche multigioco.
+        if (giocatoreInUso(lega, idNome)) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
         saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
         return null;
       },
@@ -634,13 +645,18 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
 
         if (!g.entrato) {
           // Ingresso: assegna seat via assegnaPostoIngresso (§5 TAVOLI_SPEC) +
-          // avvia il timer per-persona (R5: seduto_da_ms = ora).
+          // avvia il timer per-persona (R5: seduto_da_ms = ora). Se il
+          // giocatore era "uscito" (esceDalTavolo) e rientra, azzera lo stato
+          // di uscita (M11, audit 2026-07-03): altrimenti resta "fantasma" —
+          // ha un seat ma la UI lo lista ancora tra gli usciti con dati vecchi.
           const seduti = sess.giocatori.map(x => ({ id_nome: x.id_nome, seat: x.seat }));
           const nuoviSeduti = assegnaPostoIngresso(seduti, idNome);
           const nuovoSeat = nuoviSeduti.find(s => s.id_nome === idNome)?.seat ?? null;
           const nEntrati = sess.giocatori.filter(x => x.entrato).length + 1;
           const giocatori = sess.giocatori.map(x =>
-            x.id_nome === idNome ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now() } : x,
+            x.id_nome === idNome
+              ? { ...x, entrato: true, seat: nuovoSeat, seduto_da_ms: Date.now(), uscito: false, valore_uscita: undefined, ora_uscita: undefined }
+              : x,
           );
           saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori, num_tavoli: tavoliNecessari(nEntrati) } });
         } else {
@@ -800,15 +816,15 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       addGiocatoreSessione: (legaId, nome) => {
         const { db, saveLega, toast } = get();
         const lega = db.leghe.find(l => l.id === legaId);
-        if (!lega?.sessioneAttiva) return 'Sessione non trovata';
+        if (!lega?.sessioneAttiva) return { ok: false, motivo: 'errore', messaggio: 'Sessione non trovata' };
         const sess = lega.sessioneAttiva;
         const inSess = new Set(sess.giocatori.map(g => g.id_nome));
         const n = nome.trim();
-        if (!n) return 'Inserisci un nome';
+        if (!n) return { ok: false, motivo: 'errore', messaggio: 'Inserisci un nome' };
         let nomi = [...lega.nomi];
         let _nid = lega._nid;
         let existing = nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
-        if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return null; }
+        if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return { ok: false, motivo: 'gia-in-sessione' }; }
         if (!existing) {
           existing = { id: _nid++, nome: n };
           nomi = [...nomi, existing];
@@ -816,7 +832,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
         saveLega({ ...lega, nomi, _nid, sessioneAttiva: { ...sess, giocatori } });
         toast(`${n} aggiunto alla serata`);
-        return null;
+        return { ok: true, idNome: existing.id };
       },
 
       rimuoviGiocatoreSessione: (legaId, idNome) => {
@@ -912,17 +928,15 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         }
 
         // Aggiunge alla sessione (e alla rubrica se il nome è nuovo)
-        const err = get().addGiocatoreSessione(legaId, n);
-        if (err) { toast(err); return; }
+        const res = get().addGiocatoreSessione(legaId, n);
+        if (!res.ok) { if (res.motivo === 'errore') toast(res.messaggio); return; }
 
-        // Rilegge la lega aggiornata e fa entrare il nuovo giocatore
+        // Fa entrare subito il giocatore APPENA aggiunto (per id_nome esatto,
+        // non ri-cercato per nome — B19, audit 2026-07-03)
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
-        if (!legaUpd?.sessioneAttiva) return;
-        const nomeTrovatoUpd = legaUpd.nomi.find(nm => normalizzaNome(nm.nome) === nNorm);
-        if (!nomeTrovatoUpd) return;
-        const nuovoG = legaUpd.sessioneAttiva.giocatori.find(g => g.id_nome === nomeTrovatoUpd.id);
+        const nuovoG = legaUpd?.sessioneAttiva?.giocatori.find(g => g.id_nome === res.idNome);
         if (!nuovoG || nuovoG.entrato) return;
-        get().toggleEntrato(legaId, nomeTrovatoUpd.id);
+        get().toggleEntrato(legaId, res.idNome);
       },
 
       /* ── Torneo live — timer & stato ── */
@@ -1042,14 +1056,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           toast('Late reg chiusa — non puoi aggiungere altri giocatori');
           return null;
         }
-        const err = get().addGiocatoreSessione(legaId, nome);
-        if (err) return err;
-        // Rilegge la lega aggiornata per assegnare il posto
+        const res = get().addGiocatoreSessione(legaId, nome);
+        if (!res.ok) return res.motivo === 'errore' ? res.messaggio : null;
+        // Rilegge la lega aggiornata e assegna il posto al giocatore APPENA
+        // aggiunto, per id_nome esatto — non "l'ultimo dell'array" (B19, audit
+        // 2026-07-03): su un no-op quel giocatore poteva essere un altro.
         const legaUpd = get().db.leghe.find(l => l.id === legaId);
         if (!legaUpd?.sessioneAttiva) return null;
         const sessUpd = legaUpd.sessioneAttiva;
-        const last = sessUpd.giocatori[sessUpd.giocatori.length - 1];
-        if (last && !last.seat) {
+        const target = sessUpd.giocatori.find(g => g.id_nome === res.idNome);
+        if (target && !target.seat) {
           const used = new Set(
             sessUpd.giocatori
               .filter(g => g.seat)
@@ -1060,8 +1076,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           outer: for (let t = 1; t <= numT + 1; t++) {
             for (let p = 1; p <= 9; p++) {
               if (!used.has(`T${t}P${p}`)) {
-                const giocatori = sessUpd.giocatori.map((g, i) =>
-                  i === sessUpd.giocatori.length - 1
+                const giocatori = sessUpd.giocatori.map(g =>
+                  g.id_nome === res.idNome
                     ? { ...g, seat: { tavolo: t, posto: p } }
                     : g,
                 );
@@ -1285,7 +1301,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       },
 
       apriChiusuraTorneo: (legaId, forzaVivi) => {
-        const { db, saveLega, setSettlement } = get();
+        const { db, setSettlement } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega?.sessioneAttiva) return { ok: false, motivo: 'sessione-assente' };
 
@@ -1326,8 +1342,13 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         let nextPos = entrati.length;
         entrati.forEach(g => { if (!g.posizione_finale) g.posizione_finale = nextPos--; });
 
-        /* Salva posizioni aggiornate */
-        saveLega({ ...lega, sessioneAttiva: sess });
+        /* Le posizioni (anche quelle auto-assegnate/provvisorie qui sopra)
+           restano SOLO nella copia locale `sess`, usata per costruire il
+           settlement qui sotto — NON si persistono su `lega.sessioneAttiva`
+           (M10, audit 2026-07-03): se l'utente torna al live invece di
+           confermare la chiusura, la sessione live deve restare quella VERA,
+           non quella con le posizioni provvisorie. Il salvataggio reale
+           avviene in `confermaChiusura`, che sostituisce `sessioneAttiva`. */
 
         /* Costruisci entrati per settlement */
         const arr: SettlementEntrato[] = entrati.map(g => {
@@ -1714,8 +1735,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         db.leghe.forEach(lega => {
           let dirty = false;
-          migrateSessione(lega.sessioneAttiva);
-          (lega.serate_bg ?? []).forEach(s => migrateSessione(s));
+          // migrateSessione muta in place (retrocompat ricariche legacy): non
+          // sappiamo a buon mercato se ha cambiato qualcosa, quindi se c'è una
+          // sessione da processare la persistiamo sempre (idempotente, costa
+          // poco al boot) — altrimenti la mutazione non veniva mai salvata né
+          // notificava i subscriber (B21, audit 2026-07-03).
+          if (lega.sessioneAttiva) { migrateSessione(lega.sessioneAttiva); dirty = true; }
+          if ((lega.serate_bg ?? []).length) {
+            lega.serate_bg.forEach(s => migrateSessione(s));
+            dirty = true;
+          }
           (lega.partite ?? []).forEach(p => {
             if (!p.settlements) { migratePartita(p); dirty = true; }
           });
