@@ -50,11 +50,11 @@ che non esiste più).
 
 | ID | Cosa | Dove | Fix | Stato |
 |----|------|------|-----|-------|
-| **M15** | `R7_SCHEMA` descrive `poker_movimenti` **diverso dall'SQL applicato** (enum {buyin,rebuy,addon,cashout}+`unita` vs 3 tipi reali; §3.2 mostra ancora JSONB) | `_processo/R7_SCHEMA.md` §3.2+B1+B2 | Riscrivi §3/B1/B2 sull'SQL effettivo **prima di R7.2** (rischio: implementare il sync su uno schema fantasma) | ☐ |
-| **M16** | `BACKEND_SPEC` dice ancora "online-required (A) CONFERMATA" + tabelle mai nate (`sessioni_poker`,`debiti`,`lega_membri`) | `_processo/BACKEND_SPEC.md` | Banner "⚠️ SUPERATO 2026-07-01 → vedi R7_SCHEMA + DECISIONI (f)" | ☐ |
-| **M17** | `README.md` pubblico si contraddice (status "pre-backend/demo login" vs "Auth is real"; stack = web rimossa) | `README.md` + `README.it.md` | Riallinea a Expo-only + auth reale + schema R7 applicato | ☐ |
-| **M18** | `CONTESTO.md` cita `apps/web` viva, `pnpm dev:web` inesistente, azioni dashboard "pendenti" (fatte), R7.1 non registrata | `_processo/CONTESTO.md` | Riallinea (la LINEA v3 già corregge lo stato; ripulire i §vecchi) | ☐ |
-| **B44** | `MAPPA_CODICE`: web "congelata", azioni "pendenti", backend fermo a R6 | `_processo/MAPPA_CODICE.md` | 3 ritocchi | ☐ |
+| **M15** | `R7_SCHEMA` descrive `poker_movimenti` **diverso dall'SQL applicato** (enum {buyin,rebuy,addon,cashout}+`unita` vs 3 tipi reali; §3.2 mostra ancora JSONB) | `_processo/R7_SCHEMA.md` §3.2+B1+B2 | Riscrivi §3/B1/B2 sull'SQL effettivo **prima di R7.2** (rischio: implementare il sync su uno schema fantasma) | ✅ `077e09a` (§3.1/3.2/3.3 marcate APPLICATO, B1/B2 riscritte) |
+| **M16** | `BACKEND_SPEC` dice ancora "online-required (A) CONFERMATA" + tabelle mai nate (`sessioni_poker`,`debiti`,`lega_membri`) | `_processo/BACKEND_SPEC.md` | Banner "⚠️ SUPERATO 2026-07-01 → vedi R7_SCHEMA + DECISIONI (f)" | ✅ `077e09a` |
+| **M17** | `README.md` pubblico si contraddice (status "pre-backend/demo login" vs "Auth is real"; stack = web rimossa) | `README.md` + `README.it.md` | Riallinea a Expo-only + auth reale + schema R7 applicato | ✅ `077e09a` (entrambi i README) |
+| **M18** | `CONTESTO.md` cita `apps/web` viva, `pnpm dev:web` inesistente, azioni dashboard "pendenti" (fatte), R7.1 non registrata | `_processo/CONTESTO.md` | Riallinea (la LINEA v3 già corregge lo stato; ripulire i §vecchi) | ✅ `077e09a` (Path/Stack/blocco R6/Comandi/Repo) |
+| **B44** | `MAPPA_CODICE`: web "congelata", azioni "pendenti", backend fermo a R6 | `_processo/MAPPA_CODICE.md` | 3 ritocchi | ✅ `077e09a` (+ inventario R7.1 aggiunto) |
 
 ## 🟠 MEDIA+BASSA — SQL hardening (fase: R6-B5, una migration forward + CLI)
 
@@ -92,7 +92,7 @@ che non esiste più).
 | **B26** | Mapping "database error saving new user"→"Username già in uso" troppo largo | H-block | ☐ |
 | **B27** | `onAuthStateChange` mai unsubscribed (innocuo in prod) | H-block | ☐ |
 | **B28** | Stringa magica "Registrazione ok" tra authSlice e LoginScreen | H-block | ☐ |
-| **B29** | Expo Go: deep link `exp://` fuori allowlist (non-bug, da documentare) | R6-B4 (nota in supabase/README) | ☐ |
+| **B29** | Expo Go: deep link `exp://` fuori allowlist (non-bug, da documentare) | R6-B4 (nota in supabase/README) | ✅ `077e09a` |
 
 ---
 
