@@ -38,13 +38,13 @@ che non esiste più).
 
 | ID | Cosa | Dove | Fix | Stato |
 |----|------|------|-----|-------|
-| **M9** | `eliminaGiocatore` controlla solo le partite poker → **orfani multigioco** (sessioniGioco/serate/sessioneAttiva) | `store.ts:490-507` | Estrai `giocatoreInUso(lega,idNome)` puro + test, copre tutti i contenitori | ☐ |
-| **M10** | `apriChiusuraTorneo` **persiste posizioni provvisorie** prima della conferma → tornando al live restano | `store.ts:1273-1288` | Provvisorie solo nella copia `settlement.sessione`; persisti in `confermaChiusura` | ☐ |
-| **M11** | Rientro dopo `esceDalTavolo`: **giocatore fantasma** (seat riassegnato ma `uscito/valore_uscita` non azzerati) | `store.ts:625-650` | Azzera i campi al rientro (o vieta il rientro) | ☐ |
-| **M13** | `updateEmail` senza `emailRedirectTo` → il link cambio-email finisce sulla Site URL (pagina morta) | `authSlice.ts:118` | `updateUser({email},{emailRedirectTo: Linking.createURL('auth-callback')})` | ☐ |
-| **B19** | `addGiocatoreSessione` ritorna `null` sia per successo sia per "già in serata" → seat sbagliato possibile | `store.ts` | Esito discriminato `{ok,idNome}` | ☐ |
-| **B21** | `runMigrations` muta in place e non persiste le migrazioni sessioni | `store.ts` | Funzioni core pure che ritornano copia+`changed` | ☐ |
-| **B22** | Commenti stantii (riferimenti ad apps/web rimossa, helper inesistente) | `store.ts` | Pulizia | ☐ |
+| **M9** | `eliminaGiocatore` controlla solo le partite poker → **orfani multigioco** (sessioniGioco/serate/sessioneAttiva) | `store.ts:490-507` | Estrai `giocatoreInUso(lega,idNome)` puro + test, copre tutti i contenitori | ✅ `f44b504` (+9 test) |
+| **M10** | `apriChiusuraTorneo` **persiste posizioni provvisorie** prima della conferma → tornando al live restano | `store.ts:1273-1288` | Provvisorie solo nella copia `settlement.sessione`; persisti in `confermaChiusura` | ✅ `f44b504` (rimosso il `saveLega` premature) |
+| **M11** | Rientro dopo `esceDalTavolo`: **giocatore fantasma** (seat riassegnato ma `uscito/valore_uscita` non azzerati) | `store.ts:625-650` | Azzera i campi al rientro (o vieta il rientro) | ✅ `f44b504` (azzerati al rientro) |
+| **M13** | `updateEmail` senza `emailRedirectTo` → il link cambio-email finisce sulla Site URL (pagina morta) | `authSlice.ts:118` | `updateUser({email},{emailRedirectTo: Linking.createURL('auth-callback')})` | ✅ `f44b504` |
+| **B19** | `addGiocatoreSessione` ritorna `null` sia per successo sia per "già in serata" → seat sbagliato possibile | `store.ts` | Esito discriminato `{ok,idNome}` | ✅ `f44b504` (3 chiamanti aggiornati) |
+| **B21** | `runMigrations` muta in place e non persiste le migrazioni sessioni | `store.ts` | Funzioni core pure che ritornano copia+`changed` | ✅ `f44b504` (dirty=true quando c'è una sessione da migrare, idempotente) |
+| **B22** | Commenti stantii (riferimenti ad apps/web rimossa, helper inesistente) | `store.ts` | Pulizia | ✅ `f44b504` |
 
 ## 🟠 MEDIA — documenti da riallineare (fase: R6-B4)
 

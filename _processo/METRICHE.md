@@ -34,6 +34,7 @@
 |--------|--------|---------|--------|
 | R6-B1 — 3 fix ALTA | `2e00be7` | **Sonnet 5, effort high** (prima applicazione della regola "modello per passo") | A1 (confirm() rimosso da 6 azioni store, 2 nuovi tipi esito, 4 file UI aggiornati) · A2 (ri-consolidamento premi in apriChiusuraTorneo) · A3 (fix chip Personale) · +1 test nuovo (no-dom-globals). 6 file, +118/-37 righe. 185 core + 1 state verdi, typecheck+export ok |
 | R6-B2 — identità alla radice | `bb418b5` | **Sonnet 5, effort high** | M7 (accountId sul creatore + migrazione one-shot `assicuraTuNelleLeghe`) · M5 (3 picker multigioco) · M8 (nuova `reclamaGiocatoreInLega`, fix doppione displayName) · M6/B13 risolti come effetto di M7. 7 file, +119/-17 righe, +8 test core (185→193). Tutto verde |
+| R6-B3 — store & auth | `f44b504` | **Sonnet 5, effort high** | M9 (`giocatoreInUso` copre tutti i contenitori) · M10 (niente più posizioni provvisorie persistite) · M11 (reset stato uscita al rientro) · M13 (emailRedirectTo su updateEmail) · B19 (esito discriminato addGiocatoreSessione, 3 chiamanti) · B21 (dirty su migrazione sessioni) · B22 (commento stantio). 5 file, +188/-41 righe, +9 test core (193→202). Tutto verde. **B1+B2+B3 chiusi** — restano B4 (doc) · B5 (SQL) · B6 (test soldi) prima di R7.2 |
 
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
