@@ -17,14 +17,19 @@ Tracker"** (vedi `MULTIGIOCO_SPEC.md`). Il poker resta dentro, com'è, con un
 restyle grafico.
 
 ## Path
-`C:\Users\rober\Desktop\Programmi\poker\` (monorepo pnpm+Turborepo) — `apps/web/` (web, riferimento congelato), `apps/mobile/` (Expo, target), `packages/core/` (logica condivisa).
+`C:\Users\rober\Desktop\Programmi\poker\` (monorepo pnpm+Turborepo) — `apps/mobile/` (Expo, **l'app**),
+`packages/core/` (logica condivisa), `packages/state/` (store condiviso), `supabase/` (schema-as-code).
+⚠️ **`apps/web` è stata RIMOSSA** (2026-07-01, dopo il pivot React Native completo): archiviata al tag
+git `archive/web-frozen`, recuperabile con `git checkout archive/web-frozen -- apps/web`.
 I `.md` di processo stanno in `_processo/` (attivi) e `_processo/archivio/` (spenti).
 Node in `C:\Program Files\nodejs` (se `npm` non è nel PATH, usa il path completo).
 
 ## Stack
-Vite 6 + React 19 + TypeScript strict + Zustand (persist localStorage) +
-React Router 7 + Vitest. ESLint flat config. CSS con variabili (no Tailwind, no
-inline style — vedi memoria feedback).
+**Expo (React Native) + Expo Router** + TypeScript strict + Zustand (persist → AsyncStorage) +
+**Supabase** (Auth email+password + Postgres/RLS, schema-as-code in `supabase/migrations/`) +
+Vitest (202 test in `packages/core`). ESLint flat config. `StyleSheet` React Native (design token,
+tema scuro + accento per gioco — no Tailwind, no inline style, vedi memoria feedback).
+*(Storia: era Vite+React Router web fino al pivot RN del 2026-06-13/29, vedi sotto.)*
 
 ## File di riferimento (tutti LOCALI, leggere quando servono)
 - `METODO.md` (sul Desktop) — come si lavora: chat base orchestra, chat di fase implementano.
@@ -343,27 +348,35 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ✅ Quick-win in `main`: **condividi resoconto "chi paga chi"** (Share nativo, dai Debiti) + **fix sblocco GameBar**
   (il "gioco fisso" ora si può sbloccare). Feature native del telefono → backlog **R10** (`IDEE.md`); **i18n** (EN, forse
   FR/ES) → **R12** restyle.
-- 🟢 **R6 — Identità reale COSTRUITA** (branch `rn-r6-identita`, 6.1→6.5, non ancora mergiato; 185 core
-  + web/state test + mobile export/tsc verdi). Aperto il **blocco BACKEND**. Fatto: **profiles + username
-  UNIVOCO** (migration `supabase/migrations/`: unique index `lower(username)` + trigger `handle_new_user`
-  + RPC `username_available` + backfill), **two-tier** handle/display name (registrazione + Profilo
-  `@handle`), **deep link conferma email (R2.4 chiuso)** senza nuove dep (`parseAuthRedirect` puro +
-  `useDeepLinkAuth`), **"sei tu" ancorato all'account** (`accountId` + `èSeiTuRecord`; **rimosso** il
-  kludge `èSeiTu` per nome → niente codice morto). Vedi `DECISIONI.md` 2026-07-01 (c).
-  - ⏳ **Azioni utente (dashboard Supabase), poi merge**: (1) applicare la migration (`supabase db push`
-    o SQL Editor); (2) *Authentication → URL Configuration → Redirect URLs* = **`whostheboss://**`**.
-    Guida in `supabase/README.md`. Verifica a device (Expo Go/dev build) del giro conferma-email dopo la config.
-- **Prossimo (dopo merge R6)**: **R7 — Sync dati cross-device** (leghe/sessioni/partite su Supabase +
-  RLS + migrazione dal locale; qui `giocatori.account_id` su TUTTI i record). Il pezzo grosso.
+- 🟢 **R6 — Identità reale COSTRUITA** (branch `rn-r6-identita`, non ancora mergiato in `main`; 202 core
+  + state test + mobile export/tsc verdi). Aperto il **blocco BACKEND**. Fatto: **profiles + username
+  UNIVOCO** (unique index `lower(username)` + trigger `handle_new_user` + RPC `username_available` +
+  backfill), **two-tier** handle/display name (registrazione + Profilo `@handle`), **deep link conferma
+  email (R2.4 chiuso)** senza nuove dep (`parseAuthRedirect` puro + `useDeepLinkAuth`), **"sei tu"
+  ancorato all'account** (`accountId` + `èSeiTuRecord`; **rimosso** il kludge `èSeiTu` per nome).
+  Vedi `DECISIONI.md` 2026-07-01 (c).
+  - ✅ **Migration R6 APPLICATE** (utente, dashboard SQL Editor) + **Redirect URLs = `whostheboss://**`
+    configurato**. Guida in `supabase/README.md`.
+  - ✅ **R7.1 — Schema relazionale sync SCRITTO E APPLICATO** (13 tabelle, 3 migration `20260701150xxx`,
+    tutte e **5 le migration R6+R7 sono live** su Postgres senza errori): `leghe/giocatori(perno)/
+    giochi_lega` + `partite_poker/partita_poker_giocatori/poker_movimenti(append-only)/settlements` +
+    `serate/sessioni_gioco/partite_gioco`+ponti. RLS owner-only, `updated_at` server-side. Design
+    completo in `R7_SCHEMA.md`. Vedi `DECISIONI.md` 2026-07-01 (f)+(g)+(h).
+  - 🟢 **AUDIT multi-agente fatto** (67 agenti, 45 finding): registro **`AUDIT_R6_R7.md`**. **Bonifica
+    R6-B in corso** (vedi LINEA v3 sopra): **B1 ✅ B2 ✅ B3 ✅**, **B4 (doc) in corso** — B5 (SQL
+    hardening) e B6 (test soldi) restano prima di R7.2 e del merge in `main`.
+- **Prossimo**: chiudere **R6-B4/B5/B6**, poi **merge `rn-r6-identita`→`main`**, poi **R7.2 — layer di
+  sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
+  record via claim). Il pezzo grosso.
   ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
   pronta (`apps/mobile/eas.json`). Si fa al **controllo pre-pubblicazione** (dopo il primo build è 1 comando; poi OTA
   con EAS Update). Per sbirciare intanto: Expo Go (`npx expo start`). **Non insistere** con l'APK finché non serve.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).
-  - ⏳ **Rimandato apposta da R0.2 → R2/mobile**: astrarre lo **storage** dello store (localStorage web /
-    AsyncStorage mobile) e il **client Supabase** (env per-app: `import.meta.env` web / `process.env.EXPO_PUBLIC_*`
-    mobile). Oggi `store/` + `lib/supabase.ts` stanno **ancora in `apps/web`** (hanno pezzi platform-specifici).
+  - ✅ **Risolto** (era "rimandato da R0.2 → R2/mobile"): storage e client Supabase per-app astratti —
+    mobile ha il suo `lib/supabase.ts` (AsyncStorage) e `store/authSlice.ts` indipendenti; con `apps/web`
+    rimossa il debito è chiuso definitivamente.
 > Storia (superata dal pivot RN): "backend su web B0-B4" + "Play Store via PWA/TWA" → ora l'OTA è **EAS
 > Update**. Il branch `backend-b1-auth` (auth web, verde, non mergiato) resta come **logica-sorgente riusabile**.
 
@@ -403,15 +416,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 
 ## Comandi rapidi (dalla root del monorepo)
 ```
-pnpm dev:web        # server dev web (Vite, porta 5173)
-pnpm run test       # tutti i test via Turbo (147: 138 @whos-the-boss/core + 9 web)
+pnpm dev:mobile     # server dev Expo (apri in Expo Go)
+pnpm run test       # tutti i test via Turbo (202 @whos-the-boss/core + state)
+pnpm run typecheck  # tsc mobile (dopo un expo export, per i typed routes)
 pnpm run lint       # ESLint via Turbo
 pnpm run build      # build di tutti i pacchetti via Turbo
 pnpm --filter @whos-the-boss/core test   # solo i test della logica condivisa
+pnpm --filter @whos-the-boss/mobile exec expo export --platform android   # verifica che il bundle compili
 ```
 (serve `pnpm` sul PATH: `npm i -g pnpm@9`. Turbo orchestra i pacchetti.)
 
 ## Repo
 GitHub **pubblico**: `https://github.com/robertotommasogrossi7-bit/whos-the-boss`
-(Su GitHub: **monorepo** `apps/web` + `packages/core` + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del
-processo AI) + README + LICENSE. Default branch `main`.)
+(Su GitHub: **monorepo** `apps/mobile` + `packages/core` + `packages/state` + `supabase/` (schema-as-
+code) + `_legacy/` (storia) + **`_processo/` pubblicato** (showcase del processo AI) + README + LICENSE.
+`apps/web` rimossa, archiviata al tag `archive/web-frozen`. Default branch `main`.)

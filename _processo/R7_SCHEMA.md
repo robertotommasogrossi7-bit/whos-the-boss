@@ -36,7 +36,7 @@ i dati, non li ricalcola.
 
 ## 3. Le tabelle (schema proposto)
 
-### 3.1 Core
+### 3.1 Core — ✅ **APPLICATO** (R7.1a, `20260701150000_r7_core.sql`)
 **`profiles`** *(già esiste, R6)* — 1:1 con `auth.users`. `id uuid PK`, `username`, `display_name`, `created_at`.
 
 **`leghe`**
@@ -77,27 +77,41 @@ i dati, non li ricalcola.
 | pareggio_come_vittoria | bool | |
 | created_at / updated_at / deleted_at | | UNIQUE(lega_id, gioco_key) |
 
-### 3.2 Poker (storico salvato)
-**`partite_poker`** *(← `Lega.partite: Partita[]`)*
-| id uuid PK · lega_id → leghe · local_id int (`Partita.id`) · buy_in numeric(10,2) · data date · ora_inizio text · ora_fine text · modalita text ('cash'|'torneo') · created_at/updated_at/deleted_at |
+### 3.2 Poker (storico salvato) — ✅ **APPLICATO** (R7.1b, `20260701150100_r7_poker.sql`)
+> Sezione riscritta il 2026-07-03 (R6-B4/M15) per rispecchiare l'SQL **davvero applicato** — la v1 sotto
+> aveva ancora `ricariche`/`pagamenti_*` come JSONB su `partita_poker_giocatori`: quella colonna **non
+> esiste**, i movimenti vivono nella tabella a parte `poker_movimenti` (decisione B1 della v2, sotto).
 
-**`partita_poker_giocatori`** *(← `Partita.giocatori: GiocatorePartita[]`)*
+**`partite_poker`** *(← `Lega.partite: Partita[]`)*
+| id uuid PK · lega_id → leghe · local_id int (`Partita.id`) · buy_in numeric(10,2) euro · data date · ora_inizio text · ora_fine text · modalita text ('cash'|'torneo') · created_at/updated_at/deleted_at |
+
+**`partita_poker_giocatori`** *(← `Partita.giocatori: GiocatorePartita[]`)* — **niente colonne jsonb**:
 | colonna | tipo | note |
 |---|---|---|
 | id | uuid PK | |
 | partita_id | uuid → partite_poker | |
 | giocatore_id | uuid → giocatori | (risolve `id_nome`) |
-| entrate, ricarica_fatta, extra, soldi_ricevuti, fiches_finali, netto_finale, premio | numeric(10,2) | i numeri dei soldi |
+| entrate, ricarica_fatta, extra, soldi_ricevuti, netto_finale, premio | numeric(10,2) | euro |
+| fiches_finali | numeric(10,2) | **dual-unit**: euro (cash) o chip (torneo) secondo `modalita` — non colonne separate (vedi B2 aggiornato) |
 | vincitore, buy_in_pagato, extra_pagato, add_on_fatto, add_on_pagato | bool | |
 | posizione_finale | int null | |
-| ricariche | **jsonb** | `Ricarica[] {importo,pagata?}` — array-foglia (vedi Decisione D2) |
-| pagamenti_effettuati | jsonb | `{to,amount,pagato?}[]` (D2) |
-| pagamenti_ricevuti | jsonb | `{from,amount}[]` (D2) |
+
+**`poker_movimenti`** *(← `Ricarica[]`/`pagamenti_effettuati`/`pagamenti_ricevuti` — ora APPEND-ONLY, non jsonb)*
+| colonna | tipo | note |
+|---|---|---|
+| id | uuid PK | |
+| partita_giocatore_id | uuid → partita_poker_giocatori | |
+| tipo | text check | **`'ricarica' \| 'pagamento_effettuato' \| 'pagamento_ricevuto'`** (3 valori reali — non l'enum `{buyin,rebuy,addon,cashout}` ipotizzato in v2/B1) |
+| importo | numeric(10,2) not null, check ≥0 | sempre euro (niente colonna `unita`: il chip vive solo in `fiches_finali`, non nei movimenti) |
+| pagata | bool null | per `ricarica`/`pagamento_effettuato`: pagato? (null se n/a) |
+| contro_giocatore_id | uuid → giocatori null | per `pagamento_*`: la controparte (il "to"/"from") |
+| ordine | int null | ordine originale nell'array locale |
+| created_at/updated_at | timestamptz | **niente `deleted_at`**: append-only vero, un annullo è un movimento inverso, non un delete |
 
 **`settlements`** *(← `Partita.settlements: Settlement[]` = i DEBITI "chi paga chi")*
-| id uuid PK · partita_id → partite_poker · from_giocatore_id → giocatori · to_giocatore_id → giocatori · amount numeric(10,2) · pagato bool |
+| id uuid PK · partita_id → partite_poker · from_giocatore_id → giocatori · to_giocatore_id → giocatori · amount numeric(10,2) euro · pagato bool · ordine int null |
 
-### 3.3 Multigioco (storico salvato)
+### 3.3 Multigioco (storico salvato) — ✅ **APPLICATO** (R7.1c, `20260701150200_r7_multigioco.sql`)
 **`serate`** *(← `Lega.serate: SerataMulti[]`)*
 | id uuid PK · lega_id → leghe · local_id int · data date · created_at/updated_at/deleted_at |
 | partecipanti → tabella-ponte `serata_partecipanti(serata_id, giocatore_id)` (vedi D3) |
@@ -186,14 +200,20 @@ tabella **`user_settings`** (account_id PK, jsonb) — oppure restano **solo loc
     R8 **additivo, senza migrazione distruttiva** (come consiglia il red team per `lega_membri`).
 
 ## B. Soldi (il percorso più sensibile)
-- **B1 — Movimenti = tabella append-only immutabile** `poker_movimenti(uid, partita_giocatore_uid,
-  tipo enum{buyin,rebuy,addon,cashout,pagamento}, importo numeric(10,2), unita enum{euro,chip}, at)`.
-  Al posto del JSONB `ricariche`/`pagamenti`. Motivi: constraint per-elemento (`importo>0`), audit,
-  riconciliazione, e **zero conflitti** (eventi immutabili, mai mutati). *(In R7 il rischio-concorrenza
-  è comunque basso — partite salvate immutabili — ma i movimenti-riga sono giusti e pronti per R9.)*
+- **B1 — Movimenti = tabella append-only immutabile.** ✅ **APPLICATA** come `poker_movimenti` (R7.1b) —
+  schema **reale** (diverso dalla bozza iniziale qui sotto, allineato in R6-B4/M15): `tipo` è
+  `'ricarica'|'pagamento_effettuato'|'pagamento_ricevuto'` (3 valori, non l'enum a 5 ipotizzato), niente
+  colonna `unita` (`importo` è sempre euro), presente `contro_giocatore_id` (controparte pagamento) e
+  `ordine`. Al posto del JSONB `ricariche`/`pagamenti`. Motivi: constraint per-elemento (`importo≥0`),
+  audit, riconciliazione, **zero conflitti** (eventi immutabili, mai mutati, niente `deleted_at`: un
+  annullo è un movimento inverso). *(In R7 il rischio-concorrenza è comunque basso — partite salvate
+  immutabili — ma i movimenti-riga sono giusti e pronti per R9.)* Dettaglio colonne: §3.2.
 - **B2 — Unità DICHIARATE per colonna.** Soldi = `numeric(10,2)` **euro** (buy_in, versato, netto,
-  premio, settlement.amount, importi movimenti). **Chip** (fiche_iniziali, add_on.fiche, fiches_finali
-  torneo) = colonne separate **intere**, mai mischiate con gli euro. Ogni colonna numerica ha l'unità nel commento.
+  premio, settlement.amount, movimenti). **Chip** (torneo): ⚠️ **deciso diversamente dalla bozza** — non
+  colonne separate intere, ma **dual-unit** su `fiches_finali` (euro nel cash, chip nel torneo, secondo
+  `modalita`), come già era nel modello locale (`GiocatorePartita.fiches_finali`). Pragmatico: lo schema
+  persiste 1:1 il modello esistente invece di introdurre una colonna in più usata solo a metà. Ogni
+  colonna numerica ha l'unità nel commento SQL.
 - **B3 — Riconciliazione all'import (non copia cieca).** Verifica che i `settlements` di una partita
   **sommino a zero** e i buy-in tornino; se non torna (drift float del locale) → **importa comunque ma
   FLAGGA** l'anomalia (vedi Fallback F2), non bloccare né corrompere.

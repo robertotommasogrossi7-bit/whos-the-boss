@@ -1,5 +1,16 @@
 # BACKEND_SPEC — Supabase (identità reale, ruoli, multi-device)
 
+> ⚠️ **SUPERATO 2026-07-01 su punti specifici** — questo doc resta come **storico/ricerca originale**
+> (perché-ora, guest, hosting: ancora validi), ma **due decisioni sono state ribaltate** dopo R1-R5
+> (l'app locale è diventata un vero local-first, non più "una demo"):
+> - §5 **"(A) online-required"** → **CORRETTO a local-first + layer di sync** (Zustand resta sorgente,
+>   AsyncStorage offline preservato). Vedi `DECISIONI.md` 2026-07-01 (f) e **`R7_SCHEMA.md`** (design autorevole).
+> - §**Modello dati** (tabelle `sessioni_poker`/`debiti`/`lega_membri` ipotizzate qui) → **lo schema
+>   REALE è diverso e già APPLICATO**: 13 tabelle relazionali (non queste), vedi **`R7_SCHEMA.md`** §3
+>   + `supabase/migrations/` (fonte di verità, non questo file).
+> - Le fasi **B1-B4** qui sotto sono **etichette superate**: la roadmap vera è **R6/R7/R8/R9** in
+>   `CONTESTO.md` (LINEA v3). B1 (auth) ≈ R6 (fatto); B2 (sync) ≈ R7 (in corso); B3 (ruoli) ≈ R8; B4 ≈ R9.
+>
 > SPEC di **architettura** (v0, 2026-06-12). Deciso con l'utente: **anticipare il backend**, partendo
 > da **SPEC + Auth**, in modo **INCREMENTALE** (no big-bang). Il DDL/RLS di dettaglio vive nello spec
 > della singola fase (B1/B2/B3) quando la si implementa. Vedi `DECISIONI.md` 2026-06-12 + `IDEE.md`.

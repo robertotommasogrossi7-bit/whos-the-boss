@@ -37,5 +37,10 @@ supabase db push
 3. **Conferma email** resta **ON** (scelta 2026-06-13): dopo il signUp l'utente riceve la mail; il
    link riapre l'app via deep link e crea la sessione (gestito in `_layout`, R6.4).
 
+> ⚠️ **Nota Expo Go (B29, audit 2026-07-03)**: il deep link **NON funziona in Expo Go** — lì lo scheme
+> è `exp://…`, non `whostheboss://`, quindi resta fuori dalla allowlist e il link non riapre l'app.
+> Non è un bug: per testare *questo* flusso serve un **dev build** (`npx expo run:android` o EAS dev
+> build). Registrazione/unicità username invece si possono provare anche in Expo Go.
+
 > Piano Free: il progetto va in pausa dopo ~1 settimana di inattività (si riattiva da dashboard).
 > Vedi `_processo/BACKEND_SPEC.md`.

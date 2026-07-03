@@ -5,8 +5,9 @@
 
 🇮🇹 [Leggi in italiano](README.it.md)
 
-**Status:** 🚧 In active development — **pre-backend** (runs locally, demo login,
-data lives in your browser). Built and tested in the open.
+**Status:** 🚧 In active development — React Native (Expo) app with **real auth**
+(Supabase, email + password); game data lives on-device for now, cloud sync (multi-device)
+is in progress. Built and tested in the open.
 
 ---
 
@@ -25,8 +26,8 @@ Open the app, pick a game, log your matches, look at the standings. That's the l
   moves, balancing).
 - **Standings** — per game, plus a personal cross-context view: how good are *you* at a
   game, across your solo games **and** all your leagues.
-- **Offline-first** — everything in `localStorage`. A real backend (accounts, multi-device,
-  roles) is planned.
+- **On-device data, real accounts** — auth is real (Supabase); game data lives on-device
+  (AsyncStorage) for now. Cloud sync (multi-device) and roles/sharing are in progress.
 
 ## Screenshots
 
@@ -70,15 +71,16 @@ process is part of the repo.
 
 | Layer | Tech |
 |---|---|
-| Build | Vite 6 |
+| App | Expo (React Native) + Expo Router |
 | UI | React 19 + TypeScript 5.8 (strict) |
-| State | Zustand 5 (persist) |
-| Routing | React Router 7 |
-| Tests | Vitest |
-| Styling | Plain CSS (design tokens / CSS variables) |
-| Persistence | localStorage (Supabase backend planned) |
+| State | Zustand 5 (persist → AsyncStorage) |
+| Backend | Supabase — Auth (email+password) + Postgres (schema-as-code, RLS) |
+| Tests | Vitest (shared logic, 202 tests) |
+| Styling | React Native `StyleSheet` (design tokens, dark theme + per-game accent) |
+| Monorepo | pnpm workspaces + Turborepo (`packages/core` logic, `packages/state` store) |
 
-Few dependencies on purpose: small bundle, and a codebase that ports cleanly to React Native later.
+Few dependencies on purpose: small bundle, logic shared cleanly between the (now-archived) web
+reference and the mobile app.
 
 ## Run it locally
 
@@ -115,9 +117,13 @@ whos-the-boss/   ← pnpm + Turborepo monorepo
 
 - ✅ **Multi-game core** — data model + stats, design system + app shell, match-logging,
   standings (per game + personal cross-context).
-- ⏭️ **Poker live money** (mid-game cash-out), **virtual table** (cash box, timers),
-  **roles & permissions** (local base).
-- 🔮 Rebranding, custom games, then a real **backend** (Supabase: accounts, multi-device).
+- ✅ **React Native port** — the whole app (multi-game + poker cash/tournament, live table,
+  timers, debt settlement) ported natively to Expo.
+- ✅ **Real identity** — Supabase auth, unique usernames, email confirmation via deep link,
+  "that's you" anchored to the account (not just the display name).
+- ⏭️ **Cross-device sync** — relational schema on Postgres/Supabase (already applied, RLS'd),
+  a sync layer is next.
+- 🔮 Roles & sharing between accounts, realtime, then a visual restyle before publishing.
 
 ## License
 
