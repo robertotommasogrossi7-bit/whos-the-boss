@@ -60,15 +60,15 @@ che non esiste più).
 
 | ID | Cosa | Fix | Stato |
 |----|------|-----|-------|
-| **M14** | **Cancellazione account rotta**: `giocatori.account_id`/`created_by_account_id` → profiles senza `ON DELETE` → il cascade da auth.users fallisce (requisito store Apple/Google) | Migration: `ON DELETE SET NULL` su entrambe (il claimed torna ospite, storico preservato) | ☐ |
-| **B31** | `set_updated_at` bumppa anche su UPDATE no-op → il sync incrementale fa echo | Trigger `BEFORE UPDATE ... WHEN (old.* IS DISTINCT FROM new.*)` | ☐ |
-| **B32** | `poker_movimenti`: append-only **dichiarato ma non enforced** (policy FOR ALL) né rappresentabile (CHECK vieta lo storno) | Decidere UNA semantica: append-only vero (policy split insert-only + movimento inverso) o mutabile documentato | ☐ |
-| **B33** | Manca `UNIQUE(partita_id, giocatore_id)` su partita_poker_giocatori | Unique index parziale `WHERE deleted_at IS NULL` | ☐ |
-| **B34** | RLS: `auth.uid()` nudo (niente initplan caching, lint 0003) + nessun `TO authenticated` + `owns_lega` in schema public (lint 0029) | `(select auth.uid())`/`(select owns_lega(...))` + `TO authenticated` su tutte le policy; valutare schema `private` | ☐ |
-| **B35** | `set_updated_at` senza `SET search_path` (unica funzione del progetto senza) | `set search_path = ''` | ☐ |
-| **R-mig** | Migration applicate incollando in dashboard → la **history remota non le traccia**, un futuro `db push` fallirebbe | `supabase migration repair` + d'ora in poi solo `db push` | ☐ |
-| **R-flow** | `flowType` non esplicito nel client (oggi default `implicit` = ok; un major bump può cambiarlo e rompere il parser) | `flowType:'implicit'` esplicito in `createClient` (mobile) | ☐ |
-| **B24** | `useDeepLinkAuth` senza dedup URL → doppio `setSession` possibile (getInitialURL+listener) | `useRef` con ultimo URL processato | ☐ |
+| **M14** | **Cancellazione account rotta**: `giocatori.account_id`/`created_by_account_id` → profiles senza `ON DELETE` → il cascade da auth.users fallisce (requisito store Apple/Google) | Migration: `ON DELETE SET NULL` su entrambe (il claimed torna ospite, storico preservato) | 🟡 `f86646a` scritta, **non ancora applicata** (+ query verifica nomi-vincolo) |
+| **B31** | `set_updated_at` bumppa anche su UPDATE no-op → il sync incrementale fa echo | Trigger `BEFORE UPDATE ... WHEN (old.* IS DISTINCT FROM new.*)` | 🟡 `f86646a` scritta, non ancora applicata (trigger split insert/update, 9 tabelle) |
+| **B32** | `poker_movimenti`: append-only **dichiarato ma non enforced** (policy FOR ALL) né rappresentabile (CHECK vieta lo storno) | Decidere UNA semantica: append-only vero (policy split insert-only + movimento inverso) o mutabile documentato | 🟡 `f86646a` scritta, non ancora applicata (deciso: append-only vero, RLS solo select+insert) |
+| **B33** | Manca `UNIQUE(partita_id, giocatore_id)` su partita_poker_giocatori | Unique index parziale `WHERE deleted_at IS NULL` | 🟡 `f86646a` scritta, non ancora applicata |
+| **B34** | RLS: `auth.uid()` nudo (niente initplan caching, lint 0003) + nessun `TO authenticated` + `owns_lega` in schema public (lint 0029) | `(select auth.uid())`/`(select owns_lega(...))` + `TO authenticated` su tutte le policy; valutare schema `private` | 🟡 `f86646a` scritta (~17 policy), non ancora applicata. `private` schema **valutato e scartato** (documentato nel file: rischio marginale, non vale riscrivere tutto) |
+| **B35** | `set_updated_at` senza `SET search_path` (unica funzione del progetto senza) | `set search_path = ''` | 🟡 `f86646a` scritta, non ancora applicata |
+| **R-mig** | Migration applicate incollando in dashboard → la **history remota non le traccia**, un futuro `db push` fallirebbe | `supabase migration repair` + d'ora in poi solo `db push` | ⏳ documentato in `supabase/README.md` (comandi pronti) — **azione utente**, serve la CLI installata |
+| **R-flow** | `flowType` non esplicito nel client (oggi default `implicit` = ok; un major bump può cambiarlo e rompere il parser) | `flowType:'implicit'` esplicito in `createClient` (mobile) | ✅ `f86646a` |
+| **B24** | `useDeepLinkAuth` senza dedup URL → doppio `setSession` possibile (getInitialURL+listener) | `useRef` con ultimo URL processato | ✅ `f86646a` |
 
 ## 🟡 BASSA — soldi: rete di test + fix (fase: R6-B6, test-first)
 
