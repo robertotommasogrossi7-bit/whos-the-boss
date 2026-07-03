@@ -4,24 +4,25 @@ Migrazioni versionate del database (identità, ruoli, sync). Il progetto Supabas
 vive nella dashboard (URL + anon key in `apps/mobile/.env`, gitignorato); qui sta
 lo **schema come codice**, così è riproducibile e mostra il processo.
 
-## Migrazioni
+## Migrazioni — inventario numerato (6 file totali, applicare in ordine 1→6)
 
-| File | Fase | Cosa fa |
-|------|------|---------|
-| `migrations/20260701120000_r6_profiles_username.sql` | **R6** | Tabella `profiles` + **username univoco** (handle case-insensitive), RLS, trigger `handle_new_user`, RPC `username_available`, backfill account R2. |
-| `migrations/20260701140000_r6_hardening.sql` | **R6** | Hardening post red-team: profili **PRIVATI** (via il select pubblico), trigger **a prova di footgun** (username mancante/non conforme → handle derivato, mai blocca il signup). **Va applicata dopo la prima.** |
-| `migrations/20260701150000_r7_core.sql` | **R7.1a** | Nucleo sync: `set_updated_at()` (trigger server), `owns_lega()` (RLS), `profiles.imported_at`; tabelle **leghe · giocatori · giochi_lega**. RLS solo-proprietario. |
-| `migrations/20260701150100_r7_poker.sql` | **R7.1b** | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti` (append-only) `· settlements`. |
-| `migrations/20260701150200_r7_multigioco.sql` | **R7.1c** | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti partecipanti/vincitori. |
-| `migrations/20260703100000_r6b5_hardening.sql` | **R6-B5** | Hardening post-audit: `ON DELETE SET NULL` su `giocatori.account_id`/`created_by_account_id` (cancellazione account, M14) · trigger `updated_at` split insert/update senza bump su no-op (B31+B35) · `poker_movimenti` **append-only vero** (RLS: solo select+insert, B32) · `UNIQUE(partita_id,giocatore_id)` parziale (B33) · RLS `(select auth.uid())`/`(select owns_lega(...))` + `TO authenticated` su tutte le policy (B34). Contiene una query di verifica commentata per M14 (i nomi-vincolo sono assunti standard, non verificati in esecuzione). |
+> ⚠️ **Fonte di verità sullo stato**: questa tabella. Se un'altra chat/nota dice qualcosa di diverso,
+> fidati di QUESTA tabella (e ri-conferma con l'utente prima di dare per applicato un file nuovo).
 
-> ⚠️ Le R7 vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
-> La R6-B5 va applicata **dopo** tutte le altre (assume che le tabelle esistano già).
-> ✅ **Le prime 5 migration sono APPLICATE** in dashboard (SQL Editor, 2026-07-01) senza errori:
-> lo schema è validato su Postgres reale. Il round-trip dati (sync vero) si valida nel "grande test"
-> finale (scelta di studio, `DECISIONI.md`). ⏳ **La R6-B5 (2026-07-03) è scritta ma non ancora
-> applicata** — va incollata nel SQL Editor come le altre, poi eseguire la query di verifica in fondo
-> al file (M14) per confermare che i nomi dei vincoli combacino.
+| # | File | Fase | Cosa fa | Stato |
+|---|------|------|---------|-------|
+| 1 | `migrations/20260701120000_r6_profiles_username.sql` | R6 | Tabella `profiles` + **username univoco** (handle case-insensitive), RLS, trigger `handle_new_user`, RPC `username_available`, backfill account R2. | ✅ **APPLICATA** |
+| 2 | `migrations/20260701140000_r6_hardening.sql` | R6 | Hardening post red-team: profili **PRIVATI**, trigger **a prova di footgun**. | ✅ **APPLICATA** |
+| 3 | `migrations/20260701150000_r7_core.sql` | R7.1a | Nucleo sync: `set_updated_at()`, `owns_lega()`, `profiles.imported_at`; tabelle **leghe · giocatori · giochi_lega**. | ✅ **APPLICATA** |
+| 4 | `migrations/20260701150100_r7_poker.sql` | R7.1b | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti · settlements`. | ✅ **APPLICATA** |
+| 5 | `migrations/20260701150200_r7_multigioco.sql` | R7.1c | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti. | ✅ **APPLICATA** |
+| 6 | `migrations/20260703100000_r6b5_hardening.sql` | R6-B5 | Hardening post-audit: `ON DELETE SET NULL` (M14) · trigger `updated_at` split insert/update (B31+B35) · `poker_movimenti` **append-only vero** (B32) · `UNIQUE(partita_id,giocatore_id)` (B33) · RLS `(select ...)` + `TO authenticated` su ~17 policy (B34). + query di verifica M14 in fondo al file. | ⏳ **SCRITTA, NON ANCORA APPLICATA** — non urgente, nessuna fretta |
+
+> ⚠️ Le R7 (3-5) vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
+> La R6-B5 (6) va applicata **dopo** tutte le altre (assume che le tabelle esistano già): incollarla
+> nel SQL Editor, poi eseguire la query di verifica in fondo al file (M14) per confermare che i nomi
+> dei vincoli combacino. Il round-trip dati (sync vero) si valida nel "grande test" finale (scelta
+> di studio, `DECISIONI.md`).
 
 ## Come applicarla
 
