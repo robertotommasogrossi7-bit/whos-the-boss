@@ -326,8 +326,144 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   `nuovaPartitaGioco` in core; `aggiungiGiocatore`/`addGiocatoreSessione`/`confermaChiusura`
   (cash+torneo)/`creaSerata` in `packages/state/src/store.ts`; creazione Lega+creatore in
   `apps/mobile/src/app/nuova-lega.tsx`). 234 test core (+3), state/mobile tsc + expo export verdi.
-- **R7.2b** — storage per-account: chiave namespaced + migrazione one-shot. `packages/state`, test-first.
+- **R7.2b** 🟡 **IN CORSO** — storage per-account: chiave namespaced + migrazione one-shot. Le
+  funzioni pure sono FATTE (`packages/state/src/accountStorage.ts`, commit `63415ff`); l'aggancio
+  al boot ha incontrato un ostacolo serio (vedi sez. M) e si è fermato per una mini-spec dedicata
+  con ricerca prima di toccare il gate auth.
 - **R7.2c** — modulo `sync/`: mapping locale↔cloud (tabella per tabella) + merge LWW + tombstone.
   Solo funzioni pure, core, test-first — **il grosso della fase**.
 
 **Chiedo conferma su questa mini-spec prima di iniziare R7.2a.**
+
+---
+
+# M — R7.2b: mini-spec dettagliata dell'aggancio boot (ricerca + design, 2026-07-11)
+
+> Durante R7.2b è emerso un ostacolo: lo storage per-account non è "aggiungi un wrapper", tocca
+> l'**ordine di boot** (hydration → auth → claim identità), un percorso già indurito dall'audit
+> (M13/B24/B27). Per il metodo (ricerca prima di scegliere, su feature E non solo grafica) ho
+> cercato **come lo risolvono progetti reali** prima di ridisegnare. Nessun codice di boot toccato
+> finché questa sezione non è approvata.
+
+## M.1 — Ricerca (fonti, cosa cambia nella nostra scelta)
+
+- **Zustand, docs ufficiali** (`persisting-store-data.md`): `skipHydration: true` + chiamata manuale
+  a `persist.rehydrate()` è il meccanismo **documentato** per "controlled initialization: hydrate at
+  a specific point in the application lifecycle" — esattamente il nostro caso (oggi lo usano per
+  l'SSR, ma il problema — non sapere ancora COSA idratare finché non è pronto un altro pezzo
+  d'app — è identico). C'è anche `persist.setOptions({ name })` per **cambiare la chiave a runtime**
+  prima di ri-idratare, e `hasHydrated()`/`onFinishHydration()` per il gate UI.
+  → **Cambio rispetto alla mia bozza precedente**: NON serve un `StateStorage` wrapper custom
+  (`perAccountStorage` che avevo già scritto in `accountStorage.ts`) — uso l'API nativa
+  `setOptions({name: chiaveStorage(...)})` + `rehydrate()`. Più semplice, meno codice mio da
+  mantenere, comportamento "benedetto" dalla libreria. **Azione**: rimuovere `perAccountStorage`
+  (diventa morto) quando implemento, tenere solo `chiaveStorage`+`migraBlobUnicoSeNecessario`.
+  [Persisting store data](https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data) ·
+  [Discussion #525 — persist per account](https://github.com/pmndrs/zustand/discussions/525)
+- **WatermelonDB + Supabase + Expo** (stack quasi identico al nostro): il pattern più comune per
+  "più account sullo stesso device" è **wipe totale del DB locale al logout**
+  (`db.unsafeResetDatabase()`), non namespace-e-conserva. Più semplice, ma perde i dati offline
+  dell'account ad ogni logout/login. **Decisione**: teniamo comunque namespace-e-conserva (già
+  scelto in G1) — è più comodo per chi torna sullo stesso account, e il costo in più (una chiave
+  per account invece di una sola) è basso. Lo confermo qui perché la ricerca mostrava un'alternativa
+  più semplice e voglio che la scelta sia esplicita, non per inerzia.
+  [Building an offline-first app with Expo, Supabase and WatermelonDB: Authentication](https://www.themorrow.digital/blog/building-an-offline-first-app-with-expo-supabase-and-watermelondb-authentication)
+- **PowerSync** (sync bucket per-utente via JWT): conferma che la partizione "giusta" per-account è
+  un problema che si risolve anche lato server (RLS `owner_id=auth.uid()`, già deciso D7) — lo
+  storage locale PRE-sync (R7.2, prima ancora del vero push/pull) è un problema a parte, nostro,
+  lato client, che questa fase risolve da sola.
+  [PowerSync Philosophy](https://docs.powersync.com/intro/powersync-philosophy)
+
+## M.2 — Design rivisto (sostituisce il punto 4 della sez. I)
+
+**Niente wrapper.** Si usa `persist.setOptions({ name })` + `persist.rehydrate()`, nativi di zustand.
+`accountStorage.ts` si riduce a due sole funzioni pure (già scritte, test-first):
+`chiaveStorage(base, accountId)` e `migraBlobUnicoSeNecessario(storageRaw, storeKey, accountId)`.
+
+**Split dell'identità in due**: oggi `applyUtente(user)` fa DUE cose insieme — (a) espone `utente`
+al resto dell'app, (b) applica gli effetti sul db (`assicuraTuNelPersonale`/`assicuraTuNelleLeghe`,
+claim dei record). Il problema: (b) deve girare **DOPO** che il db è stato ri-idratato dalla chiave
+giusta, ma oggi (a)+(b) partono insieme, subito alla risposta di Supabase. Si separano:
+- **`authUser`** (nuovo campo, non persistito): l'identità GREZZA appena risolta da Supabase,
+  aggiornata ad OGNI evento (`getSession` iniziale + ogni `onAuthStateChange`).
+- **`utente`** (invariato nel significato): l'identità "pronta" — resta uguale a oggi, letta da
+  tutto il resto dell'app (LoginScreen gate, Profilo, ecc.), ma ora viene settata dall'orchestratore
+  **solo dopo** che lo storage è quello giusto.
+- **`applyUtente`** resta la funzione che fa (a)+(b) insieme (nessun cambio alla sua logica interna,
+  già testata) — cambia SOLO **chi la chiama e quando**.
+- **`dbReady`** (nuovo, non persistito, default `false`): true quando lo storage per l'account
+  corrente è stato ri-idratato (o azzerato, se nessun account). Il gate UI diventa
+  `authLoading || !dbReady` invece di solo `authLoading`.
+- **`clearDbLocale`** (nuova azione store, banale): `set({ db: emptyDb() })` — usata quando
+  `authUser` torna `null` (logout): niente storage da leggere, si azzera e basta.
+
+`authSlice.ts` (`initAuth`) cambia UNA riga concettuale: dove oggi chiama
+`get().applyUtente(toUser(...))` (sia nella risoluzione iniziale sia in `onAuthStateChange`), chiama
+invece `get().setAuthUser(toUser(...))`. `setAuthLoading(false)` resta dov'è (solo alla risoluzione
+iniziale, come oggi): continua a significare "il PRIMO controllo sessione è finito", non
+"tutto pronto" — quello lo dice `dbReady`.
+
+## M.3 — Sequenza di boot (nuovo orchestratore in `_layout.tsx`)
+
+Due `useEffect` indipendenti invece dell'unico attuale:
+
+1. **Avvio auth** (una volta sola, come oggi): `useEffect(() => { initAuth(); }, [initAuth])` — NON
+   aspetta più l'idratazione (Supabase legge la propria sessione da un suo storage indipendente).
+2. **Orchestratore storage** (nuovo), reagisce a `[authUser?.id, authLoading]`, con un `useRef` di
+   dedup (stesso pattern di `useDeepLinkAuth`/B24, per non rifare tutto ad ogni token-refresh che
+   ripropone lo stesso `authUser.id`):
+   ```
+   if (authLoading) return;                      // aspetta il primo giro di Supabase
+   const accountId = authUser?.id ?? null;
+   if (lastAccountRef.current === accountId) return;  // stesso account (token refresh) → no-op
+   lastAccountRef.current = accountId;
+   set dbReady=false
+   se accountId è null (logout): clearDbLocale(); dbReady=true; FINE (LoginScreen non legge db)
+   altrimenti:
+     persist.setOptions({ name: chiaveStorage(STORE_KEY, accountId) })
+     await migraBlobUnicoSeNecessario(mobileStorageAdapter, STORE_KEY, accountId)
+     await persist.rehydrate()
+     runMigrations()
+     applyUtente(authUser)      // ORA il db è quello giusto: claim/ensure sicuri
+     dbReady=true
+   ```
+   Guardia `cancelled` (stesso pattern già in uso nel repo) per lo switch rapido logout→login.
+
+**Gate UI**: `authLoading || !dbReady ? Loader : !utente ? LoginScreen : Stack` (era solo
+`authLoading ? ... : !utente ? ... : ...`).
+
+## M.4 — Copre anche il cambio-account A CALDO (non solo il boot)
+
+A differenza della bozza precedente (che si fermava al boot), questo disegno gestisce **con lo
+stesso codice** anche logout→login-di-un-altro-account senza riavviare l'app, perché l'effect
+reagisce a OGNI cambio di `authUser?.id`, non solo al primo. Coerente con quanto fanno
+WatermelonDB/RxDB nella pratica (chiudono/ri-aprono il DB ad ogni cambio utente, non solo al boot).
+
+## M.5 — Cosa resta un limite esplicito (dichiarato, non nascosto)
+
+- Se l'app viene **uccisa a metà** della sequenza (es. durante `rehydrate()`), al riavvio si
+  riparte da zero (gate `dbReady=false`) — nessuno stato a metà persistito, sicuro per costruzione.
+- La migrazione one-shot **copia, non sposta**: se due account diversi fanno il primo login sullo
+  stesso device PRIMA che uno dei due sincronizzi mai nulla (scenario raro, pre-R7.3), entrambi
+  vedrebbero lo stesso blob legacy iniziale — accettato (già dichiarato in G1), si risolve da solo
+  con R7.3 (import) e R8 (ogni account poi diverge sui propri dati cloud).
+- Nessun vero test end-to-end del boot (serve un device/Expo Go, non solo Vitest) — si verifica nel
+  "grande test" finale già pianificato (`DECISIONI.md`), qui si verificano solo le funzioni pure.
+
+## M.6 — Piano di implementazione (micro-step, test-first)
+
+1. `accountStorage.ts`: rimuovere `perAccountStorage` (morto dopo il pivot a `setOptions`) + il suo
+   test; tenere `chiaveStorage`+`migraBlobUnicoSeNecessario` (già verdi).
+2. `packages/state/store.ts`: nuovi campi `authUser`/`dbReady` (non persistiti, esclusi da
+   `partialize` come `utente`/`authLoading` oggi) + azioni `setAuthUser`/`setDbReady`/`clearDbLocale`;
+   `persist(...)` riceve `skipHydration: true`. Test sulle nuove azioni (pure, banali).
+3. `authSlice.ts`: sostituire le 2 chiamate `applyUtente(toUser(...))` con `setAuthUser(toUser(...))`.
+4. `useStore.ts`: esportare l'adapter storage grezzo (oggi inline) come `mobileStorageAdapter`, per
+   passarlo a `migraBlobUnicoSeNecessario` da `_layout.tsx`.
+5. `_layout.tsx`: nuovo orchestratore (sez. M.3), gate UI aggiornato con `dbReady`.
+6. Verifica piena (test, tsc state, expo export, typecheck) + **prova manuale in Expo Go** (login
+   con un account esistente, verificare che i dati ci siano ancora — è un cambio di boot, merita
+   un occhio dal vivo oltre ai test, anche se il vero test end-to-end resta il "grande test" finale).
+7. Commit + aggiornare checkbox qui + `AUDIT_R6_R7.md`/M12.
+
+**Chiedo conferma su questa mini-spec (sez. M) prima di toccare `_layout.tsx`/`authSlice.ts`/`store.ts`.**
