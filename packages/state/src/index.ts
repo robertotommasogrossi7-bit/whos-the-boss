@@ -2,3 +2,4 @@
    con STORAGE e AUTH iniettati per piattaforma. La web/mobile creano il loro store
    con createAppStore({ storage, auth }). */
 export * from './store';
+export * from './accountStorage';
