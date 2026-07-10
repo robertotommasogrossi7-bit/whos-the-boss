@@ -16,13 +16,10 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | 3 | `migrations/20260701150000_r7_core.sql` | R7.1a | Nucleo sync: `set_updated_at()`, `owns_lega()`, `profiles.imported_at`; tabelle **leghe · giocatori · giochi_lega**. | ✅ **APPLICATA** |
 | 4 | `migrations/20260701150100_r7_poker.sql` | R7.1b | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti · settlements`. | ✅ **APPLICATA** |
 | 5 | `migrations/20260701150200_r7_multigioco.sql` | R7.1c | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti. | ✅ **APPLICATA** |
-| 6 | `migrations/20260703100000_r6b5_hardening.sql` | R6-B5 | Hardening post-audit: `ON DELETE SET NULL` (M14) · trigger `updated_at` split insert/update (B31+B35) · `poker_movimenti` **append-only vero** (B32) · `UNIQUE(partita_id,giocatore_id)` (B33) · RLS `(select ...)` + `TO authenticated` su ~17 policy (B34). + query di verifica M14 in fondo al file. | ⏳ **SCRITTA, NON ANCORA APPLICATA** — non urgente, nessuna fretta |
+| 6 | `migrations/20260703100000_r6b5_hardening.sql` | R6-B5 | Hardening post-audit: `ON DELETE SET NULL` (M14) · trigger `updated_at` split insert/update (B31+B35) · `poker_movimenti` **append-only vero** (B32) · `UNIQUE(partita_id,giocatore_id)` (B33) · RLS `(select ...)` + `TO authenticated` su ~17 policy (B34). + query di verifica M14 in fondo al file. | ✅ **APPLICATA** (confermato dall'utente 2026-07-11) |
 
-> ⚠️ Le R7 (3-5) vanno applicate **in ordine** (core → poker → multigioco) per via delle foreign key.
-> La R6-B5 (6) va applicata **dopo** tutte le altre (assume che le tabelle esistano già): incollarla
-> nel SQL Editor, poi eseguire la query di verifica in fondo al file (M14) per confermare che i nomi
-> dei vincoli combacino. Il round-trip dati (sync vero) si valida nel "grande test" finale (scelta
-> di studio, `DECISIONI.md`).
+> ✅ **Tutte e 6 le migration sono APPLICATE** (2026-07-11). Il round-trip dati (sync vero) si valida
+> nel "grande test" finale (scelta di studio, `DECISIONI.md`).
 
 ## Come applicarla
 
@@ -64,8 +61,7 @@ supabase migration repair --status applied 20260701140000
 supabase migration repair --status applied 20260701150000
 supabase migration repair --status applied 20260701150100
 supabase migration repair --status applied 20260701150200
-# la R6-B5 invece si applica con `supabase db push` (non è ancora eseguita) —
-# a quel punto la CLI la marca "applied" da sola, nessun repair necessario.
+supabase migration repair --status applied 20260703100000
 ```
 
 Da quel momento in poi: **solo `supabase db push`** per le nuove migration (niente più copia-incolla

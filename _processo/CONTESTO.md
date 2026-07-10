@@ -396,20 +396,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
 ## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
-- **SQL da applicare in dashboard Supabase — 1 su 6 pendente** (2026-07-03, R6-B5): l'utente ha
-  applicato i primi **5** file di `supabase/migrations/` (confermato più volte in sessione — vedi
-  anche `supabase/README.md` "Tutte e 5 le migration sono APPLICATE"). **Manca solo il 6°:
-  `20260703100000_r6b5_hardening.sql`** (hardening post-audit: M14/B31-B35, vedi `AUDIT_R6_R7.md`).
-  **NON urgente** — non blocca il lavoro in corso, si applica quando l'utente vuole. Inventario
-  completo e numerato in `supabase/README.md` (tabella "Migrazioni") — **la chat base lo ricorda
-  ogni volta che si torna sull'argomento backend/SQL**, anche dopo un reset di contesto (rileggere
-  questo file + `supabase/README.md` prima di dire "tutto applicato").
-  **Verificato 2026-07-03** (l'utente non ricordava con certezza quanti/quali file ci fossero):
-  ricerca esaustiva `**/*.sql` + blocchi ` ```sql ` nei `.md` + `git log --all` su TUTTA la storia
-  → **esistono e sono sempre esistiti solo questi 6 file**, nessuno mai cancellato, nessuno sparso
-  altrove. L'inventario numerato è **completo e affidabile**. Se in futuro nasce un dubbio simile,
-  **ripetere questa stessa verifica** prima di rispondere a naso (best practice ora nel metodo
-  globale, sez. "Supabase: un solo posto per l'SQL").
+- ✅ **SQL Supabase — TUTTE e 6 le migration applicate** (confermato dall'utente 2026-07-11, ultima
+  era `20260703100000_r6b5_hardening.sql`). Inventario numerato in `supabase/README.md`. Residuo
+  minore non urgente: se un giorno si installa la Supabase CLI, va sanata la migration history con
+  `supabase migration repair` (comandi pronti in `supabase/README.md`) — le prime 6 sono state
+  applicate a mano da dashboard, non con la CLI.
 - **Closed testing Play Store — DA SPIEGARE all'utente quando arriviamo a RP** (2026-07-03): il
   requisito Google "12 tester × 14 giorni per account personali nuovi" non gli è chiaro → prima di
   pianificare RP, spiegarlo bene (cos'è, perché esiste, come si incastra col collaudo tra amici) e
