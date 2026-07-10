@@ -326,10 +326,16 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   `nuovaPartitaGioco` in core; `aggiungiGiocatore`/`addGiocatoreSessione`/`confermaChiusura`
   (cash+torneo)/`creaSerata` in `packages/state/src/store.ts`; creazione Lega+creatore in
   `apps/mobile/src/app/nuova-lega.tsx`). 234 test core (+3), state/mobile tsc + expo export verdi.
-- **R7.2b** 🟡 **IN CORSO** — storage per-account: chiave namespaced + migrazione one-shot. Le
-  funzioni pure sono FATTE (`packages/state/src/accountStorage.ts`, commit `63415ff`); l'aggancio
-  al boot ha incontrato un ostacolo serio (vedi sez. M) e si è fermato per una mini-spec dedicata
-  con ricerca prima di toccare il gate auth.
+- **R7.2b** ✅ **FATTO** — storage per-account: chiave namespaced + migrazione one-shot
+  (`accountStorage.ts`) + aggancio al boot (sez. M): `authUser`/`dbReady`/`clearDbLocale` nello
+  store, `skipHydration`+`persist.setOptions({name})`+`persist.rehydrate()` (nativi zustand, niente
+  wrapper custom), `authSlice.initAuth` notifica `setAuthUser` invece di applicare subito,
+  orchestratore in `_layout.tsx` che copre boot E cambio-account a caldo. Verificato: 234 test core
+  + 7 state, state/mobile tsc + expo export android verdi. **Limite**: il controllo visivo in Expo
+  Go/browser NON è stato possibile in questo ambiente (il preview web di Expo si riavviava in loop
+  senza mai completare il bundle, probabile incompatibilità nativa con `react-native-web`) — la
+  prova dal vivo (login reale, dati ancora presenti) resta da fare su device/Expo Go, si può fare
+  nel "grande test" finale o prima se comodo.
 - **R7.2c** — modulo `sync/`: mapping locale↔cloud (tabella per tabella) + merge LWW + tombstone.
   Solo funzioni pure, core, test-first — **il grosso della fase**.
 

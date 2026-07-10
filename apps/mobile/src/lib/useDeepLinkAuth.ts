@@ -9,7 +9,9 @@ import { useStore } from '@/store/useStore';
    conferma email (o cambio email). Supabase riapre l'app via scheme
    whostheboss:// col risultato nel fragment dell'URL; qui estraiamo i token
    (parser puro in core) e creiamo la sessione. Al successo, onAuthStateChange
-   setta `utente` e il gate in _layout passa da solo all'app.
+   setta `authUser` (grezzo); l'orchestratore di _layout.tsx applica poi
+   `utente` dopo lo storage swap (R7.2b, R7_SCHEMA.md sez. M) e il gate
+   passa da solo all'app.
    Config una-tantum in dashboard: Redirect URLs = whostheboss://** (vedi supabase/README). */
 export function useDeepLinkAuth(): void {
   const toast = useStore((s) => s.toast);

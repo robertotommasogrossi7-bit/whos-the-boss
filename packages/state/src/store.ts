@@ -39,6 +39,14 @@ interface UiState {
   // Auth (Supabase) — non persistito in localStorage (la sessione la gestisce il SDK)
   utente: User | null;
   authLoading: boolean;   // true finché la sessione non è ripristinata al boot
+  // R7.2b (storage per-account): identità GREZZA appena risolta da Supabase,
+  // aggiornata ad ogni evento auth. Distinta da `utente` (che diventa "pronto"
+  // solo DOPO che l'orchestratore ha ri-idratato lo storage dell'account —
+  // vedi R7_SCHEMA.md sez. M). Non persistita.
+  authUser: User | null;
+  // true quando lo storage locale è quello giusto per `authUser` corrente
+  // (ri-idratato o azzerato). Il gate UI aspetta authLoading E dbReady.
+  dbReady: boolean;
 
   // Nuova lega
   nlFoto: string;
@@ -121,6 +129,12 @@ interface StoreActions {
   initAuth: () => void;   // ripristina la sessione al boot + sottoscrive i cambi di stato
   applyUtente: (user: User | null) => void;   // setta utente + aggancia "sei tu" (puro)
   setAuthLoading: (loading: boolean) => void;
+  // R7.2b: setter dell'identità grezza (chiamato da initAuth al posto di
+  // applyUtente — l'orchestratore in _layout.tsx decide QUANDO applicarla,
+  // dopo lo storage swap).
+  setAuthUser: (user: User | null) => void;
+  setDbReady: (ready: boolean) => void;
+  clearDbLocale: () => void;   // logout: niente storage da leggere, azzera e basta
 
   // Overlay
   openOverlay:  () => void;
@@ -313,6 +327,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       /* ── Stato UI (NON persistito) ── */
       utente: null,
       authLoading: true,
+      authUser: null,
+      dbReady: false,
       nlFoto: '',
       overlayOpen: false,
       serataView: 'hub',
@@ -365,6 +381,9 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (user) assicuraTuNelleLeghe(get().db, get().saveLega, user);
       },
       setAuthLoading: (loading) => set({ authLoading: loading }),
+      setAuthUser: (user) => set({ authUser: user }),
+      setDbReady: (ready) => set({ dbReady: ready }),
+      clearDbLocale: () => set({ db: emptyDb() }),
       initAuth: () => set({ authLoading: false }),
       login: async () => null,
       register: async () => null,
@@ -1804,6 +1823,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         gameBarVisible: state.gameBarVisible,
         gameBarPinned: state.gameBarPinned,
       }),
+      // R7.2b: niente auto-idratazione alla creazione — non sappiamo ancora
+      // QUALE account (quindi quale chiave) leggere. L'app chiama
+      // persist.setOptions({name})+persist.rehydrate() da sola quando lo sa
+      // (R7_SCHEMA.md sez. M).
+      skipHydration: true,
     }
   )
   );

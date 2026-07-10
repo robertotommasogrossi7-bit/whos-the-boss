@@ -45,12 +45,15 @@ function toUser(u: SupabaseUser | null): User | null {
 
 export const supabaseAuth: AuthInjector = (get) => ({
   initAuth: () => {
+    // R7.2b: setAuthUser (non applyUtente) — l'identità grezza va
+    // all'orchestratore di _layout.tsx, che decide QUANDO applicarla
+    // (dopo lo storage swap per l'account giusto, R7_SCHEMA.md sez. M).
     supabase.auth.getSession().then(({ data }) => {
-      get().applyUtente(toUser(data.session?.user ?? null));
+      get().setAuthUser(toUser(data.session?.user ?? null));
       get().setAuthLoading(false);
     });
     supabase.auth.onAuthStateChange((_event, session) => {
-      get().applyUtente(toUser(session?.user ?? null));
+      get().setAuthUser(toUser(session?.user ?? null));
     });
   },
 
