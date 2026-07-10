@@ -21,5 +21,6 @@ export * from './utils/tavoli';
 export * from './utils/tema';
 export * from './utils/tempoGioco';
 export * from './utils/torneo';
+export * from './utils/uid';
 export * from './utils/username';
 export * from './utils/uscita';

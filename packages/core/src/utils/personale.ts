@@ -1,5 +1,6 @@
 import type { Lega, NomeGiocatore, User } from '../types';
 import { normalizzaNome } from './normalizzaNome';
+import { generaUid } from './uid';
 
 /* ══════════════════════════════════════════════════════
    LEGA "PERSONALE" (Card Tracker §2)
@@ -25,6 +26,8 @@ export function creaLegaPersonale(id: number): Lega {
     _sgid: 1,
     serate: [],
     _serataId: 1,
+    uid: generaUid(),
+    syncUpdatedAt: new Date().toISOString(),
   };
 }
 
@@ -78,7 +81,11 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
     // niente account (demo): dedup per nome come prima
     const u = normalizzaNome(user.username);
     if (!u || personale.nomi.some(n => normalizzaNome(n.nome) === u)) return personale;
-    return { ...personale, nomi: [...personale.nomi, { id: personale._nid, nome: display }], _nid: personale._nid + 1 };
+    return {
+      ...personale,
+      nomi: [...personale.nomi, { id: personale._nid, nome: display, uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
+      _nid: personale._nid + 1,
+    };
   }
 
   // 1) già reclamato da questo account
@@ -91,7 +98,7 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   // 3) nuovo record dell'account
   return {
     ...personale,
-    nomi: [...personale.nomi, { id: personale._nid, nome: display, accountId }],
+    nomi: [...personale.nomi, { id: personale._nid, nome: display, accountId, uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
     _nid: personale._nid + 1,
   };
 }

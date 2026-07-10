@@ -14,6 +14,8 @@ export interface NomeGiocatore {
   id: number;
   nome: string;
   accountId?: string;   // id account Supabase del giocatore reale (R6). Assente = guest.
+  uid?: string;          // identità cloud (R7.2, UUIDv7 generato alla creazione)
+  syncUpdatedAt?: string; // cursore locale "sporco da pushare" (mai per conflict-resolution, R7.2)
 }
 
 /* ─── SESSIONE (partita in corso) ─── */
@@ -112,6 +114,8 @@ export interface Settlement {
   to: number;
   amount: number;
   pagato: boolean;
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 export interface PagamentoEffettuato {
@@ -143,6 +147,8 @@ export interface GiocatorePartita {
   posizione_finale: number | null;
   add_on_fatto: boolean;
   add_on_pagato: boolean;
+  uid?: string;          // identità cloud (R7.2) — riga = partita_poker_giocatori
+  syncUpdatedAt?: string;
 }
 
 export interface Partita {
@@ -154,6 +160,8 @@ export interface Partita {
   modalita: 'cash' | 'torneo';
   giocatori: GiocatorePartita[];
   settlements: Settlement[];
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 /* ─── MULTIGIOCO (Card Tracker M1) ─── */
@@ -168,6 +176,8 @@ export interface GiocoLega {
   accent?: string;        // colore custom (i preimpostati lo prendono dal catalogo)
   attivo: boolean;
   pareggioComeVittoria: boolean; // default true (vedi SPEC §7)
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 export interface PartitaGioco {
@@ -178,6 +188,8 @@ export interface PartitaGioco {
   pareggio: boolean;
   partecipanti?: number[]; // override: chi ha giocato QUESTA partita (default: sessione)
   nomeLibero?: string;     // gioco "una tantum"/sconosciuto per la singola partita
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 export interface SessioneGioco {
@@ -191,6 +203,8 @@ export interface SessioneGioco {
   partite: PartitaGioco[];
   esitoPareggio: boolean;  // true se la sessione è chiusa in pareggio
   serataId?: number;       // R4: se la sessione fa parte di una serata multi-gioco
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 /* ─── SERATA MULTI-GIOCO (R4) ───
@@ -202,6 +216,8 @@ export interface SerataMulti {
   id: number;
   data: string;            // "YYYY-MM-DD"
   partecipanti: number[];  // id_nome invitati alla serata
+  uid?: string;          // identità cloud (R7.2)
+  syncUpdatedAt?: string;
 }
 
 /* ─── LEGA ─── */
@@ -225,6 +241,8 @@ export interface Lega {
   _serataId?: number;             // auto-increment id serata multi-gioco
   monoGiocoId?: string;           // (predisposizione M2d) lega mono-gioco: id del solo gioco attivo (admin/post-backend)
   adminIds?: number[];            // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
+  uid?: string;                   // identità cloud (R7.2, UUIDv7 generato alla creazione)
+  syncUpdatedAt?: string;         // cursore locale "sporco da pushare" (mai per conflict-resolution)
 }
 
 /* ─── DATABASE (localStorage) ─── */

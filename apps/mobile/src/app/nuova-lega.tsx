@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { migrateLega, normalizzaNome, type Lega } from '@whos-the-boss/core';
+import { generaUid, migrateLega, normalizzaNome, type Lega } from '@whos-the-boss/core';
 
 import { IconClose } from '@/components/icons';
 import { Button, Card } from '@/components/ui';
@@ -41,12 +41,12 @@ export default function NuovaLega() {
       // R6-B2/M7: il creatore nasce già agganciato al TUO account (accountId),
       // non solo per nome — altrimenti "sei tu"/stats/lock restano vuoti nella
       // lega finché non scatta la migrazione one-shot al prossimo login.
-      nomiList.push({ id: nid++, nome: tuoNome, ...(utente?.id ? { accountId: utente.id } : {}) });
+      nomiList.push({ id: nid++, nome: tuoNome, ...(utente?.id ? { accountId: utente.id } : {}), uid: generaUid(), syncUpdatedAt: new Date().toISOString() });
     }
     partecipanti.forEach((p) => {
       const v = p.trim();
       if (v && !nomiList.some((n) => normalizzaNome(n.nome) === normalizzaNome(v))) {
-        nomiList.push({ id: nid++, nome: v });
+        nomiList.push({ id: nid++, nome: v, uid: generaUid(), syncUpdatedAt: new Date().toISOString() });
       }
     });
 
@@ -61,6 +61,8 @@ export default function NuovaLega() {
       _nid: nid,
       _pid: 1,
       adminIds: tuoId != null ? [tuoId] : undefined,
+      uid: generaUid(),
+      syncUpdatedAt: new Date().toISOString(),
     };
     // Inizializza subito i campi multigioco (sessioniGioco/_sgid/personale).
     migrateLega(nuovaLega);

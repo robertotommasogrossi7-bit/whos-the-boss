@@ -1,4 +1,5 @@
 import type { GiocoLega } from '../types';
+import { generaUid } from './uid';
 
 /* ══════════════════════════════════════════════════════
    CATALOGO GIOCHI (Card Tracker M1)
@@ -70,5 +71,7 @@ export function nuovoGiocoCustom(nome: string, foto?: string): GiocoLega {
     accent: accentDaNome(nome),
     attivo: true,
     pareggioComeVittoria: true,
+    uid: generaUid(),
+    syncUpdatedAt: new Date().toISOString(),
   };
 }

@@ -46,14 +46,15 @@ describe('assicuraGiocatorePersonale — aggancia l\'account (R6)', () => {
   it('crea il record dell\'account su Personale vuoto (nome = username)', () => {
     const l = creaLegaPersonale(1); // _nid = 1
     const out = assicuraGiocatorePersonale(l, u({ username: 'zelda', id: 'a1' }));
-    expect(out.nomi).toEqual([{ id: 1, nome: 'zelda', accountId: 'a1' }]);
+    expect(out.nomi).toMatchObject([{ id: 1, nome: 'zelda', accountId: 'a1' }]);
+    expect(out.nomi[0]?.uid).toBeTruthy();
     expect(out._nid).toBe(2);
   });
 
   it('usa il displayName come nome se presente', () => {
     const l = creaLegaPersonale(1);
     const out = assicuraGiocatorePersonale(l, u({ username: 'mario_rossi', id: 'a1', displayName: 'Mario Rossi' }));
-    expect(out.nomi).toEqual([{ id: 1, nome: 'Mario Rossi', accountId: 'a1' }]);
+    expect(out.nomi).toMatchObject([{ id: 1, nome: 'Mario Rossi', accountId: 'a1' }]);
   });
 
   it('idempotente: se il record dell\'account c\'è già → invariata (stesso ref)', () => {
@@ -73,7 +74,7 @@ describe('assicuraGiocatorePersonale — aggancia l\'account (R6)', () => {
     const l = { ...creaLegaPersonale(1), nomi: [{ id: 1, nome: 'anna', accountId: 'a1' }], _nid: 2 };
     const out = assicuraGiocatorePersonale(l, u({ username: 'anna', id: 'a2' }));
     expect(out.nomi).toHaveLength(2);
-    expect(out.nomi[1]).toEqual({ id: 2, nome: 'anna', accountId: 'a2' });
+    expect(out.nomi[1]).toMatchObject({ id: 2, nome: 'anna', accountId: 'a2' });
   });
 
   it('fallback demo senza id: dedup per nome come prima', () => {

@@ -16,6 +16,7 @@ import { validaRinomina, giocatoreInUso } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
+import { generaUid } from '@whos-the-boss/core';
 import { calcolaSettlement } from '@whos-the-boss/core';
 import { calcolaSettlementTorneo } from '@whos-the-boss/core';
 import type { Trasferimento } from '@whos-the-boss/core';
@@ -525,7 +526,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           return 'Nome già presente';
         saveLega({
           ...lega,
-          nomi: [...lega.nomi, { id: lega._nid, nome: n }],
+          nomi: [...lega.nomi, { id: lega._nid, nome: n, uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
           _nid: lega._nid + 1,
         });
         return null;
@@ -828,7 +829,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         let existing = nomi.find(x => normalizzaNome(x.nome) === normalizzaNome(n));
         if (existing && inSess.has(existing.id)) { toast('Già nella serata'); return { ok: false, motivo: 'gia-in-sessione' }; }
         if (!existing) {
-          existing = { id: _nid++, nome: n };
+          existing = { id: _nid++, nome: n, uid: generaUid(), syncUpdatedAt: new Date().toISOString() };
           nomi = [...nomi, existing];
         }
         const giocatori = [...sess.giocatori, nuovoGiocatoreSessione(existing.id)];
@@ -1498,6 +1499,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
               posizione_finale:    null,
               add_on_fatto:        false,
               add_on_pagato:       false,
+              uid:                 generaUid(),
+              syncUpdatedAt:       new Date().toISOString(),
             };
           });
 
@@ -1512,6 +1515,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
               from: t.from, to: t.to,
               amount: Math.round(t.importo * 100) / 100,
               pagato: false,
+              uid: generaUid(),
+              syncUpdatedAt: new Date().toISOString(),
             }));
 
           salvaPartita({
@@ -1519,6 +1524,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
             modalita: sa.modalita, buy_in: sa.buy_in,
             giocatori, settlements,
+            uid: generaUid(), syncUpdatedAt: new Date().toISOString(),
           });
           return { ok: true };
         }
@@ -1569,6 +1575,8 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             posizione_finale:    c.posizione_finale,
             add_on_fatto:        c.add_on_fatto,
             add_on_pagato:       c.add_on_pagato,
+            uid:                 generaUid(),
+            syncUpdatedAt:       new Date().toISOString(),
           };
         });
 
@@ -1584,7 +1592,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         settlement.losers.forEach(l => {
           (settlement.allocazioni[l.id_nome] ?? []).forEach(a => {
             if (a.amount > 0.005 && l.id_nome !== a.to) {
-              settlements.push({ from: l.id_nome, to: a.to, amount: Math.round(a.amount * 100) / 100, pagato: false });
+              settlements.push({
+                from: l.id_nome, to: a.to, amount: Math.round(a.amount * 100) / 100, pagato: false,
+                uid: generaUid(), syncUpdatedAt: new Date().toISOString(),
+              });
             }
           });
         });
@@ -1594,6 +1605,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           ora_inizio: sa.ora_inizio, ora_fine: sa.ora_fine,
           modalita: sa.modalita, buy_in: sa.buy_in,
           giocatori, settlements,
+          uid: generaUid(), syncUpdatedAt: new Date().toISOString(),
         });
         return { ok: true };
       },
@@ -1723,7 +1735,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const id = lega._serataId ?? 1;
         saveLega({
           ...lega,
-          serate: [...(lega.serate ?? []), { id, data, partecipanti: [...partecipanti] }],
+          serate: [...(lega.serate ?? []), { id, data, partecipanti: [...partecipanti], uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
           _serataId: id + 1,
         });
         return id;

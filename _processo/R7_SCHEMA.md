@@ -319,8 +319,13 @@ locali/cloud **fixture**, non serve un account reale né la UI.
 
 ## L. Sotto-fasi proposte (micro-commit, test-first, come R6-B)
 
-- **R7.2a** — `generaUid()` (UUIDv7) + campo `uid`/`syncUpdatedAt` sui tipi + agganciato ai punti di
-  creazione. Solo core, test-first.
+- **R7.2a** ✅ **FATTO** — `generaUid()` (UUIDv7, test-first) + campo `uid?`/`syncUpdatedAt?` su
+  Lega/NomeGiocatore/GiocoLega/Partita/GiocatorePartita/Settlement/SerataMulti/SessioneGioco/
+  PartitaGioco + agganciato a TUTTI i punti di creazione reali (non solo i costruttori puri core:
+  `creaLegaPersonale`/`assicuraGiocatorePersonale`/`nuovoGiocoCustom`/`nuovaSessioneGioco`/
+  `nuovaPartitaGioco` in core; `aggiungiGiocatore`/`addGiocatoreSessione`/`confermaChiusura`
+  (cash+torneo)/`creaSerata` in `packages/state/src/store.ts`; creazione Lega+creatore in
+  `apps/mobile/src/app/nuova-lega.tsx`). 234 test core (+3), state/mobile tsc + expo export verdi.
 - **R7.2b** — storage per-account: chiave namespaced + migrazione one-shot. `packages/state`, test-first.
 - **R7.2c** — modulo `sync/`: mapping locale↔cloud (tabella per tabella) + merge LWW + tombstone.
   Solo funzioni pure, core, test-first — **il grosso della fase**.

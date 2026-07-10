@@ -46,16 +46,19 @@ function sessioneChiusa(
 describe('costruttori puri sessione/partita (M3)', () => {
   it('nuovaSessioneGioco: stato pre, orari/partite/esito vuoti', () => {
     const s = nuovaSessioneGioco(7, 'scopa', [A, B], '2026-06-03', '21:00');
-    expect(s).toEqual({
+    expect(s).toMatchObject({
       id: 7, giocoId: 'scopa', data: '2026-06-03', stato: 'pre',
       ora_inizio: '21:00', ora_fine: '', partecipanti: [A, B],
       partite: [], esitoPareggio: false,
     });
+    expect(s.uid).toBeTruthy();
+    expect(s.syncUpdatedAt).toBeTruthy();
   });
 
   it('nuovaPartitaGioco: in corso (ora_fine vuota), nessun vincitore', () => {
     const p = nuovaPartitaGioco(1, '21:05');
-    expect(p).toEqual({ id: 1, ora_inizio: '21:05', ora_fine: '', vincitori: [], pareggio: false });
+    expect(p).toMatchObject({ id: 1, ora_inizio: '21:05', ora_fine: '', vincitori: [], pareggio: false });
+    expect(p.uid).toBeTruthy();
     expect(partitaInCorso(p)).toBe(true);
     expect(partitaInCorso({ ...p, ora_fine: '21:20' })).toBe(false);
   });
