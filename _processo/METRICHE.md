@@ -42,3 +42,16 @@
 > Nota metodo: da qui l'app prosegue **senza test su device** fino alla fase finale (scelta di studio
 > registrata in `DECISIONI.md` 2026-07-01 (e)). Il "grande test" a fine costruzione è parte
 > dell'esperimento da valutare.
+
+## R7.2 — Layer di sync, prima parte (2026-07-11)
+| Blocco | Commit | Modello | Volume |
+|--------|--------|---------|--------|
+| R7.2 kickoff — verbale + mini-spec | `075903f` | **Sonnet 5, effort high** | 4 decisioni a verbale (storage per-account M12 · LWW per-riga · UUIDv7 · retention tombstone), scope R7.2 (solo funzioni pure) + design proposto (sez. G-L di `R7_SCHEMA.md`). Solo doc |
+| R7.2a — generaUid() + uid/syncUpdatedAt | `91ba2c7` | **Sonnet 5, effort high** | UUIDv7 puro test-first (3 test) + campo `uid?`/`syncUpdatedAt?` su 9 tipi + agganciato a TUTTI i punti di creazione reali (5 costruttori core + 4 azioni store + creazione lega mobile). 12 file, +129/-17 righe, +3 test core (231→234). Tutto verde |
+| R7.2b (funzioni pure) — storage per-account | `63415ff` | **Sonnet 5, effort high** | `accountStorage.ts`: `chiaveStorage`+`perAccountStorage`(poi rimossa)+`migraBlobUnicoSeNecessario`, 9 test. Nuovo file, +138 righe |
+| R7.2b (aggancio boot) — mini-spec con ricerca | `e16c911` | **Sonnet 5, effort high** | Ostacolo serio emerso (tocca il gate auth già indurito) → ricerca online (zustand docs/GitHub, articolo Expo+Supabase+WatermelonDB, PowerSync) prima di ridisegnare: pivot da wrapper custom a `persist.setOptions`+`rehydrate` nativi. Solo doc, +137 righe |
+| R7.2b (aggancio boot) — codice | `cd0bf85` | **Sonnet 5, effort high** (boot/auth-adjacent, verificato con cura) | `authUser`/`dbReady`/`clearDbLocale` nello store, `skipHydration`, `authSlice` notifica invece di applicare, orchestratore in `_layout.tsx` (copre boot + cambio-account a caldo). 8 file, +108/-75 righe, -3 test morti (234→231... vedi nota). 234 core + 7 state, tsc+export verdi. **Limite dichiarato**: niente controllo visivo (Expo web non bundlava in questo ambiente) |
+
+> Nota: il conteggio "234 core" resta invariato in R7.2b (i file toccati sono state/mobile, non
+> core); i "-3 test" sono i test di `perAccountStorage` rimossi da `accountStorage.test.ts` (state:
+> 10→7, compensati dal fatto che non servivano più dopo il pivot a `setOptions`).

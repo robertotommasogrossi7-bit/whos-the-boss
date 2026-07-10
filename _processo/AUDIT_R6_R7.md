@@ -94,7 +94,7 @@ non urgente, vedi `supabase/README.md` (inventario numerato, fonte di verità) e
 
 | ID | Cosa | Fase | Stato |
 |----|------|------|-------|
-| **M12** | Storage persistito per-device non per-account (2 login = dati mescolati) — **decisione da prendere PRIMA del sync** | **R7.2 kickoff** (namespace per user.id / wipe-merge / tag ownerAccountId) | ☐ |
+| **M12** | Storage persistito per-device non per-account (2 login = dati mescolati) — **decisione da prendere PRIMA del sync** | **R7.2b** (namespace per user.id, R7_SCHEMA.md sez. G/M) | ✅ `cd0bf85` |
 | **B25** | Nessun **resend** email né **password dimenticata** (vicolo cieco) | **H-block** (era già deciso: recupero password rimandato) | ☐ |
 | **B26** | Mapping "database error saving new user"→"Username già in uso" troppo largo | H-block | ☐ |
 | **B27** | `onAuthStateChange` mai unsubscribed (innocuo in prod) | H-block | ☐ |
