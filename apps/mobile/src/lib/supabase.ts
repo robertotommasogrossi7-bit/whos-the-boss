@@ -17,9 +17,19 @@ if (!url || !anon) {
   );
 }
 
+// L'AsyncStorage "web" tocca window.localStorage senza guardia: sotto Node
+// (il pre-render SSR che il dev server di Expo Router fa comunque, anche
+// per il target nativo/Expo Go) window non esiste e fa crashare l'intero
+// processo. Qui non serve mai persistere davvero — memory storage no-op.
+const noopStorage = {
+  getItem: async () => null,
+  setItem: async () => {},
+  removeItem: async () => {},
+};
+
 export const supabase = createClient(url ?? '', anon ?? '', {
   auth: {
-    storage: AsyncStorage,
+    storage: typeof window === 'undefined' ? noopStorage : AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
