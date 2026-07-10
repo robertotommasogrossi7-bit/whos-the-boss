@@ -260,3 +260,69 @@ tabella **`user_settings`** (account_id PK, jsonb) — oppure restano **solo loc
    **netto + settlement**? *(Da questo dipende quanto dettaglio DEVE sopravvivere; verifico io nel codice
    se preferisci, ma se lo sai a memoria fai prima.)*
 3. Confermi il **modello ospiti** (A3) e la scelta di **UUID additivo** (A1, niente refactor del core)?
+
+---
+
+# R7.2 — layer di sync: verbale + mini-spec (2026-07-11)
+
+> Kickoff della fase (audit `AUDIT_R6_R7.md`, sez. "Ricerca online" → 4 punti "da mettere a
+> verbale a R7.2"). Decisioni confermate dall'utente 2026-07-11. **Nessun codice prima dell'OK
+> su questa mini-spec** (dati persistiti = non banale, regola del metodo).
+
+## G. Verbale delle 4 decisioni
+
+- **G1 — Storage per-account, non per-device (M12).** Oggi AsyncStorage è un blob unico globale:
+  due login sullo stesso device mescolerebbero i dati. **Deciso: namespace della chiave per
+  `profiles.id`** (`whostheboss:<accountId>:db` invece della chiave singola attuale). Migrazione
+  one-shot al primo login post-upgrade: se esiste il vecchio blob globale, si copia nella chiave
+  namespaced del primo account che fa login (best-effort, dispositivo singolo-utente); altrimenti
+  si parte vuoti e si popola dal pull cloud (R7.3 import).
+- **G2 — LWW per-riga** (non per-campo come PowerSync). Confermato: coerente con R7_SCHEMA §C1
+  (già deciso), un solo utente possiede i suoi dati → rischio di conflitto reale basso, non serve
+  la granularità per-campo di un editor collaborativo.
+- **G3 — UUIDv7** invece di v4 per gli `uid` client-side (A1). Ordinabile per tempo di creazione →
+  indici B-tree Postgres compatti. Nessun altro impatto (libreria lato client, es. `uuidv7` o
+  polyfill minimale — da scegliere in G-impl, nessuna dipendenza pesante).
+- **G4 — Retention tombstone: mai purgare** (esplicito, non solo "di fatto"). Il "disattivato"
+  applicativo (es. `eliminaGiocatore` quando c'è storico) resta un flag/stato di dominio, **distinto**
+  dal tombstone di sync (`deleted_at` lato server) anche se nel client possono coincidere per ora.
+
+## H. Scope di R7.2 (cosa fa, cosa NON fa)
+
+Per `R7_SCHEMA.md` §5: R7.2 = **layer di sync come funzioni pure testabili** (push/pull, mapping,
+merge LWW, tombstone). **NON** include: l'import one-shot iniziale (R7.3), l'aggancio allo store /
+trigger foreground-background/pull-to-refresh (R7.4), la UI di stato sync. R7.2 si testa con stati
+locali/cloud **fixture**, non serve un account reale né la UI.
+
+## I. Design proposto
+
+1. **Campo `uid` (UUIDv7) sulle entità sincronizzate** — `Lega`, `NomeGiocatore`, `GiocoLega`,
+   `Partita`, `GiocatorePartita` (via id composito lega+partita+id_nome, non ha `id` proprio oggi →
+   valutare se serve un `uid` anche lì o se basta risolvere tramite gli `uid` dei genitori),
+   `Settlement`, `SerataMulti`, `SessioneGioco`, `PartitaGioco`. Campo **opzionale** (`uid?: string`)
+   per restare compatibile col codice esistente; **generato alla CREAZIONE** (non retrofittato al
+   sync), su qualsiasi device, così due device non generano mai lo stesso uid (A1, già deciso).
+   Tocca i punti di creazione nello store (`nuova-lega`, `aggiungiGiocatore`, chiusura
+   partita/sessione, ecc.) — cambio meccanico ma esteso, da fare con un helper unico `generaUid()`.
+2. **Cursore locale di "sporco"** — ogni entità sincronizzata riceve anche `syncUpdatedAt?: string`
+   (timestamp client, bump a ogni mutazione locale). **Usato SOLO per decidere cosa pushare**, MAI
+   per il conflict-resolution (che resta server-authoritative, C1 già deciso) — per evitare
+   l'ambiguità che l'audit aveva segnalato come rischio LWW.
+3. **Modulo nuovo, puro**: `packages/core/src/sync/` — funzioni di **mapping** locale↔cloud per
+   tabella (una per `giocatori`/`leghe`/`partite_poker`/…), una funzione di **merge LWW** (cloud
+   row + local row + `lastPulledAt` → riga risultante + "chi vince"), gestione **tombstone** (riga
+   cloud con `deleted_at` → applica tombstone locale, mai la cancella fisicamente). Zero dipendenze
+   da Supabase client qui: input/output sono solo dati, così restano test-first come tutto il core.
+4. **Storage per-account**: modifica in `packages/state` (dove oggi la chiave AsyncStorage/
+   localStorage è fissa) — funzione pura per costruire la chiave da `accountId`, più la migrazione
+   one-shot di G1 (anch'essa testabile in isolamento).
+
+## L. Sotto-fasi proposte (micro-commit, test-first, come R6-B)
+
+- **R7.2a** — `generaUid()` (UUIDv7) + campo `uid`/`syncUpdatedAt` sui tipi + agganciato ai punti di
+  creazione. Solo core, test-first.
+- **R7.2b** — storage per-account: chiave namespaced + migrazione one-shot. `packages/state`, test-first.
+- **R7.2c** — modulo `sync/`: mapping locale↔cloud (tabella per tabella) + merge LWW + tombstone.
+  Solo funzioni pure, core, test-first — **il grosso della fase**.
+
+**Chiedo conferma su questa mini-spec prima di iniziare R7.2a.**
