@@ -45,33 +45,43 @@ export default function RootLayout() {
   // 1) Avvia la risoluzione auth una volta sola: non dipende dallo storage.
   useEffect(() => { initAuth(); }, [initAuth]);
 
-  // 2) Orchestratore storage per-account: reagisce ad ogni cambio di identità.
-  const ultimoAccountRef = useRef<string | null | undefined>(undefined); // undefined = mai processato
+  // 2) Orchestratore storage per-account. Dipende dall'ID dell'account (stringa),
+  //    NON dall'oggetto authUser: onAuthStateChange ri-notifica lo STESSO utente con
+  //    un oggetto nuovo poco dopo getSession — se dipendessimo dall'oggetto, l'effect
+  //    si ri-eseguirebbe, annullerebbe la procedura in volo e (stesso id) non ne
+  //    avvierebbe un'altra → dbReady mai true → loader infinito. Dipendendo dall'id
+  //    l'effect gira solo al cambio di account VERO. (Bug reale trovato su device, R7.2b.)
+  const accountId = authUser?.id ?? null;
+  const ultimoAccountRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (authLoading) return; // aspetta il primo giro di Supabase
-    const accountId = authUser?.id ?? null;
-    if (ultimoAccountRef.current === accountId) return; // stesso account (es. token refresh) → no-op
+    if (ultimoAccountRef.current === accountId) return;
     ultimoAccountRef.current = accountId;
 
     let cancellato = false;
     (async () => {
-      setDbReady(false);
-      if (!accountId) {
-        // Logout (o mai loggato): niente storage da leggere per questo account.
-        clearDbLocale();
+      // Rete di sicurezza: qualunque cosa vada storta, il finally apre comunque
+      // l'app (dbReady=true) — mai più mattone col loader infinito.
+      try {
+        setDbReady(false);
+        if (!accountId) {
+          clearDbLocale(); // logout / mai loggato: niente storage per questo account
+          return;
+        }
+        useStore.persist.setOptions({ name: chiaveStorage(STORE_KEY, accountId) });
+        await migraBlobUnicoSeNecessario(mobileStorageAdapter, STORE_KEY, accountId);
+        await useStore.persist.rehydrate();
+        if (cancellato) return;
+        runMigrations();
+        applyUtente(useStore.getState().authUser);
+      } catch (e) {
+        console.error('[boot] init storage per-account fallito:', e);
+      } finally {
         if (!cancellato) setDbReady(true);
-        return;
       }
-      useStore.persist.setOptions({ name: chiaveStorage(STORE_KEY, accountId) });
-      await migraBlobUnicoSeNecessario(mobileStorageAdapter, STORE_KEY, accountId);
-      await useStore.persist.rehydrate();
-      if (cancellato) return;
-      runMigrations();
-      applyUtente(authUser);
-      setDbReady(true);
     })();
     return () => { cancellato = true; };
-  }, [authUser, authLoading, runMigrations, applyUtente, clearDbLocale, setDbReady]);
+  }, [accountId, authLoading, runMigrations, applyUtente, clearDbLocale, setDbReady]);
 
   const navTheme = {
     ...DarkTheme,
