@@ -1,15 +1,22 @@
 import { STORE_KEY, chiaveStorage, migraBlobUnicoSeNecessario } from '@whos-the-boss/state';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import LoginScreen from '@/components/auth/LoginScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import GlobalToast from '@/components/GlobalToast';
+import { installaCrashLogger, leggiUltimoCrash, pulisciUltimoCrash } from '@/lib/crashLog';
 import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
 import { mobileStorageAdapter, useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { themeForGame } from '@/theme/theme';
+
+/* Installato al primo import di questo modulo (prima ancora che il
+   componente monti): ErrorUtils vede QUALSIASI eccezione JS non presa,
+   anche fuori dal render (tap/effect/callback) — dove l'ErrorBoundary
+   sotto non arriva. Cattura i crash che chiudono l'app di scatto. */
+installaCrashLogger();
 
 /* Radice: legge il gioco selezionato (giocoFiltro) dallo store e ne calcola
    il TEMA (feltro per il poker, accento del gioco altrimenti). Lo passa alle
@@ -42,6 +49,17 @@ export default function RootLayout() {
 
   // Ritorno in app dal link di conferma email (R6.4 / R2.4)
   useDeepLinkAuth();
+
+  // Se l'ultimo avvio è morto per un'eccezione non presa, mostralo ora (una
+  // volta) invece di lasciarlo invisibile nell'AsyncStorage.
+  const [crashDaMostrare, setCrashDaMostrare] = useState<string | null>(null);
+  useEffect(() => {
+    leggiUltimoCrash().then((testo) => { if (testo) setCrashDaMostrare(testo); });
+  }, []);
+  const chiudiCrash = () => {
+    setCrashDaMostrare(null);
+    pulisciUltimoCrash();
+  };
 
   // 1) Avvia la risoluzione auth una volta sola: non dipende dallo storage.
   useEffect(() => { initAuth(); }, [initAuth]);
@@ -127,6 +145,30 @@ export default function RootLayout() {
             </Stack>
           )}
           <GlobalToast />
+          {crashDaMostrare ? (
+            <View style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: '#0e0f12', paddingTop: 60,
+            }}>
+              <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
+                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '800' }}>
+                  L'app si era chiusa di scatto
+                </Text>
+                <Text style={{ color: '#b9b9c0', fontSize: 15, lineHeight: 21 }}>
+                  Ecco l'errore dell'ultimo avvio — copialo e mandalo così lo sistemiamo.
+                </Text>
+                <Text selectable style={{ color: '#ff6b6b', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#1a1b1f', borderRadius: 12, padding: 14 }}>
+                  {crashDaMostrare}
+                </Text>
+                <Pressable
+                  onPress={chiudiCrash}
+                  style={{ backgroundColor: '#2f6bd8', borderRadius: 10, paddingVertical: 14, alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Ho copiato, chiudi</Text>
+                </Pressable>
+              </ScrollView>
+            </View>
+          ) : null}
         </ErrorBoundary>
       </ThemeProvider>
     </AppThemeProvider>
