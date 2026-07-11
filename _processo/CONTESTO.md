@@ -374,9 +374,15 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - **Prossimo**: **R7.2 — layer di
   sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
   record via claim). Il pezzo grosso.
-  ⏸️ **APK rimandato**: il setup EAS una-tantum (account + login + env) è sembrato troppo all'utente ORA. Config
-  pronta (`apps/mobile/eas.json`). Si fa al **controllo pre-pubblicazione** (dopo il primo build è 1 comando; poi OTA
-  con EAS Update). Per sbirciare intanto: Expo Go (`npx expo start`). **Non insistere** con l'APK finché non serve.
+  ✅ **APK fatto** (2026-07-11, anticipato rispetto al piano — l'utente voleva testare R7.2b su device
+  reale invece che aspettare il pre-pubblicazione, vedi `DECISIONI.md`): account EAS creato, build
+  `preview` pubblicata (profilo `.apk` diretto, non Play Store), installata sul telefono. **EAS Update
+  configurato**: aggiornamenti JS/UI futuri con `eas update --channel preview`, niente nuova build finché
+  non cambia qualcosa di nativo. `npx expo start` (Expo Go) è risultato **inaffidabile per questo
+  progetto**: crashava per un bug reale poi risolto (`lib/supabase.ts` toccava `window` senza guardia nel
+  pre-render SSR di Expo Router, mai emerso prima perché mai lanciato dal vivo), e anche dopo il fix Expo
+  Go segnalava incompatibilità di versione SDK non risolvibile lato utente (Expo Go aggiornato all'ultima
+  versione disponibile, stesso errore) — **la build EAS resta il modo affidabile di provare l'app dal vivo**.
   - ⏳ **Debito R0.3**: il template ha portato dep Expo non ancora usate (`@expo/ui`, `expo-glass-effect`,
     `expo-symbols`, `expo-image`, `expo-device`, `expo-web-browser`) e icone generiche Expo → sfoltire/brandizzare
     in R1/RP. `reactCompiler` experiment lasciato ON (bundle ok).

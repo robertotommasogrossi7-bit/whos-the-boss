@@ -710,6 +710,29 @@
   per-riga, UUIDv7, retention tombstone). Residuo non urgente: applicare la 6ª migration
   (`20260703100000_r6b5_hardening.sql`) in dashboard quando comodo.
 
+## 2026-07-11 — APK anticipato (EAS Build+Update) — ⭐ cambio di rotta
+
+> Il piano diceva "APK rimandato al controllo pre-pubblicazione" (`CONTESTO.md`, deciso 2026-07-03).
+> Durante la verifica di R7.2b l'utente ha voluto provare il boot fix su un device reale SUBITO,
+> non a fine progetto — cambio di rotta rispetto al piano, registrato qui come da metodo.
+
+- **Perché il cambio**: verificare R7.2b (storage per-account) via Expo Go sembrava la via breve, ma
+  il dev server crashava (`ReferenceError: window is not defined` — bug reale, mai emerso prima
+  perché il progetto non era mai stato lanciato dal vivo, coerente col red-team 2026-07-01(d)/(e)).
+  Fixato il crash, Expo Go segnalava comunque incompatibilità di versione SDK non risolvibile
+  lato utente (aggiornata all'ultima versione disponibile, stesso errore). A quel punto l'utente ha
+  scelto di saltare Expo Go e andare dritto su EAS, visto che "funziona fino alla pubblicazione e si
+  aggiorna in automatico" — vero: EAS Build è la stessa pipeline che useremo per lo store.
+- **Fatto**: account EAS creato dall'utente (login via browser OAuth, mai una password in chiaro
+  gestita da me) — unico intoppo, un certificato TLS locale (antivirus) bloccava le chiamate HTTPS
+  di Node.js, risolto con `NODE_OPTIONS=--use-system-ca`. Progetto collegato (`eas init`), prima
+  build pubblicata (profilo `preview`, `.apk` diretto, keystore Android generato in automatico nel
+  cloud), installata sul telefono. **EAS Update configurato** (`eas update:configure`): da ora gli
+  aggiornamenti JS/UI si spingono con `eas update --channel preview`, senza rifare la build.
+- **Lezione per SideKick**: la scelta di studio "un unico test gigante alla fine" (2026-07-01(e)) ha
+  un costo reale — il crash di Expo Go era lì da sempre, scoperto solo ora. Va bene come esperimento
+  dichiarato, ma conferma che rimandare troppo il primo run reale nasconde bug, non li evita.
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
