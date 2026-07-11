@@ -89,8 +89,49 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 
 ---
 
-## Registro finding R7.2 (da compilare col ritorno dei revisori)
+## Registro finding R7.2 (verificati sul codice reale, 2026-07-12)
 
-| ID | Sev | Finding | Fonte (Claude/GPT) | Verificato alla fonte? | Dove si risolve |
-|----|-----|---------|--------------------|------------------------|-----------------|
-| R-S… | | | | | |
+> Due red team (Claude + ChatGPT, chat pulite) → deduplicati in `S1…S20`. Verdetto:
+> **CONFERMATO** = problema reale su codice che ESISTE · **PREVENTIVO** = riguarda il push/sync
+> non ancora scritto (requisito, non bug) · **ACCETTATO** = tradeoff noto, si documenta.
+> Verificato alla fonte come da metodo (non a memoria). "Dove" = fase riordinata (vedi sotto e `R7_SCHEMA.md`).
+
+| ID | Sev | Finding | Verdetto | Verifica | Dove si risolve |
+|----|-----|---------|----------|----------|-----------------|
+| **S1** | ALTA | Sync mai provata contro **Postgres reale** (solo test su funzioni pure) | **CONFERMATO** | solo vitest puri, zero integrazione | **R7.2d-5 (GATE)** — vertical slice 1 tabella su DB reale |
+| **S2** | ALTA | `poker_movimenti` **senza uid stabile** → push non idempotente | **CONFERMATO** | `Ricarica`/`Pagamento*` senza `uid`; push non scritto | **R7.2d-3** — uid client sui movimenti |
+| **S3** | ALTA | Push **senza CAS** (controllo concorrenza) → "LWW" = "vince chi pusha per ultimo" | **PREVENTIVO** | in `sync/` nessun codice di push (solo pull in `mergeLWW`) | **R7.4** — push CAS via RPC (mini-spec) |
+| **S4** | ALTA | Mappa `id_locale↔uid` non esiste, mal classificata "R7.4" | **CONFERMATO** | i mapper prendono callback `risolvi*` = stub | **R7.2d-4** — prerequisito, riclassificato |
+| **S5** | ALTA | Dirty-flag confronta **clock client vs clock server** → perdita silenziosa se l'orologio è storto | **CONFERMATO** | `syncUpdatedAt`=`new Date()` client, `lastSyncedAt`=server | **R7.2d-2** — flag/counter locale |
+| **S6** | ALTA | **LWW per-riga** → clobber silenzioso di campi diversi editati offline su 2 device | **CONFERMATO (by design)** | `mergeLWW` opera sull'intera riga | **R7.2d-1** — accettato+documentato; merge-per-colonna per campi a rischio |
+| **S7** | MEDIA | Nessuna regola esplicita **tombstone-vs-edit** (delete può "resuscitare") | **CONFERMATO** | `merge.ts` ignora `deletedAt` | **R7.2d-1** — regola delete-wins |
+| **S8** | MEDIA | `updated_at` = "quando il server ha ricevuto", NON "quando l'utente ha editato" | **CONFERMATO** | semantica del trigger server | **R7.2d-1** — documentare |
+| **S9** | MEDIA | FK DEFERRABLE **inutile** se il push non è una singola transazione | **PREVENTIVO** | push non scritto | **R7.4** — push per-lega in 1 transazione |
+| **S10** | MEDIA | Retry non idempotenti senza chiave stabile | **PREVENTIVO** (risolto dall'uid per 12 tab; resta S2) | — | **R7.4** — uid riusato, mai rigenerato |
+| **S11** | MEDIA | Race tra 2 cicli di sync sullo stesso device (background + timer) | **PREVENTIVO** | — | **R7.4** — mutex "sync in corso? skip" |
+| **S12** | MEDIA | Figlio orfano sotto padre tombstonato (creato offline su altro device) | **PREVENTIVO** | — | **R7.4** — flag revisione al pull |
+| **S13** | MEDIA | `settlements` (derivati) sincronizzati prima dei `movimenti` sorgente | **PREVENTIVO** | — | **R7.4** — ordine ledger→settlement, o ricalcolo client |
+| **S14** | MEDIA | Tombstone **mai purgati** → crescita infinita del pull | **ACCETTATO** (G4) ma serve un piano | decisione G4 esplicita | **R7.2d-1** (piano) + **R8/R10** (GC) |
+| **S15** | MEDIA | N lookup per record: manca cache `Map<uid,id>` a inizio sync | **PREVENTIVO** (perf) | — | **R7.4** (va con S4) |
+| **S16** | BASSA | Float accumula errore su tante somme | **ACCETTATO** (float+r100) | — | **R8** — rivalutare int-centesimi (B6) |
+| **S17** | BASSA | Ordinamento UI su uid con clock storto | **BASSO — già a posto** | ordiniamo per `ordine`/`id`, non per uid | nessuno (tenere la regola) |
+| **S18** | BASSA | Compat schema tra versioni app diverse in giro | **PREVENTIVO** | — | **R7.4/H** — test minimo |
+| **S19** | BASSA | Zero osservabilità sync lato utente + nessun sync-log per diagnosi | **UX/ops** | — | **H-block** — badge "sync N min fa" + log |
+| **S20** | BASSA | Logout durante sync: B non deve vedere cache di A | **PARZ. MITIGATO** | `clearDbLocale`+gate `dbReady`; finestra teorica | **R7.4** — coperto da mutex S11 |
+
+### Deliverable trasversali chiesti da ENTRAMBI i revisori
+- **Documento "invarianti di sync" (1 pagina)** — le regole assolute (ogni record ha uid immutabile;
+  delete = tombstone; push idempotente; il server non modifica il payload tranne `updated_at`; mai
+  UPDATE sul ledger; import una volta sola). → **R7.2d-1**.
+- **Property-based test su `mergeLWW`** (idempotenza `merge(a,a)=a`, nessuna perdita di uid). → **R7.2d-2**.
+- **Chaos test** (pochi, veri: kill app durante sync · rete giù · retry doppio · 2 device offline ·
+  login/logout durante sync · import interrotto). → **R7.3/R7.4**.
+- **Sync log** (push/pull/righe/conflitti/retry/durata). → **H-block** (S19).
+
+### Convergenza dei due revisori (le 3 cose che contano)
+1. **S1** — provare su DB reale PRIMA di scrivere altro (il #1 assoluto per entrambi).
+2. **S2** — uid sui movimenti (fix pulito, chiude anche S10).
+3. **S3+S5** — il conflitto vero non è "quale timestamp", è che push e dirty-flag oggi non sono
+   sicuri: push senza CAS (S3) + dirty su clock (S5). Sono le due cose che rendono il "LWW dichiarato"
+   diverso dal "LWW reale".
+Entrambi confermano: **star schema fuori scope** e impianto "sopra la media / pulito".

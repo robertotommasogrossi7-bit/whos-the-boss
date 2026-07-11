@@ -310,8 +310,17 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R6-B6** ✅ rete test soldi: calc.test.ts nuovo (26 test) + greedy invarianti (B00) + fix M4/B02/B05/B07/B04/B08. **231 test core** (era 185 a inizio R6).
 - ✅ **R7.2 — layer di sync COMPLETO** (2026-07-11): R7.2a (uid/syncUpdatedAt) + R7.2b (storage
   per-account, boot+cambio account a caldo) + R7.2c (mapping locale↔cloud tutte le 13 tabelle +
-  merge LWW generico, in `packages/core/src/sync/`). 286 test core. → **R7.3** import one-shot →
-  **R7.4** aggancio store (usa questi mapping per davvero) → poi **R8** ruoli/inviti → **R9** realtime.
+  merge LWW generico, in `packages/core/src/sync/`). 286 test core.
+- 🔴 **RED TEAM R7.2 fatto** (2026-07-12, Claude+GPT esterni): registro **`REDTEAM-R72-SYNC.md`**
+  (S1-S20, verificati sul codice). Fasi **RIORDINATE** (dettaglio in `R7_SCHEMA.md` sez. N):
+  inserito blocco **R7.2d** (hardening del sync PRIMA di usarlo) → **R7.3** import → **R7.4** store →
+  **R8** → **R9**.
+  - **R7.2d** = d1 invarianti+decisioni · d2 fix dirty-flag (clock→flag locale, S5) · d3 uid sui
+    movimenti (S2) · d4 mappa id↔uid (S4) · **d5 GATE: vertical slice su Postgres reale (S1, il #1
+    dei revisori)** ⚠️ deviazione dalla "scelta di studio" → serve ok utente (DECISIONI DS6).
+  - R7.4 assorbe: push CAS (S3), 1 transazione/lega (S9), mutex anti-race (S11), ordine ledger→settlement (S13).
+- **Prossimo concreto**: **R7.2d-1** (documento invarianti + decisioni a verbale) — nessun codice,
+  codifica le regole. Poi d2/d3/d4 → **d5 = il gate su DB reale**.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 

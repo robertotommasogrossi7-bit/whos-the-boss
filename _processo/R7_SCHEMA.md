@@ -367,10 +367,51 @@ locali/cloud **fixture**, non serve un account reale né la UI.
     corretto prima di committare.
   - **286 test core totali** (+52 dei moduli sync, +255 di prima), state/mobile tsc + expo export:
     tutti verdi.
-  - **R7.2 (a+b+c) COMPLETO.** Prossimo: **R7.3** — import one-shot dal locale (backup-first,
-    idempotente) — è il momento in cui questi mapping vengono usati per la prima volta davvero.
+  - **R7.2 (a+b+c) COMPLETO.**
 
-**Chiedo conferma su questa mini-spec prima di iniziare R7.2a.**
+---
+
+# N — R7.2: fasi RIORDINATE dopo il red team (2026-07-12)
+
+> Due red team esterni (Claude+GPT) → registro `S1…S20` in `_processo/REDTEAM-R72-SYNC.md`
+> (verificati sul codice). 3 finding CONFERMATI sono su cose **già costruite** un po' male (S2, S4,
+> S5) o su un tradeoff da mettere a verbale (S6, S7, S8); il #1 assoluto è **provare su DB reale
+> prima di scrivere altro** (S1). Principio: **de-risk prima di aggiungere superficie** (come il red
+> team R6). Quindi si inserisce un blocco **R7.2d** PRIMA di R7.3.
+
+## R7.2d — hardening del sync prima di usarlo (NUOVO, prima di R7.3)
+- **R7.2d-1 — Documento "invarianti di sync" (1 pagina)** + decisioni a verbale [S6,S7,S8,S14].
+  Le regole assolute: ogni record ha uid immutabile · delete = tombstone (delete-wins) · push
+  idempotente · il server non modifica il payload tranne `updated_at` · mai UPDATE sul ledger ·
+  import una volta sola · LWW-per-riga accettato (merge-per-colonna solo per campi a rischio) · piano
+  GC tombstone. **Nessun codice** (codifica). *[mini-spec: no · ricerca: no · Fable o Sonnet]*
+- **R7.2d-2 — Dirty tracking corretto** [S5]: sostituire il confronto di clock in `merge.ts` con un
+  **flag/counter locale** (`needsSync`), settato a ogni scrittura, azzerato solo dopo push confermato.
+  Tocca core (tipi + `merge.ts`) e store (wiring `syncUpdatedAt`). + **property-based test** su
+  `mergeLWW`. *[mini-spec + ricerca: come lo fanno WatermelonDB (`_status/_changed`) / Legend-State · Opus xhigh]*
+- **R7.2d-3 — uid sui movimenti** [S2]: aggiungere `uid` a `Ricarica`/`Pagamento*` + generarlo alla
+  creazione + scrivere il **push mapping** di `poker_movimenti` (`INSERT … ON CONFLICT (uid) DO NOTHING`).
+  Chiude anche S10 (retry). *[no ricerca — stesso pattern di R7.2a · Sonnet high]*
+- **R7.2d-4 — Mappa risoluzione id↔uid** [S4,S15]: `Map<local,uid>`/`Map<uid,local>` per-lega a
+  inizio sync; definire il comportamento con creazione offline a catena (padre non ancora syncato).
+  *[mini-spec · Opus xhigh]*
+- **R7.2d-5 — GATE: vertical slice su Postgres reale** [S1]: **1 tabella** (`giocatori`), push+pull
+  VERI contro Supabase con RLS attiva, via **Supabase CLI locale (Docker)** così è automatizzabile in
+  CI. Valida RLS+upsert, FK deferite, round-trip `updated_at`, `numeric↔float` PRIMA di scrivere il
+  push completo. **← il #1 dei revisori.** *[mini-spec + ricerca: Supabase CLI local dev + integration
+  test · red team leggero opzionale · Opus xhigh]* ⚠️ **è una deviazione dalla "scelta di studio (un
+  test gigante alla fine)" — richiede l'ok esplicito dell'utente (vedi `DECISIONI.md` DS6).**
+
+## Poi (invariate come posizione, ora poggiano su R7.2d)
+- **R7.3 — import one-shot** (backup-first, RPC transazionale, guardato da `profiles.imported_at`).
+  Ancora l'operazione più pericolosa. *[mini-spec + ricerca (import transazionale) + **RED TEAM** +
+  chaos test "import interrotto" · Opus xhigh]*
+- **R7.4 — aggancio store**: qui confluiscono **S3** (push CAS via RPC), **S9** (1 transazione per
+  lega), **S10** (retry idempotenti), **S11** (mutex anti-race), **S12** (orfani), **S13** (ordine
+  ledger→settlement), **S15** (cache lookup), **S18** (compat versioni), **S20** (logout durante sync).
+  *[mini-spec + ricerca (delta-sync, retry/backoff) + chaos test · Opus xhigh]*
+- **R8** — + **S16** (float→int-centesimi, decisione B6) + **S14** (GC tombstone).
+- **H-block** — + **S19** (osservabilità sync + sync-log).
 
 ---
 

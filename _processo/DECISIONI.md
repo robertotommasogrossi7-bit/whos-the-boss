@@ -733,6 +733,36 @@
   un costo reale — il crash di Expo Go era lì da sempre, scoperto solo ora. Va bene come esperimento
   dichiarato, ma conferma che rimandare troppo il primo run reale nasconde bug, non li evita.
 
+## 2026-07-12 — Red team R7.2 (sync): decisioni a verbale + riordino fasi — ⭐
+
+> Due red team esterni non contaminati (Claude+GPT) sul layer di sync. Registro indicizzato
+> **`REDTEAM-R72-SYNC.md`** (S1-S20, verificati sul codice reale). Riordino completo in
+> `R7_SCHEMA.md` sez. N. Qui le decisioni prese (DS = Decisione Sync).
+
+- **DS1 — Dirty tracking = flag/counter locale, NON confronto di clock** [S5]. Il confronto
+  `syncUpdatedAt`(client) vs `lastSyncedAt`(server) mette a rischio dati se l'orologio del device è
+  storto. Corregge una scelta di R7.2a. → R7.2d-2.
+- **DS2 — Ogni entità sincronizzata, MOVIMENTI INCLUSI, ha un uid client** [S2]. I `poker_movimenti`
+  erano senza uid per-elemento → push non idempotente. Estende R7.2a ai movimenti. → R7.2d-3.
+- **DS3 — Push = optimistic concurrency (CAS) via RPC, una transazione per lega** [S3,S9]. Senza
+  CAS il "LWW dichiarato" è in realtà "vince chi pusha per ultimo". Requisito di R7.4.
+- **DS4 — Precedenza delete-wins** per tombstone-vs-edit concorrente [S7]. → R7.2d-1 (invarianti).
+- **DS5 — LWW-per-riga ACCETTATO e documentato** [S6]: niente merge-per-campo alla CRDT (overkill a
+  questa scala); `mergeLWW` per-colonna resta disponibile per i pochi campi editabili a rischio
+  (nomi, note settlement). → R7.2d-1.
+- **DS6 — ⚠️ PROPOSTA, serve ok utente: GATE vertical-slice su DB reale prima di R7.3** [S1]. È il
+  #1 assoluto di entrambi i revisori. È una **deviazione dalla "scelta di studio" 2026-07-01 (e)**
+  ("costruire tutto + un test gigante alla fine"): qui si prova UNA tabella contro Postgres reale
+  PRIMA di scrivere il push completo. Motivo: è assicurazione a basso costo prima di costruire 13
+  mapper su assunzioni non verificate (RLS+upsert, FK deferite, round-trip `updated_at`,
+  numeric↔float). **Non lo decido io da solo (reversa una tua scelta) — aspetto il tuo ok.**
+- **DS7 — GC tombstone = pianificata, non ora** [S14]: conferma G4 "mai purgare" con un piano
+  esplicito (dopo che tutti i device hanno sincronizzato). → R7.2d-1 (piano) + R8/R10 (impl).
+- **DS8 — Float+r100 → rivalutare int-centesimi a R8** [S16]: conferma la vecchia B6, non ora.
+- **Convergenza revisori**: star schema **fuori scope** confermato (store OLTP giusto); impianto
+  "sopra la media / pulito". Le 3 cose che contano: S1 (DB reale) · S2 (uid movimenti) · S3+S5
+  (push+dirty non sicuri finché non sistemati).
+
 ## Nuove feature messe in coda (oltre a Card Tracker)
 
 - **Uscita da cash in corso** (soldi): un giocatore lascia la partita cash mentre è
