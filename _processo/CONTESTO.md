@@ -319,8 +319,27 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     movimenti (S2) · d4 mappa id↔uid (S4) · **d5 GATE: vertical slice su Postgres reale (S1, il #1
     dei revisori)** ⚠️ deviazione dalla "scelta di studio" → serve ok utente (DECISIONI DS6).
   - R7.4 assorbe: push CAS (S3), 1 transazione/lega (S9), mutex anti-race (S11), ordine ledger→settlement (S13).
-- **Prossimo concreto**: **R7.2d-1** (documento invarianti + decisioni a verbale) — nessun codice,
-  codifica le regole. Poi d2/d3/d4 → **d5 = il gate su DB reale**.
+- 🟡 **IN CORSO (2026-07-12): primo test reale sul telefono** (DS6 — scelta di studio abbandonata,
+  si testa strada facendo, non più "un test gigante alla fine"). App installata via EAS, aggiornamenti
+  via OTA (`eas update --channel preview --environment preview`). Bug trovati e fixati (via OTA,
+  ogni volta: typecheck+expo export prima, poi commit+push+`eas update`):
+  - ✅ Loader infinito al boot (race `onAuthStateChange`, R7.2b) — fix `340507d`.
+  - ✅ Aggiunto **`ErrorBoundary`** globale (cattura crash di render) — `f16bc0c`.
+  - ✅ Aggiunto **crash logger via `ErrorUtils`** (cattura crash FUORI dal render — tap/effect/callback,
+    quelli che chiudono l'app di scatto senza passare dall'ErrorBoundary) — `ff51f8b`. Salva l'errore
+    in AsyncStorage, lo mostra a schermo alla riapertura successiva.
+  - 🔴 **APERTO — il bug che ha fatto scattare tutto questo**: andare su **"Leghe" crasha l'app di
+    scatto** (torna alla home del telefono, nessun errore visibile finora). Se anche col crash logger
+    non esce nessun testo d'errore alla riapertura, è un crash **nativo** (fuori dalla portata JS) →
+    serve `adb logcat` (telefono via USB) o un vero crash reporter (Sentry, già previsto in H-block).
+  - 🔴 **APERTO — minore, UX**: nella **serata multi-gioco** non c'è un tasto "chiudi serata" (si
+    chiudono i singoli giochi dentro, la serata resta un contenitore) e manca un modo per "riprendere"
+    una serata in corso dalla home — dà l'impressione che si chiuda tornando indietro (in realtà i
+    dati restano, si trovano in Storico → Serate). Da progettare bene (ricerca UX), non una pezza.
+  - **Non ancora testato**: poker (probabilmente bloccato dal crash di Leghe prima di arrivarci).
+- **Prossimo concreto**: chiudere il bug crash-su-Leghe (priorità #1, blocca il test reale), poi
+  finire il giro di test (poker, multi-gioco). **Solo dopo**: **R7.2d-1** (documento invarianti +
+  decisioni a verbale) → d2/d3/d4 → **d5 = il gate su DB reale**.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
