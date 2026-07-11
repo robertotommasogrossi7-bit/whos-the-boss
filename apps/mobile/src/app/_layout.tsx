@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '@/components/auth/LoginScreen';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import GlobalToast from '@/components/GlobalToast';
 import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
 import { mobileStorageAdapter, useStore } from '@/store/useStore';
@@ -99,32 +100,34 @@ export default function RootLayout() {
   return (
     <AppThemeProvider value={theme}>
       <ThemeProvider value={navTheme}>
-        {authLoading || !dbReady ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
-            <ActivityIndicator color={theme.accent} />
-          </View>
-        ) : !utente ? (
-          <LoginScreen />
-        ) : (
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="lega/[id]" options={{ headerShown: true, title: 'Lega' }} />
-            <Stack.Screen
-              name="nuova-lega"
-              options={{ headerShown: true, title: 'Nuova lega', presentation: 'modal' }}
-            />
-            <Stack.Screen
-              name="profilo"
-              options={{ headerShown: true, title: 'Profilo', presentation: 'modal' }}
-            />
-            <Stack.Screen
-              name="giocatori/[legaId]"
-              options={{ headerShown: true, title: 'Giocatori' }}
-            />
-            <Stack.Screen name="serata/[legaId]/[serataId]" options={{ headerShown: false }} />
-          </Stack>
-        )}
-        <GlobalToast />
+        <ErrorBoundary>
+          {authLoading || !dbReady ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.bg }}>
+              <ActivityIndicator color={theme.accent} />
+            </View>
+          ) : !utente ? (
+            <LoginScreen />
+          ) : (
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="lega/[id]" options={{ headerShown: true, title: 'Lega' }} />
+              <Stack.Screen
+                name="nuova-lega"
+                options={{ headerShown: true, title: 'Nuova lega', presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="profilo"
+                options={{ headerShown: true, title: 'Profilo', presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="giocatori/[legaId]"
+                options={{ headerShown: true, title: 'Giocatori' }}
+              />
+              <Stack.Screen name="serata/[legaId]/[serataId]" options={{ headerShown: false }} />
+            </Stack>
+          )}
+          <GlobalToast />
+        </ErrorBoundary>
       </ThemeProvider>
     </AppThemeProvider>
   );
