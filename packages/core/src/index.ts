@@ -15,6 +15,8 @@ export * from './utils/serate';
 export * from './utils/sessioneGioco';
 export * from './utils/settlement';
 export * from './utils/settlementTorneo';
+export * from './sync/mapping';
+export * from './sync/merge';
 export * from './utils/statsGiochi';
 export * from './utils/storico';
 export * from './utils/tavoli';

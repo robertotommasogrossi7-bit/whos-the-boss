@@ -336,8 +336,28 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   senza mai completare il bundle, probabile incompatibilità nativa con `react-native-web`) — la
   prova dal vivo (login reale, dati ancora presenti) resta da fare su device/Expo Go, si può fare
   nel "grande test" finale o prima se comodo.
-- **R7.2c** — modulo `sync/`: mapping locale↔cloud (tabella per tabella) + merge LWW + tombstone.
-  Solo funzioni pure, core, test-first — **il grosso della fase**.
+- **R7.2c** 🟡 **IN CORSO** (2026-07-11) — modulo `packages/core/src/sync/`, solo funzioni pure:
+  - ✅ **`merge.ts`** — `mergeLWW()` generico (riusabile per QUALSIASI tabella, non serve riscriverlo
+    per le altre 11) + `haCambiamentiLocaliNonSincronizzati()`. Confronta SOLO due timestamp dello
+    stesso device (`syncUpdatedAt` locale vs `lastSyncedAt` = ultimo `updated_at` server salvato in
+    locale) — mai il clock di device diversi, coerente col divieto in sez. I.2. Nuovo campo
+    `lastSyncedAt?` su tutte le 9 entità sincronizzate (accanto a `uid`/`syncUpdatedAt` di R7.2a) +
+    `deletedAt?` (tombstone locale, mai purgato, G4) + `createdByAccountId?` solo su `NomeGiocatore`
+    (rispecchia `giocatori.created_by_account_id`, reale in R7.1a ma non ancora scritto da nessuna UI
+    — modello ospiti A3 resta un R8). 9 test.
+  - ✅ **`mapping.ts`** — coppie `xToCloudRow`/`xFromCloudRow` per **`leghe`** e **`giocatori`** (le
+    due tabelle in cima alla gerarchia, il pattern-tipo per le altre). `ToCloudRow` richiede un `uid`
+    già presente (lancia altrimenti: generaUid() saltato); `FromCloudRow` richiede una entità locale
+    ESISTENTE da aggiornare (creare un'entità nuova da un pull senza corrispondente locale è
+    import/R7.3, non compito di queste funzioni — scelta esplicita per non confondere sync e import,
+    C2 già deciso). 12 test (incluso round-trip cloud→locale→cloud e caso ospite/gestore).
+  - **255 test core totali** (+21 da R7.2b), state/mobile tsc + expo export verdi.
+  - ⏳ **Resta da fare** (stessa forma, stesso pattern — non serve altra mini-spec, solo tempo):
+    mapping per `giochi_lega`, `partite_poker`, `partita_poker_giocatori`, `poker_movimenti`
+    (append-only: NO update/delete, solo insert — funzione diversa dalle altre), `settlements`,
+    `serate`, `sessioni_gioco`, `partite_gioco` + le 4 tabelle-ponte M:N (`serata_partecipanti`,
+    `sessione_gioco_partecipanti`, `partita_gioco_vincitori`, `partita_gioco_partecipanti` — queste
+    ultime sono mapping ancora più semplici: solo coppie di uid, nessun campo proprio oltre le FK).
 
 **Chiedo conferma su questa mini-spec prima di iniziare R7.2a.**
 

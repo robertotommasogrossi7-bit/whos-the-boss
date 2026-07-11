@@ -14,8 +14,11 @@ export interface NomeGiocatore {
   id: number;
   nome: string;
   accountId?: string;   // id account Supabase del giocatore reale (R6). Assente = guest.
+  createdByAccountId?: string; // (R7.2c) il GESTORE che ha creato l'ospite — rispecchia giocatori.created_by_account_id, non ancora scritto da nessuna UI locale
   uid?: string;          // identità cloud (R7.2, UUIDv7 generato alla creazione)
   syncUpdatedAt?: string; // cursore locale "sporco da pushare" (mai per conflict-resolution, R7.2)
+  lastSyncedAt?: string;  // updated_at del server all'ultimo sync riuscito di QUESTA riga (R7.2c)
+  deletedAt?: string;     // tombstone dal cloud (mai purgato, G4) — non ancora un concetto applicativo locale
 }
 
 /* ─── SESSIONE (partita in corso) ─── */
@@ -116,6 +119,8 @@ export interface Settlement {
   pagato: boolean;
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 export interface PagamentoEffettuato {
@@ -149,6 +154,8 @@ export interface GiocatorePartita {
   add_on_pagato: boolean;
   uid?: string;          // identità cloud (R7.2) — riga = partita_poker_giocatori
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 export interface Partita {
@@ -162,6 +169,8 @@ export interface Partita {
   settlements: Settlement[];
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 /* ─── MULTIGIOCO (Card Tracker M1) ─── */
@@ -178,6 +187,8 @@ export interface GiocoLega {
   pareggioComeVittoria: boolean; // default true (vedi SPEC §7)
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 export interface PartitaGioco {
@@ -190,6 +201,8 @@ export interface PartitaGioco {
   nomeLibero?: string;     // gioco "una tantum"/sconosciuto per la singola partita
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 export interface SessioneGioco {
@@ -205,6 +218,8 @@ export interface SessioneGioco {
   serataId?: number;       // R4: se la sessione fa parte di una serata multi-gioco
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 /* ─── SERATA MULTI-GIOCO (R4) ───
@@ -218,6 +233,8 @@ export interface SerataMulti {
   partecipanti: number[];  // id_nome invitati alla serata
   uid?: string;          // identità cloud (R7.2)
   syncUpdatedAt?: string;
+  lastSyncedAt?: string; // (R7.2c)
+  deletedAt?: string;    // (R7.2c)
 }
 
 /* ─── LEGA ─── */
@@ -243,6 +260,8 @@ export interface Lega {
   adminIds?: number[];            // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
   uid?: string;                   // identità cloud (R7.2, UUIDv7 generato alla creazione)
   syncUpdatedAt?: string;         // cursore locale "sporco da pushare" (mai per conflict-resolution)
+  lastSyncedAt?: string;          // updated_at del server all'ultimo sync riuscito (R7.2c)
+  deletedAt?: string;             // tombstone dal cloud, mai purgato (R7.2c, G4)
 }
 
 /* ─── DATABASE (localStorage) ─── */
