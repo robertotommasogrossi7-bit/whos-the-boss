@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Who's the Boss",
-    "slug": "whos-the-boss",
+    "slug": "roberto-grossi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -41,6 +41,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9525020c-ac7f-42ee-a6eb-a3d73e0e62d2"
+      }
+    },
+    "owner": "robertogrossis-team"
   }
 }
