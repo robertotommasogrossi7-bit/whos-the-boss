@@ -308,7 +308,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **R6-B4** ✅ doc alla realtà: R7_SCHEMA→SQL effettivo (M15) · banner SUPERATO su BACKEND_SPEC (M16) · README (M17) · CONTESTO §vecchi (M18) · MAPPA (B44) · nota Expo Go (B29).
   - **R6-B5** ✅ hardening SQL (scritto, **non ancora applicato**): ON DELETE SET NULL (M14) · trigger split B31/B35 · poker_movimenti append-only vero (B32) · UNIQUE parziale (B33) · RLS initplan+TO authenticated (B34) + flowType esplicito + dedup deep link (B24) + comandi migration repair (R-mig, azione utente).
   - **R6-B6** ✅ rete test soldi: calc.test.ts nuovo (26 test) + greedy invarianti (B00) + fix M4/B02/B05/B07/B04/B08. **231 test core** (era 185 a inizio R6).
-- **R7.2 — layer di sync** (kickoff = decisioni a verbale: storage per-account M12 · LWW per-riga · UUIDv7 · retention tombstone) → **R7.3** import one-shot → **R7.4** aggancio store → poi **R8** ruoli/inviti → **R9** realtime.
+- ✅ **R7.2 — layer di sync COMPLETO** (2026-07-11): R7.2a (uid/syncUpdatedAt) + R7.2b (storage
+  per-account, boot+cambio account a caldo) + R7.2c (mapping locale↔cloud tutte le 13 tabelle +
+  merge LWW generico, in `packages/core/src/sync/`). 286 test core. → **R7.3** import one-shot →
+  **R7.4** aggancio store (usa questi mapping per davvero) → poi **R8** ruoli/inviti → **R9** realtime.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
@@ -371,9 +374,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - ✅ **MERGIATA in `main`** (`849acb5`, 2026-07-03, `--no-ff`; branch `rn-r6-identita` cancellato
     local+remoto). 41 commit: identità R6.1-6.5, red team interno+esterno, schema R7.1 (13 tabelle),
     audit multi-agente, bonifica B1-B6. **231 core + 1 state test**, expo export + typecheck verdi.
-- **Prossimo**: **R7.2 — layer di
-  sync** (leghe/sessioni/partite su Supabase, push/pull LWW; qui `giocatori.account_id` su TUTTI i
-  record via claim). Il pezzo grosso.
+- ✅ **R7.2 COMPLETO** (2026-07-11): a (uid/syncUpdatedAt) + b (storage per-account) + c (mapping
+  locale↔cloud tutte le 13 tabelle + merge LWW). **286 test core**. Vedi dettaglio sopra e
+  `R7_SCHEMA.md` sez. G-M.
+- **Prossimo**: **R7.3 — import one-shot** dal locale (backup-first, idempotente) — il primo uso
+  reale dei mapping appena scritti.
   ✅ **APK fatto** (2026-07-11, anticipato rispetto al piano — l'utente voleva testare R7.2b su device
   reale invece che aspettare il pre-pubblicazione, vedi `DECISIONI.md`): account EAS creato, build
   `preview` pubblicata (profilo `.apk` diretto, non Play Store), installata sul telefono. **EAS Update
