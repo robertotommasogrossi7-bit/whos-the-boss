@@ -107,3 +107,13 @@ Principio guida della correzione: **de-risk prima di aggiungere superficie.**
 - **ULTIMISSIMO (volontà utente):** feature nuove + **restyle grande**; poi pubblicazione/beta con feedback strutturato.
 - ✅ **Fatto in (e):** web congelata **rimossa** (tag `archive/web-frozen`); R6 **hardening** applicato
   (profili privati E5 + trigger footgun E4, migration `…140000`); soldi float+r100 **da documentare** (B6).
+
+---
+
+# Red team R7.2 — layer di sync (2026-07-11)
+
+> Lo **schema** R7 fu già red-teamato (esterno data-engineer → schema v2, vedi `R7_SCHEMA.md`). Il
+> **protocollo di sync + il mapping R7.2** non lo erano: buco colmato con un dossier dedicato.
+> Dossier autocontenuto + prompt cinico da incollare in chat pulite (Claude+GPT): **`_processo/REDTEAM-R72-SYNC.md`**.
+> I finding tornano lì come `R-Sn`. **Da lanciare prima di R7.3** (l'import one-shot è l'operazione
+> più pericolosa: tocca tutti i dati una volta). Verificare alla fonte prima di agire.
