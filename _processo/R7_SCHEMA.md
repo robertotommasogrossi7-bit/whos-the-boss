@@ -336,28 +336,39 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   senza mai completare il bundle, probabile incompatibilità nativa con `react-native-web`) — la
   prova dal vivo (login reale, dati ancora presenti) resta da fare su device/Expo Go, si può fare
   nel "grande test" finale o prima se comodo.
-- **R7.2c** 🟡 **IN CORSO** (2026-07-11) — modulo `packages/core/src/sync/`, solo funzioni pure:
-  - ✅ **`merge.ts`** — `mergeLWW()` generico (riusabile per QUALSIASI tabella, non serve riscriverlo
-    per le altre 11) + `haCambiamentiLocaliNonSincronizzati()`. Confronta SOLO due timestamp dello
-    stesso device (`syncUpdatedAt` locale vs `lastSyncedAt` = ultimo `updated_at` server salvato in
-    locale) — mai il clock di device diversi, coerente col divieto in sez. I.2. Nuovo campo
-    `lastSyncedAt?` su tutte le 9 entità sincronizzate (accanto a `uid`/`syncUpdatedAt` di R7.2a) +
-    `deletedAt?` (tombstone locale, mai purgato, G4) + `createdByAccountId?` solo su `NomeGiocatore`
-    (rispecchia `giocatori.created_by_account_id`, reale in R7.1a ma non ancora scritto da nessuna UI
-    — modello ospiti A3 resta un R8). 9 test.
-  - ✅ **`mapping.ts`** — coppie `xToCloudRow`/`xFromCloudRow` per **`leghe`** e **`giocatori`** (le
-    due tabelle in cima alla gerarchia, il pattern-tipo per le altre). `ToCloudRow` richiede un `uid`
-    già presente (lancia altrimenti: generaUid() saltato); `FromCloudRow` richiede una entità locale
-    ESISTENTE da aggiornare (creare un'entità nuova da un pull senza corrispondente locale è
-    import/R7.3, non compito di queste funzioni — scelta esplicita per non confondere sync e import,
-    C2 già deciso). 12 test (incluso round-trip cloud→locale→cloud e caso ospite/gestore).
-  - **255 test core totali** (+21 da R7.2b), state/mobile tsc + expo export verdi.
-  - ⏳ **Resta da fare** (stessa forma, stesso pattern — non serve altra mini-spec, solo tempo):
-    mapping per `giochi_lega`, `partite_poker`, `partita_poker_giocatori`, `poker_movimenti`
-    (append-only: NO update/delete, solo insert — funzione diversa dalle altre), `settlements`,
-    `serate`, `sessioni_gioco`, `partite_gioco` + le 4 tabelle-ponte M:N (`serata_partecipanti`,
-    `sessione_gioco_partecipanti`, `partita_gioco_vincitori`, `partita_gioco_partecipanti` — queste
-    ultime sono mapping ancora più semplici: solo coppie di uid, nessun campo proprio oltre le FK).
+- **R7.2c** ✅ **FATTO** (2026-07-11) — modulo `packages/core/src/sync/`, solo funzioni pure,
+  **tutte e 13 le tabelle mappate**:
+  - **`merge.ts`** — `mergeLWW()` generico (riusabile per qualsiasi tabella, scritto una volta sola)
+    + `haCambiamentiLocaliNonSincronizzati()`. Confronta SOLO due timestamp dello stesso device
+    (`syncUpdatedAt` locale vs `lastSyncedAt` = ultimo `updated_at` server salvato in locale) — mai
+    il clock di device diversi, coerente col divieto in sez. I.2. Nuovo campo `lastSyncedAt?` su
+    tutte le 9 entità sincronizzate (accanto a `uid`/`syncUpdatedAt` di R7.2a) + `deletedAt?`
+    (tombstone locale, mai purgato, G4) + `createdByAccountId?` solo su `NomeGiocatore` (rispecchia
+    `giocatori.created_by_account_id`, reale in R7.1a ma non ancora scritto da nessuna UI — modello
+    ospiti A3 resta un R8). 9 test.
+  - **`mapping.ts`** (core) — `leghe`, `giocatori`, `giochi_lega`.
+  - **`mappingPoker.ts`** — `partite_poker`, `partita_poker_giocatori`, `settlements` (coppie
+    `xToCloudRow`/`xFromCloudRow` standard) + **`poker_movimenti`**: SOLO `movimentiFromCloudRows()`
+    (pull, ricostruisce `ricariche`/`pagamenti_effettuati`/`pagamenti_ricevuti` da un elenco di righe
+    ordinate per `ordine`) — **il push resta apposta non scritto qui**: essendo append-only e le
+    liste locali senza un id stabile per-elemento, un push corretto deve sapere "cosa ho già
+    mandato" (dedup), che è un problema di orchestrazione (R7.4), non di mapping puro. Documentato,
+    non nascosto.
+  - **`mappingMultigioco.ts`** — `serate`, `sessioni_gioco` (gioco_lega_id/serata_id risolti da chi
+    chiama, non dal tipo locale — `SessioneGioco` ha solo la chiave stringa `giocoId`), `partite_gioco`
+    (usa l'`id` locale come `ordine`: nessun campo dedicato da inventare).
+  - **`mappingPonti.ts`** — `ponteToUids`/`ponteFromUids`: le 4 tabelle-ponte (`serata_partecipanti`,
+    `sessione_gioco_partecipanti`, `partita_gioco_vincitori`, `partita_gioco_partecipanti`) sono
+    strutturalmente identiche (coppia id-genitore/giocatore_id) — una sola coppia di funzioni
+    generiche invece di 4 quasi-duplicate; il nome della colonna FK del genitore lo aggiunge chi
+    orchestra il push, non serve al mapping.
+  - Bug reale trovato dal typecheck durante lo sviluppo: `PagamentoEffettuato.pagato` vs
+    `Ricarica.pagata` (nomi diversi per un campo simile, incoerenza preesistente nel modello) —
+    corretto prima di committare.
+  - **286 test core totali** (+52 dei moduli sync, +255 di prima), state/mobile tsc + expo export:
+    tutti verdi.
+  - **R7.2 (a+b+c) COMPLETO.** Prossimo: **R7.3** — import one-shot dal locale (backup-first,
+    idempotente) — è il momento in cui questi mapping vengono usati per la prima volta davvero.
 
 **Chiedo conferma su questa mini-spec prima di iniziare R7.2a.**
 

@@ -15,7 +15,7 @@
    fuori, così restano test-first come tutto il core.
 ══════════════════════════════════════════════════════ */
 
-import type { Lega, NomeGiocatore } from '../types';
+import type { GiocoLega, Lega, NomeGiocatore } from '../types';
 
 export interface LegaCloudRow {
   id: string;
@@ -105,6 +105,64 @@ export function giocatoreFromCloudRow(row: GiocatoreCloudRow, base: NomeGiocator
     nome: row.nome,
     accountId: row.account_id ?? undefined,
     createdByAccountId: row.created_by_account_id ?? undefined,
+    uid: row.id,
+    syncUpdatedAt: row.updated_at,
+    lastSyncedAt: row.updated_at,
+    deletedAt: row.deleted_at ?? undefined,
+  };
+}
+
+export interface GiocoLegaCloudRow {
+  id: string;
+  lega_id: string;
+  gioco_key: string;
+  nome: string | null;
+  preimpostato: boolean;
+  foto: string | null;
+  accent: string | null;
+  attivo: boolean;
+  pareggio_come_vittoria: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+/** GiocoLega locale → riga cloud. `legaUid` è l'uid della Lega genitrice.
+    `id` locale (es. 'magic'/'custom-<ts>') → colonna `gioco_key` (referenziata
+    da sessioni_gioco.gioco_lega_id via l'uid, non via questa chiave stringa).
+    Il commento SQL suggerisce "per i preset salva solo gioco_key+attivo": qui
+    si mappano comunque tutti i campi presenti (nome/accent/foto se popolati),
+    l'eventuale ottimizzazione "manda meno per i preset" è responsabilità di
+    chi orchestra il push (R7.4), non di questa funzione pura. */
+export function giocoLegaToCloudRow(
+  g: GiocoLega,
+  legaUid: string,
+): Omit<GiocoLegaCloudRow, 'created_at' | 'updated_at'> {
+  if (!g.uid) throw new Error('giocoLegaToCloudRow: GiocoLega senza uid (generaUid() non chiamato alla creazione)');
+  return {
+    id: g.uid,
+    lega_id: legaUid,
+    gioco_key: g.id,
+    nome: g.nome,
+    preimpostato: g.preimpostato,
+    foto: g.foto ?? null,
+    accent: g.accent ?? null,
+    attivo: g.attivo,
+    pareggio_come_vittoria: g.pareggioComeVittoria,
+    deleted_at: g.deletedAt ?? null,
+  };
+}
+
+/** Riga cloud → GiocoLega locale aggiornato (per il pull). */
+export function giocoLegaFromCloudRow(row: GiocoLegaCloudRow, base: GiocoLega): GiocoLega {
+  return {
+    ...base,
+    nome: row.nome ?? base.nome,
+    preimpostato: row.preimpostato,
+    foto: row.foto ?? undefined,
+    accent: row.accent ?? undefined,
+    attivo: row.attivo,
+    pareggioComeVittoria: row.pareggio_come_vittoria,
     uid: row.id,
     syncUpdatedAt: row.updated_at,
     lastSyncedAt: row.updated_at,

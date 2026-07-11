@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Lega, NomeGiocatore } from '../types';
+import type { GiocoLega, Lega, NomeGiocatore } from '../types';
 import {
   giocatoreFromCloudRow, giocatoreToCloudRow,
+  giocoLegaFromCloudRow, giocoLegaToCloudRow,
   legaFromCloudRow, legaToCloudRow,
 } from './mapping';
 
@@ -145,6 +146,56 @@ describe('giocatoreFromCloudRow', () => {
       id: row.id, lega_id: 'lega-uid-1', local_id: row.local_id, nome: row.nome,
       account_id: row.account_id, created_by_account_id: row.created_by_account_id,
       deleted_at: row.deleted_at,
+    });
+  });
+});
+
+function giocoLegaBase(over: Partial<GiocoLega> = {}): GiocoLega {
+  return {
+    id: 'scopa', nome: 'Scopa', preimpostato: true, attivo: true,
+    pareggioComeVittoria: true, uid: 'gioco-uid-1', syncUpdatedAt: '2026-07-11T10:00:00.000Z',
+    ...over,
+  };
+}
+
+describe('giocoLegaToCloudRow', () => {
+  it('mappa gioco_key dall\'id locale, non è un local_id', () => {
+    const row = giocoLegaToCloudRow(giocoLegaBase(), 'lega-uid-1');
+    expect(row.gioco_key).toBe('scopa');
+    expect(row.lega_id).toBe('lega-uid-1');
+    expect(row.preimpostato).toBe(true);
+  });
+
+  it('custom: foto/accent passano', () => {
+    const row = giocoLegaToCloudRow(giocoLegaBase({
+      id: 'custom-123', preimpostato: false, foto: 'data:x', accent: '#FF0000',
+    }), 'lega-uid-1');
+    expect(row.foto).toBe('data:x');
+    expect(row.accent).toBe('#FF0000');
+  });
+
+  it('lancia se manca uid', () => {
+    const g = giocoLegaBase({ uid: undefined });
+    expect(() => giocoLegaToCloudRow(g, 'lega-uid-1')).toThrow(/uid/);
+  });
+});
+
+describe('giocoLegaFromCloudRow', () => {
+  it('round-trip su un gioco custom', () => {
+    const base = giocoLegaBase({ id: 'custom-123', preimpostato: false });
+    const row = {
+      id: 'gioco-uid-1', lega_id: 'lega-uid-1', gioco_key: 'custom-123', nome: 'Il mio gioco',
+      preimpostato: false, foto: 'data:x', accent: '#00FF00', attivo: true, pareggio_come_vittoria: false,
+      created_at: '2026-07-11T09:00:00.000Z', updated_at: '2026-07-11T12:00:00.000Z', deleted_at: null,
+    };
+    const locale = giocoLegaFromCloudRow(row, base);
+    expect(locale.nome).toBe('Il mio gioco');
+    expect(locale.pareggioComeVittoria).toBe(false);
+    const back = giocoLegaToCloudRow(locale, 'lega-uid-1');
+    expect(back).toEqual({
+      id: row.id, lega_id: 'lega-uid-1', gioco_key: row.gioco_key, nome: row.nome,
+      preimpostato: row.preimpostato, foto: row.foto, accent: row.accent,
+      attivo: row.attivo, pareggio_come_vittoria: row.pareggio_come_vittoria, deleted_at: row.deleted_at,
     });
   });
 });
