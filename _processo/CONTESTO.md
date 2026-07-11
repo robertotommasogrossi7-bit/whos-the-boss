@@ -328,10 +328,17 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - ✅ Aggiunto **crash logger via `ErrorUtils`** (cattura crash FUORI dal render — tap/effect/callback,
     quelli che chiudono l'app di scatto senza passare dall'ErrorBoundary) — `ff51f8b`. Salva l'errore
     in AsyncStorage, lo mostra a schermo alla riapertura successiva.
-  - 🔴 **APERTO — il bug che ha fatto scattare tutto questo**: andare su **"Leghe" crasha l'app di
-    scatto** (torna alla home del telefono, nessun errore visibile finora). Se anche col crash logger
-    non esce nessun testo d'errore alla riapertura, è un crash **nativo** (fuori dalla portata JS) →
-    serve `adb logcat` (telefono via USB) o un vero crash reporter (Sentry, già previsto in H-block).
+  - ✅ **RISOLTO — il bug che ha fatto scattare tutto questo**: andare su **"Leghe" crashava l'app**.
+    Non era un crash nativo: grazie all'`ErrorBoundary` (`f16bc0c`) l'errore è stato catturato e mostrato
+    a schermo — **"Maximum update depth exceeded"**. Causa: `apps/mobile/src/app/(tabs)/leghe.tsx` usava
+    un selettore Zustand con `.filter()` **inline** (`useStore((s) => s.db.leghe.filter(...))`), che crea
+    un **nuovo array ad ogni chiamata**. Con `useSyncExternalStore` (React 18, sotto Zustand) un selettore
+    che non ritorna un riferimento stabile fa scattare un loop di re-render infinito — era l'**unico punto
+    di tutto il codice** con questo pattern (ogni altro schermo usa `.find()`, stabile per riferimento).
+    Fix: filtro spostato fuori dal selettore, in un `useMemo` sul riferimento stabile `s.db.leghe`.
+    Verificato: 286/286 test, typecheck + `expo export` verdi. Spedito via OTA.
+    **Lezione per il processo**: prova viva che l'`ErrorBoundary`+crash-logger fatti pochi commit prima
+    hanno funzionato — un errore che sembrava un crash nativo "muto" si è rivelato un bug JS diagnosticabile.
   - 🔴 **APERTO — minore, UX**: nella **serata multi-gioco** non c'è un tasto "chiudi serata" (si
     chiudono i singoli giochi dentro, la serata resta un contenitore) e manca un modo per "riprendere"
     una serata in corso dalla home — dà l'impressione che si chiuda tornando indietro (in realtà i

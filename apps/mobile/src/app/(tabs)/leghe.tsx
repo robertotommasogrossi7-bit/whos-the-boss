@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,7 +29,8 @@ function statsUtente(lega: Lega, accountId?: string) {
 
 export default function LegheScreen() {
   const t = useTheme();
-  const leghe = useStore((s) => s.db.leghe.filter((l) => !l.personale));
+  const tutteLeLeghe = useStore((s) => s.db.leghe);
+  const leghe = useMemo(() => tutteLeLeghe.filter((l) => !l.personale), [tutteLeLeghe]);
   const utente = useStore((s) => s.utente);
   const setCurrentLega = useStore((s) => s.setCurrentLega);
 
