@@ -48,6 +48,12 @@
         "projectId": "9525020c-ac7f-42ee-a6eb-a3d73e0e62d2"
       }
     },
-    "owner": "robertogrossis-team"
+    "owner": "robertogrossis-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9525020c-ac7f-42ee-a6eb-a3d73e0e62d2"
+    }
   }
 }
