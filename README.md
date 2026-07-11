@@ -5,9 +5,13 @@
 
 🇮🇹 [Leggi in italiano](README.it.md)
 
-**Status:** 🚧 In active development — React Native (Expo) app with **real auth**
-(Supabase, email + password); game data lives on-device for now, cloud sync (multi-device)
-is in progress. Built and tested in the open.
+![CI](https://github.com/robertotommasogrossi7-bit/whos-the-boss/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Built with Claude Code](https://img.shields.io/badge/built%20with-Claude%20Code-8A63D2)
+
+**Status:** ✅ **Working app**, in **closed testing on real Android devices** with a group of friends
+from my town. React Native (Expo) + real accounts (Supabase). Game data lives on-device today;
+**cross-device cloud sync is the piece I'm building now**. Built and tested in the open.
 
 ---
 
@@ -26,18 +30,39 @@ Open the app, pick a game, log your matches, look at the standings. That's the l
   moves, balancing).
 - **Standings** — per game, plus a personal cross-context view: how good are *you* at a
   game, across your solo games **and** all your leagues.
-- **On-device data, real accounts** — auth is real (Supabase); game data lives on-device
-  (AsyncStorage) for now. Cloud sync (multi-device) and roles/sharing are in progress.
+- **Real accounts, on-device data** — auth is real (Supabase); game data lives on-device
+  (AsyncStorage) for now, so the app is fully usable offline.
 
 ## Screenshots
 
-> 📸 Coming soon — see [`docs/screenshots/`](docs/screenshots/) for what's planned.
+<!-- Drop the 4 PNGs into docs/screenshots/ and this section lights up. See docs/screenshots/README.md -->
 
-<!-- Uncomment as you add the images:
-![Home](docs/screenshots/home.png)
-![Standings](docs/screenshots/standings.png)
-![Poker table](docs/screenshots/poker-table.png)
--->
+| Home | Standings | Poker table | Debts |
+|---|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Standings](docs/screenshots/standings.png) | ![Poker live table](docs/screenshots/poker-table.png) | ![Debt settlement](docs/screenshots/debts.png) |
+
+---
+
+## How to try it
+
+**See it running (fastest):** the app is currently in **closed testing** as a real Android build
+(EAS) — reach out and I'll add you as a tester, or just look at the screenshots above.
+
+**Run it yourself (for reviewers):**
+
+```bash
+pnpm install
+pnpm dev:mobile   # Expo dev server — open on your phone with a dev build, or press "w" for web
+```
+
+```bash
+pnpm test         # all shared-logic tests (Vitest, via Turbo) — 286 tests
+pnpm typecheck    # TypeScript strict, no emit
+pnpm build        # build all packages
+```
+
+Auth is real (Supabase, email + password). You can register a fresh account and start logging
+games immediately — everything works offline, on-device.
 
 ---
 
@@ -56,9 +81,12 @@ The method (written up in **[`METODO.md`](METODO.md)**) in a nutshell:
   example-based tests, *before* any code.
 - **Tests before UI**, **review in a separate chat before every merge**, **micro-commits**,
   **push after each commit**, **clean git history**.
+- **External red teams before exposing work** — the sync layer was reviewed by fresh,
+  uncontaminated AI reviewers; every finding was verified against the real code (see
+  [`_processo/`](_processo/)).
 
 So the commit history isn't just code — it's a record of *how* it was built. That's why the
-process is part of the repo.
+process lives in the repo, under [`_processo/`](_processo/).
 
 > **Built openly with AI — and proud of it.** The implementation is largely AI-written; I own
 > the architecture, product decisions, UX and review. I'm not hiding it, I'm showcasing it —
@@ -72,58 +100,45 @@ process is part of the repo.
 | Layer | Tech |
 |---|---|
 | App | Expo (React Native) + Expo Router |
-| UI | React 19 + TypeScript 5.8 (strict) |
-| State | Zustand 5 (persist → AsyncStorage) |
+| UI | React 19 + TypeScript (strict) |
+| State | Zustand (persist → AsyncStorage) |
 | Backend | Supabase — Auth (email+password) + Postgres (schema-as-code, RLS) |
-| Tests | Vitest (shared logic, 202 tests) |
+| Tests | Vitest — 286 tests on the shared logic |
 | Styling | React Native `StyleSheet` (design tokens, dark theme + per-game accent) |
 | Monorepo | pnpm workspaces + Turborepo (`packages/core` logic, `packages/state` store) |
+| Delivery | EAS Build (Android) + EAS Update (OTA) |
 
-Few dependencies on purpose: small bundle, logic shared cleanly between the (now-archived) web
-reference and the mobile app.
-
-## Run it locally
-
-```bash
-pnpm install
-pnpm dev:mobile  # Expo dev server (open in Expo Go)
-```
-
-```bash
-pnpm test        # all tests (Vitest, via Turbo)
-pnpm lint        # ESLint
-pnpm build       # type-check + production build
-```
-
-Auth is real (Supabase, email + password); game data stays on-device for now (cloud sync is in progress).
-
-> The original web version (Vite + React) was archived at git tag `archive/web-frozen` when the project moved fully to React Native. The path is in the git history.
+Few dependencies on purpose: small bundle, logic shared cleanly between packages and the app.
 
 ## Project structure
 
 ```
-whos-the-boss/   ← pnpm + Turborepo monorepo
-├── apps/mobile/     ← the React Native app (Expo) — the app
-├── packages/core/   ← shared logic (pure TS: settlement, standings, …) + tests
-├── packages/state/  ← shared store (Zustand: createAppStore)
-├── supabase/        ← DB schema as code (migrations: profiles, unique username, RLS)
-├── _legacy/         ← historical: the original monolith + the vanilla-JS split
-├── METODO.md        ← the AI-orchestration method (how this was built)
-├── README.md / README.it.md
-└── LICENSE
+whos-the-boss/          pnpm + Turborepo monorepo
+├── apps/mobile/        the React Native app (Expo) — the product
+├── packages/core/      pure shared logic (settlement, standings, sync mappers) + 286 tests
+├── packages/state/     shared store (Zustand: createAppStore)
+├── supabase/           database schema as code (migrations: profiles, unique username, RLS, sync)
+├── docs/               screenshots & guides
+├── _processo/          the live process log — decisions, specs, audits (the "how", in the open)
+├── METODO.md           the AI-orchestration method (how this was built)
+└── README.md / README.it.md / LICENSE
 ```
 
-## Roadmap (short)
+> The original vanilla-JS prototype and the frozen web version are preserved at git tags
+> `archive/legacy-vanilla` and `archive/web-frozen` — kept out of `main` to keep the tree clean.
 
-- ✅ **Multi-game core** — data model + stats, design system + app shell, match-logging,
-  standings (per game + personal cross-context).
-- ✅ **React Native port** — the whole app (multi-game + poker cash/tournament, live table,
-  timers, debt settlement) ported natively to Expo.
-- ✅ **Real identity** — Supabase auth, unique usernames, email confirmation via deep link,
-  "that's you" anchored to the account (not just the display name).
-- ⏭️ **Cross-device sync** — relational schema on Postgres/Supabase (already applied, RLS'd),
-  a sync layer is next.
-- 🔮 Roles & sharing between accounts, realtime, then a visual restyle before publishing.
+## Where it's at (and what's next)
+
+**Done:** the whole app works natively — multi-game logging, poker cash & tournaments with a live
+table and automatic debt settlement, cross-context standings, real Supabase accounts with unique
+usernames and email confirmation. The relational cloud schema (13 tables, RLS) is applied, and the
+local↔cloud **sync mapping layer** is written and covered by tests.
+
+**Now:** wiring that sync layer to actually push/pull between devices — hardened first after two
+external red teams (real-DB round-trip test, stable IDs on the money ledger, optimistic concurrency
+on push).
+
+**Next:** roles & sharing between accounts → realtime → a visual restyle → publish to the Play Store.
 
 ## License
 

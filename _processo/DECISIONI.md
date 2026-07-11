@@ -750,12 +750,17 @@
 - **DS5 — LWW-per-riga ACCETTATO e documentato** [S6]: niente merge-per-campo alla CRDT (overkill a
   questa scala); `mergeLWW` per-colonna resta disponibile per i pochi campi editabili a rischio
   (nomi, note settlement). → R7.2d-1.
-- **DS6 — ⚠️ PROPOSTA, serve ok utente: GATE vertical-slice su DB reale prima di R7.3** [S1]. È il
-  #1 assoluto di entrambi i revisori. È una **deviazione dalla "scelta di studio" 2026-07-01 (e)**
-  ("costruire tutto + un test gigante alla fine"): qui si prova UNA tabella contro Postgres reale
-  PRIMA di scrivere il push completo. Motivo: è assicurazione a basso costo prima di costruire 13
-  mapper su assunzioni non verificate (RLS+upsert, FK deferite, round-trip `updated_at`,
-  numeric↔float). **Non lo decido io da solo (reversa una tua scelta) — aspetto il tuo ok.**
+- **DS6 — ✅ ACCETTATA (2026-07-12): GATE vertical-slice su DB reale prima di R7.3** [S1]. È il
+  #1 assoluto di entrambi i revisori. **L'utente ha ABBANDONATO la "scelta di studio" 2026-07-01 (e)**
+  ("costruire tutto + un test gigante alla fine"): **da ora si testa strada facendo, telefono alla
+  mano.** Si prova UNA tabella contro Postgres reale PRIMA di scrivere il push completo — assicurazione
+  a basso costo prima di costruire 13 mapper su assunzioni non verificate (RLS+upsert, FK deferite,
+  round-trip `updated_at`, numeric↔float).
+  - **⭐ Lezione di costruzione (per SideKick)**: la scelta di studio "test gigante alla fine" è durata
+    ~2 settimane ed è stata abbandonata quando (a) il primo run reale su device ha già trovato 2 bug
+    (crash SSR `window`, env var mancanti) e (b) il red team ha confermato che rimandare il primo run
+    nasconde i bug, non li evita. Il confronto con l'approccio incrementale di All for Music si chiude:
+    **vince l'incrementale**. Da ora l'app si verifica su device a ogni pezzo testabile.
 - **DS7 — GC tombstone = pianificata, non ora** [S14]: conferma G4 "mai purgare" con un piano
   esplicito (dopo che tutti i device hanno sincronizzato). → R7.2d-1 (piano) + R8/R10 (impl).
 - **DS8 — Float+r100 → rivalutare int-centesimi a R8** [S16]: conferma la vecchia B6, non ora.
