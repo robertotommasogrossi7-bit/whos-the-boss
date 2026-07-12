@@ -343,7 +343,12 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     chiudono i singoli giochi dentro, la serata resta un contenitore) e manca un modo per "riprendere"
     una serata in corso dalla home — dà l'impressione che si chiuda tornando indietro (in realtà i
     dati restano, si trovano in Storico → Serate). Da progettare bene (ricerca UX), non una pezza.
-  - **Non ancora testato**: poker (probabilmente bloccato dal crash di Leghe prima di arrivarci).
+  - ✅ **Fix Leghe CONFERMATO sul telefono** (2026-07-13): Leghe funziona, e anche il **poker va**
+    (si apre in schermata nuova e il flusso gira).
+  - 🟡 **Feedback dal test (2026-07-13, registrati in `IDEE.md`)**: grafica poker poco chiara
+    (→ input concreto per R12) · **pulsanti in basso coperti dalla nav bar nativa Android**
+    (manca `useSafeAreaInsets().bottom` ovunque — fix cheap trasversale, da fare PRIMA del
+    restyle, candidato quick-fix) · giocatori per-lega poco evidenti in UI.
 - **Prossimo concreto**: chiudere il bug crash-su-Leghe (priorità #1, blocca il test reale), poi
   finire il giro di test (poker, multi-gioco). **Solo dopo**: **R7.2d-1** (documento invarianti +
   decisioni a verbale) → d2/d3/d4 → **d5 = il gate su DB reale**.

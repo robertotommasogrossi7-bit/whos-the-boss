@@ -80,3 +80,18 @@
 > Richiesta utente: tradurre tutta l'app almeno in **inglese**, forse anche **francese** e **spagnolo**.
 - Estrarre le stringhe UI (ora hardcoded in italiano) in un sistema **i18n** (es. i18n-js + expo-localization),
   lingua da impostazioni / di sistema, **IT default**. Conviene farlo **col restyle** (si ritocca comunque tutta la UI).
+
+## 2026-07-13 — Note dal primo test reale sul telefono
+
+- **Grafica poker poco chiara** (feedback utente dal vivo: "non mi fa impazzire, non è molto
+  chiaro") → confermato rimandare al **restyle R12**, ma tenerlo come input concreto: la
+  schermata live poker va ripensata per leggibilità, non solo abbellita.
+- **🐛 Pulsanti in basso coperti dalla barra di navigazione nativa Android** (3 tasti sempre
+  visibili sui telefoni con nav bar fissa): NESSUNA schermata usa i safe-area insets bottom
+  (le SafeAreaView hanno solo `edges={['top']}`, i footer hanno padding fisso). Fix cheap e
+  trasversale: `useSafeAreaInsets().bottom` sui footer/bottoni in thumb zone. **Da fare prima
+  del restyle** — è usabilità, non estetica. Candidato quick-fix post-giro-di-test.
+- **UX: capire dove vivono i giocatori** (utente ha aggiunto 2 persone in una lega e "non le
+  trova da nessuna parte"): il modello è roster per-lega (lega.nomi), ma la UI non lo rende
+  evidente. Da chiarire in UI (es. contatore giocatori nella card lega, empty state esplicativi)
+  → input per R12; la condivisione vera dei giocatori tra account = R8.
