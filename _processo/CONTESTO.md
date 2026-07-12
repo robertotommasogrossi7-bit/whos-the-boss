@@ -345,13 +345,15 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     dati restano, si trovano in Storico → Serate). Da progettare bene (ricerca UX), non una pezza.
   - ✅ **Fix Leghe CONFERMATO sul telefono** (2026-07-13): Leghe funziona, e anche il **poker va**
     (si apre in schermata nuova e il flusso gira).
-  - 🟡 **Feedback dal test (2026-07-13, registrati in `IDEE.md`)**: grafica poker poco chiara
-    (→ input concreto per R12) · **pulsanti in basso coperti dalla nav bar nativa Android**
-    (manca `useSafeAreaInsets().bottom` ovunque — fix cheap trasversale, da fare PRIMA del
-    restyle, candidato quick-fix) · giocatori per-lega poco evidenti in UI.
-- **Prossimo concreto**: chiudere il bug crash-su-Leghe (priorità #1, blocca il test reale), poi
-  finire il giro di test (poker, multi-gioco). **Solo dopo**: **R7.2d-1** (documento invarianti +
-  decisioni a verbale) → d2/d3/d4 → **d5 = il gate su DB reale**.
+  - ✅ **GIRO DI TEST CHIUSO (2026-07-13, decisione utente)**: basta così per ora; il prossimo
+    giro si fa **con gli amici sul cloud** (post R7). Feedback registrati in `IDEE.md`:
+    grafica poker poco chiara (→ R12) · **safe area sopra+sotto su tutte le schermate**
+    (pulsanti coperti dalla nav bar Android → deciso: si fa col restyle R12, la disposizione
+    cambia comunque) · giocatori per-lega poco evidenti in UI (non era un bug) · ⭐ requisito
+    R8/R9: claim guest + richiesta dati devono coprire guest **in lega E nel Personale altrui**.
+- **Prossimo concreto**: ~~crash-su-Leghe~~ ✅ fixato e confermato · ~~giro di test~~ ✅ chiuso
+  (2026-07-13). **ORA: R7.2d-1** (documento invarianti + decisioni a verbale) → d2/d3/d4 →
+  **d5 = il gate su DB reale**.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 

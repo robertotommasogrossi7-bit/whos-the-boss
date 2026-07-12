@@ -88,10 +88,20 @@
   schermata live poker va ripensata per leggibilità, non solo abbellita.
 - **🐛 Pulsanti in basso coperti dalla barra di navigazione nativa Android** (3 tasti sempre
   visibili sui telefoni con nav bar fissa): NESSUNA schermata usa i safe-area insets bottom
-  (le SafeAreaView hanno solo `edges={['top']}`, i footer hanno padding fisso). Fix cheap e
-  trasversale: `useSafeAreaInsets().bottom` sui footer/bottoni in thumb zone. **Da fare prima
-  del restyle** — è usabilità, non estetica. Candidato quick-fix post-giro-di-test.
-- **UX: capire dove vivono i giocatori** (utente ha aggiunto 2 persone in una lega e "non le
-  trova da nessuna parte"): il modello è roster per-lega (lega.nomi), ma la UI non lo rende
-  evidente. Da chiarire in UI (es. contatore giocatori nella card lega, empty state esplicativi)
-  → input per R12; la condivisione vera dei giocatori tra account = R8.
+  (le SafeAreaView hanno solo `edges={['top']}`, i footer hanno padding fisso).
+  **→ DECISO (utente, 2026-07-13): si fa COL RESTYLE R12** (la disposizione dei pulsanti può
+  cambiare comunque lì). Requisito da portare nel restyle: **safe area su TUTTE le schermate,
+  sia sopra che sotto** (`useSafeAreaInsets` top+bottom), testata su telefono con nav bar a
+  3 tasti fissa (il caso peggiore — è quello dell'utente).
+- **UX: capire dove vivono i giocatori** (utente ha aggiunto 2 persone in una lega e
+  inizialmente non le trovava): **non era un bug** — il modello è roster per-lega (lega.nomi) —
+  ma la UI non lo rende evidente. Da chiarire in UI (es. contatore giocatori nella card lega,
+  empty state esplicativi) → input per R12.
+- **⭐ REQUISITO per R8/R9 (utente, 2026-07-13)**: quando arrivano i **guest reclamabili** e le
+  **richieste di dati agli altri account** (claim del giocatore guest + richiesta di storico),
+  devono funzionare **sia per i guest dentro le leghe condivise, sia per i guest del Personale
+  di qualcun altro** (es. "chiedo a te i dati del guest che gioca a casa tua"). Il perno nello
+  schema c'è già (tabella `giocatori` con `account_id` nullable, vale per ogni lega inclusa la
+  Personale) — il flusso UI/permessi di R8/R9 deve coprire **entrambi** i casi.
+- **Prossimo giro di test = con gli amici, sul cloud** (utente): il test reale su device per ora
+  basta; si riprende quando l'app sarà sul cloud (post R7), aggiornando l'app usata tra amici.
