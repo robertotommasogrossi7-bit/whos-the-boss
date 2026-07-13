@@ -101,7 +101,7 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 | **S1** | ALTA | Sync mai provata contro **Postgres reale** (solo test su funzioni pure) | **CONFERMATO** | solo vitest puri, zero integrazione | **R7.2d-5 (GATE)** — vertical slice 1 tabella su DB reale |
 | **S2** | ALTA | `poker_movimenti` **senza uid stabile** → push non idempotente | **CONFERMATO** | `Ricarica`/`Pagamento*` senza `uid`; push non scritto | ✅ **R7.2d-3** (parte pura fatta): `uid?` sui movimenti + `movimentiToCloudRows`; generazione uid alla creazione → R7.4 |
 | **S3** | ALTA | Push **senza CAS** (controllo concorrenza) → "LWW" = "vince chi pusha per ultimo" | **PREVENTIVO** | in `sync/` nessun codice di push (solo pull in `mergeLWW`) | **R7.4** — push CAS via RPC (mini-spec) |
-| **S4** | ALTA | Mappa `id_locale↔uid` non esiste, mal classificata "R7.4" | **CONFERMATO** | i mapper prendono callback `risolvi*` = stub | **R7.2d-4** — prerequisito, riclassificato |
+| **S4** | ALTA | Mappa `id_locale↔uid` non esiste, mal classificata "R7.4" | **CONFERMATO** | i mapper prendono callback `risolvi*` = stub | ✅ **R7.2d-4 FATTO** (`sync/idMap.ts`); aggancio ai mapping reali → R7.4 |
 | **S5** | ALTA | Dirty-flag confronta **clock client vs clock server** → perdita silenziosa se l'orologio è storto | **CONFERMATO** | `syncUpdatedAt`=`new Date()` client, `lastSyncedAt`=server | **R7.2d-2** — flag/counter locale |
 | **S6** | ALTA | **LWW per-riga** → clobber silenzioso di campi diversi editati offline su 2 device | **CONFERMATO (by design)** | `mergeLWW` opera sull'intera riga | **R7.2d-1** — accettato+documentato; merge-per-colonna per campi a rischio |
 | **S7** | MEDIA | Nessuna regola esplicita **tombstone-vs-edit** (delete può "resuscitare") | **CONFERMATO** | `merge.ts` ignora `deletedAt` | **R7.2d-1** — regola delete-wins |
@@ -112,7 +112,7 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 | **S12** | MEDIA | Figlio orfano sotto padre tombstonato (creato offline su altro device) | **PREVENTIVO** | — | **R7.4** — flag revisione al pull |
 | **S13** | MEDIA | `settlements` (derivati) sincronizzati prima dei `movimenti` sorgente | **PREVENTIVO** | — | **R7.4** — ordine ledger→settlement, o ricalcolo client |
 | **S14** | MEDIA | Tombstone **mai purgati** → crescita infinita del pull | **ACCETTATO** (G4) ma serve un piano | decisione G4 esplicita | **R7.2d-1** (piano) + **R8/R10** (GC) |
-| **S15** | MEDIA | N lookup per record: manca cache `Map<uid,id>` a inizio sync | **PREVENTIVO** (perf) | — | **R7.4** (va con S4) |
+| **S15** | MEDIA | N lookup per record: manca cache `Map<uid,id>` a inizio sync | **PREVENTIVO** (perf) | — | ✅ mappa pronta (R7.2d-4 `idMap.ts`); uso a inizio sync → R7.4 |
 | **S16** | BASSA | Float accumula errore su tante somme | **ACCETTATO** (float+r100) | — | **R8** — rivalutare int-centesimi (B6) |
 | **S17** | BASSA | Ordinamento UI su uid con clock storto | **BASSO — già a posto** | ordiniamo per `ordine`/`id`, non per uid | nessuno (tenere la regola) |
 | **S18** | BASSA | Compat schema tra versioni app diverse in giro | **PREVENTIVO** | — | **R7.4/H** — test minimo |

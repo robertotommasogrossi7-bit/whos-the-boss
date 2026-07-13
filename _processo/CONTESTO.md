@@ -358,8 +358,12 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   R7.4** (deciso con l'utente: non testabile senza push, si fa insieme). Spiegazione didattica
   gitignorata in **`_studio/01-dirty-tracking-contatore-vs-orologio.md`**. ~~R7.2d-3~~ ✅ **FATTO**
   (parte pura, 2026-07-13): `uid?` sui movimenti + `movimentiToCloudRows` (push) + round-trip testato
-  (S2/S10; generazione uid alla creazione → R7.4). **ORA: R7.2d-4** (mappa id↔uid a inizio sync,
-  S4/S15 — Opus xhigh) → **d5 = gate su DB reale** (DS6 accettata).
+  (S2/S10; generazione uid alla creazione → R7.4). ~~R7.2d-4~~ ✅ **FATTO** (2026-07-13):
+  `sync/idMap.ts` (mappa id↔uid, S4/S15; aggancio ai mapping → R7.4). → **Tutta la parte pura di
+  R7.2d è chiusa** (d1+d2+d3+d4). **ORA resta solo R7.2d-5 = il GATE su DB reale** (DS6 accettata):
+  vertical slice 1 tabella su Postgres vero via Supabase CLI/Docker — passo con setup ambiente,
+  da fare in sessione dedicata. Poi R7.3 (import) → R7.4 (aggancio store: push CAS + cablaggio
+  dirty/uid + mappe). **308 test core.**
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 

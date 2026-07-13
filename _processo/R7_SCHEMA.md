@@ -404,9 +404,11 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   round-trip testato). Chiude anche S10 (retry idempotenti via uid stabile). ⏭️ La **generazione**
   dell'uid alla creazione del movimento e l'`INSERT … ON CONFLICT (uid) DO NOTHING` = cablaggio store +
   orchestrazione → **R7.4** (come d2, stessa ragione). *[no ricerca — stesso pattern di R7.2a]*
-- **R7.2d-4 — Mappa risoluzione id↔uid** [S4,S15]: `Map<local,uid>`/`Map<uid,local>` per-lega a
-  inizio sync; definire il comportamento con creazione offline a catena (padre non ancora syncato).
-  *[mini-spec · Opus xhigh]*
+- **R7.2d-4 — Mappa risoluzione id↔uid** [S4,S15] ✅ **FATTO 2026-07-13**: `sync/idMap.ts` —
+  `costruisciIdUidMap` (generica, due direzioni) + `mappaGiocatori` (id_nome↔uid, la risoluzione più
+  usata) + `idSenzaUid`. Costruita una volta a inizio sync (evita N lookup, S15). Comportamento
+  creazione offline a catena (S4): entità senza uid fuori dalla mappa, l'ordine di push lo gestisce
+  R7.4. Funzione pura, 7 test. *(L'aggancio della mappa ai mapping reali = R7.4.)*
 - **R7.2d-5 — GATE: vertical slice su Postgres reale** [S1]: **1 tabella** (`giocatori`), push+pull
   VERI contro Supabase con RLS attiva, via **Supabase CLI locale (Docker)** così è automatizzabile in
   CI. Valida RLS+upsert, FK deferite, round-trip `updated_at`, `numeric↔float` PRIMA di scrivere il
