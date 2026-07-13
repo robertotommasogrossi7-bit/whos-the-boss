@@ -16,8 +16,10 @@ export interface NomeGiocatore {
   accountId?: string;   // id account Supabase del giocatore reale (R6). Assente = guest.
   createdByAccountId?: string; // (R7.2c) il GESTORE che ha creato l'ospite — rispecchia giocatori.created_by_account_id, non ancora scritto da nessuna UI locale
   uid?: string;          // identità cloud (R7.2, UUIDv7 generato alla creazione)
-  syncUpdatedAt?: string; // cursore locale "sporco da pushare" (mai per conflict-resolution, R7.2)
-  lastSyncedAt?: string;  // updated_at del server all'ultimo sync riuscito di QUESTA riga (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;       // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;     // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string;  // updated_at del server all'ultimo sync riuscito di QUESTA riga (R7.2c) — pegno CAS del push (R7.4)
   deletedAt?: string;     // tombstone dal cloud (mai purgato, G4) — non ancora un concetto applicativo locale
 }
 
@@ -118,8 +120,10 @@ export interface Settlement {
   amount: number;
   pagato: boolean;
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -153,8 +157,10 @@ export interface GiocatorePartita {
   add_on_fatto: boolean;
   add_on_pagato: boolean;
   uid?: string;          // identità cloud (R7.2) — riga = partita_poker_giocatori
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -168,8 +174,10 @@ export interface Partita {
   giocatori: GiocatorePartita[];
   settlements: Settlement[];
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -186,8 +194,10 @@ export interface GiocoLega {
   attivo: boolean;
   pareggioComeVittoria: boolean; // default true (vedi SPEC §7)
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -200,8 +210,10 @@ export interface PartitaGioco {
   partecipanti?: number[]; // override: chi ha giocato QUESTA partita (default: sessione)
   nomeLibero?: string;     // gioco "una tantum"/sconosciuto per la singola partita
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -217,8 +229,10 @@ export interface SessioneGioco {
   esitoPareggio: boolean;  // true se la sessione è chiusa in pareggio
   serataId?: number;       // R4: se la sessione fa parte di una serata multi-gioco
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -232,8 +246,10 @@ export interface SerataMulti {
   data: string;            // "YYYY-MM-DD"
   partecipanti: number[];  // id_nome invitati alla serata
   uid?: string;          // identità cloud (R7.2)
-  syncUpdatedAt?: string;
-  lastSyncedAt?: string; // (R7.2c)
+  syncUpdatedAt?: string; // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;      // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;    // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string; // (R7.2c) pegno per il CAS del push (R7.4)
   deletedAt?: string;    // (R7.2c)
 }
 
@@ -259,8 +275,10 @@ export interface Lega {
   monoGiocoId?: string;           // (predisposizione M2d) lega mono-gioco: id del solo gioco attivo (admin/post-backend)
   adminIds?: number[];            // #4.5: marcatore creatore=admin (solo dato; i poteri sono #7.5)
   uid?: string;                   // identità cloud (R7.2, UUIDv7 generato alla creazione)
-  syncUpdatedAt?: string;         // cursore locale "sporco da pushare" (mai per conflict-resolution)
-  lastSyncedAt?: string;          // updated_at del server all'ultimo sync riuscito (R7.2c)
+  syncUpdatedAt?: string;         // diagnostica "sync N min fa" (NON decide lo sporco, R7.2d-2)
+  syncRev?: number;               // revisione locale: +1 a ogni mutazione (dirty-tracking, R7.2d-2)
+  syncedRev?: number;             // ultima revisione confermata dal server (R7.2d-2)
+  lastSyncedAt?: string;          // updated_at del server all'ultimo sync riuscito (R7.2c) — pegno CAS del push (R7.4)
   deletedAt?: string;             // tombstone dal cloud, mai purgato (R7.2c, G4)
 }
 

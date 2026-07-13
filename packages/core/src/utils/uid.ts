@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════
-   UID — identità cloud client-side (R7.2, sync)
+   UID + tracking sync — identità cloud client-side (R7.2, sync)
    ─────────────────────────────────────────────────────
    generaUid() produce un UUIDv7: 48 bit di timestamp Unix (ms) +
    version nibble '7' + variant nibble + resto random (RFC 9562).
@@ -9,7 +9,14 @@
    stesso uid (R7_SCHEMA.md sez. A1) — è la chiave di upsert del sync.
    Niente dipendenza esterna (Math.random basta: qui serve unicità,
    non imprevedibilità crittografica — non è un token di sicurezza).
+
+   nuovoSync()/touchSync() gestiscono il "dirty-tracking a contatore"
+   (R7.2d-2): il campo syncRev conta le versioni locali di una riga, e
+   la riga è "da pushare" finché syncRev supera la revisione confermata
+   dal server (syncedRev). MAI orologi (finding S5, SYNC_INVARIANTI I10).
 ══════════════════════════════════════════════════════ */
+
+import type { ConSync } from '../sync/merge';
 
 function randomHex(nDigits: number): string {
   let s = '';
@@ -26,4 +33,19 @@ export function generaUid(): string {
   return (
     `${ts.slice(0, 8)}-${ts.slice(8, 12)}-7${randA}-${variant}${randB.slice(0, 3)}-${randB.slice(3, 15)}`
   );
+}
+
+/** Campi sync di una entità appena creata: uid nuovo + revisione 1 (nasce
+    "sporca", mai sincronizzata) + timestamp diagnostico. Da spandere nei punti
+    di creazione delle entità sincronizzate: `{ ...campi, ...nuovoSync() }`. */
+export function nuovoSync(): { uid: string; syncRev: number; syncUpdatedAt: string } {
+  return { uid: generaUid(), syncRev: 1, syncUpdatedAt: new Date().toISOString() };
+}
+
+/** Segna una mutazione locale: bump della revisione locale (+1) così supererà
+    syncedRev finché il push non la conferma, e aggiorna il timestamp diagnostico.
+    NON tocca syncedRev/lastSyncedAt (li scrive il sync). Ritorna una COPIA
+    (immutabile, adatto agli update di Zustand). */
+export function touchSync<T extends ConSync>(e: T): T {
+  return { ...e, syncRev: (e.syncRev ?? 0) + 1, syncUpdatedAt: new Date().toISOString() };
 }
