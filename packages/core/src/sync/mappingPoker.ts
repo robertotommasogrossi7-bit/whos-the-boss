@@ -136,13 +136,64 @@ export function giocatorePartitaFromCloudRow(row: GiocatorePartitaCloudRow, base
 }
 
 /* ── poker_movimenti (ledger append-only: SOLO insert, mai update/delete) ──
-   Le liste locali (ricariche/pagamenti_effettuati/pagamenti_ricevuti) non
-   hanno una loro identità stabile (niente uid per-elemento): sono
-   ricostruite per intero dal pull, mai identificate riga-per-riga come le
-   altre tabelle. Per questo qui c'è SOLO la direzione cloud→locale (pull):
-   la direzione locale→cloud (push) richiede una strategia di dedup
-   "cosa ho già mandato" che è responsabilità dell'orchestratore (R7.4),
-   non di una funzione di mapping pura — vedi R7_SCHEMA.md sez. R7.2c. */
+   Ogni movimento (ricarica/pagamento_effettuato/pagamento_ricevuto) porta ora
+   un `uid` per-elemento (R7.2d-3, finding S2): è la chiave stabile che rende
+   il push idempotente (`INSERT … ON CONFLICT (uid) DO NOTHING`) e i retry
+   sicuri. Qui ci sono entrambe le direzioni pure: `movimentiToCloudRows`
+   (push) e `movimentiFromCloudRows` (pull). NON in scope di questo mapping
+   (restano R7.4, cablaggio store): la GENERAZIONE dell'uid alla creazione del
+   movimento e l'INSERT effettivo con dedup. Vedi R7_SCHEMA.md sez. N. */
+
+/** Le 3 liste locali di UN giocatore-partita → righe poker_movimenti (push).
+    `giocatorePartitaUid` dal genitore; `risolviUid` traduce l'id_nome della
+    controparte (pagamenti) nel suo uid cloud. `ordine` = indice progressivo
+    su tutti i movimenti, così il pull li ri-smista preservando l'ordine. */
+export function movimentiToCloudRows(
+  gp: GiocatorePartita,
+  giocatorePartitaUid: string,
+  risolviUid: (idNome: number) => string,
+): Omit<PokerMovimentoCloudRow, 'created_at' | 'updated_at'>[] {
+  const esigiUid = (uid: string | undefined, cosa: string): string => {
+    if (!uid) throw new Error(`movimentiToCloudRows: ${cosa} senza uid (generaUid() non chiamato alla creazione)`);
+    return uid;
+  };
+  const out: Omit<PokerMovimentoCloudRow, 'created_at' | 'updated_at'>[] = [];
+  let ordine = 0;
+  for (const r of gp.ricariche) {
+    out.push({
+      id: esigiUid(r.uid, 'Ricarica'),
+      partita_giocatore_id: giocatorePartitaUid,
+      tipo: 'ricarica',
+      importo: r.importo,
+      pagata: r.pagata ?? null,
+      contro_giocatore_id: null,
+      ordine: ordine++,
+    });
+  }
+  for (const pe of gp.pagamenti_effettuati) {
+    out.push({
+      id: esigiUid(pe.uid, 'PagamentoEffettuato'),
+      partita_giocatore_id: giocatorePartitaUid,
+      tipo: 'pagamento_effettuato',
+      importo: pe.amount,
+      pagata: pe.pagato ?? null,
+      contro_giocatore_id: risolviUid(pe.to),
+      ordine: ordine++,
+    });
+  }
+  for (const pr of gp.pagamenti_ricevuti) {
+    out.push({
+      id: esigiUid(pr.uid, 'PagamentoRicevuto'),
+      partita_giocatore_id: giocatorePartitaUid,
+      tipo: 'pagamento_ricevuto',
+      importo: pr.amount,
+      pagata: null,
+      contro_giocatore_id: risolviUid(pr.from),
+      ordine: ordine++,
+    });
+  }
+  return out;
+}
 export interface PokerMovimentoCloudRow {
   id: string;
   partita_giocatore_id: string;
@@ -175,13 +226,13 @@ export function movimentiFromCloudRows(
   const pagamenti_ricevuti: PagamentoRicevuto[] = [];
   for (const r of ordinate) {
     if (r.tipo === 'ricarica') {
-      ricariche.push({ importo: r.importo, pagata: r.pagata ?? undefined });
+      ricariche.push({ importo: r.importo, pagata: r.pagata ?? undefined, uid: r.id });
     } else if (r.tipo === 'pagamento_effettuato') {
       if (!r.contro_giocatore_id) continue; // riga inconsistente, non dovrebbe capitare (F1: tollera, non crashare)
-      pagamenti_effettuati.push({ to: risolviIdNome(r.contro_giocatore_id), amount: r.importo, pagato: r.pagata ?? undefined });
+      pagamenti_effettuati.push({ to: risolviIdNome(r.contro_giocatore_id), amount: r.importo, pagato: r.pagata ?? undefined, uid: r.id });
     } else if (r.tipo === 'pagamento_ricevuto') {
       if (!r.contro_giocatore_id) continue;
-      pagamenti_ricevuti.push({ from: risolviIdNome(r.contro_giocatore_id), amount: r.importo });
+      pagamenti_ricevuti.push({ from: risolviIdNome(r.contro_giocatore_id), amount: r.importo, uid: r.id });
     }
   }
   return { ricariche, pagamenti_effettuati, pagamenti_ricevuti };

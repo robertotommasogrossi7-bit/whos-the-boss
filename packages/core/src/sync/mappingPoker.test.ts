@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GiocatorePartita, Partita, Settlement } from '../types';
 import {
   giocatorePartitaFromCloudRow, giocatorePartitaToCloudRow,
-  movimentiFromCloudRows,
+  movimentiFromCloudRows, movimentiToCloudRows,
   partitaFromCloudRow, partitaToCloudRow,
   settlementFromCloudRow, settlementToCloudRow,
   type PokerMovimentoCloudRow,
@@ -104,8 +104,8 @@ describe('movimentiFromCloudRows', () => {
       { id: 'm2', partita_giocatore_id: 'gp-1', tipo: 'pagamento_effettuato', importo: 5, pagata: false, contro_giocatore_id: 'giocatore-uid-2', ordine: 1, created_at: '', updated_at: '' },
     ];
     const out = movimentiFromCloudRows(rows, risolvi);
-    expect(out.ricariche).toEqual([{ importo: 20, pagata: undefined }, { importo: 10, pagata: true }]);
-    expect(out.pagamenti_effettuati).toEqual([{ to: 2, amount: 5, pagato: false }]);
+    expect(out.ricariche).toEqual([{ importo: 20, pagata: undefined, uid: 'm1' }, { importo: 10, pagata: true, uid: 'm3' }]);
+    expect(out.pagamenti_effettuati).toEqual([{ to: 2, amount: 5, pagato: false, uid: 'm2' }]);
     expect(out.pagamenti_ricevuti).toEqual([]);
   });
 
@@ -114,7 +114,7 @@ describe('movimentiFromCloudRows', () => {
       { id: 'm1', partita_giocatore_id: 'gp-1', tipo: 'pagamento_ricevuto', importo: 15, pagata: null, contro_giocatore_id: 'giocatore-uid-2', ordine: 0, created_at: '', updated_at: '' },
     ];
     const out = movimentiFromCloudRows(rows, risolvi);
-    expect(out.pagamenti_ricevuti).toEqual([{ from: 2, amount: 15 }]);
+    expect(out.pagamenti_ricevuti).toEqual([{ from: 2, amount: 15, uid: 'm1' }]);
   });
 
   it('riga pagamento senza contro_giocatore_id: tollerata, non crasha (F1)', () => {
@@ -127,6 +127,49 @@ describe('movimentiFromCloudRows', () => {
 
   it('lista vuota → 3 liste vuote', () => {
     expect(movimentiFromCloudRows([], risolvi)).toEqual({ ricariche: [], pagamenti_effettuati: [], pagamenti_ricevuti: [] });
+  });
+});
+
+describe('movimentiToCloudRows (push, R7.2d-3)', () => {
+  const risolviUid = (idNome: number) => `giocatore-uid-${idNome}`;
+
+  function gpConMovimenti(): GiocatorePartita {
+    return {
+      id_nome: 1, entrate: 20, ricarica_fatta: 0, extra: 0, soldi_ricevuti: 0,
+      fiches_finali: 0, netto_finale: 0, premio: 0, vincitore: false,
+      buy_in_pagato: true, extra_pagato: false, posizione_finale: null,
+      add_on_fatto: false, add_on_pagato: false,
+      ricariche: [{ importo: 20, uid: 'r1' }, { importo: 10, pagata: true, uid: 'r2' }],
+      pagamenti_effettuati: [{ to: 2, amount: 5, pagato: false, uid: 'pe1' }],
+      pagamenti_ricevuti: [{ from: 3, amount: 8, uid: 'pr1' }],
+      uid: 'gp-uid-1',
+    };
+  }
+
+  it('mappa le 3 liste con `ordine` progressivo, tipo e controparte risolta', () => {
+    expect(movimentiToCloudRows(gpConMovimenti(), 'gp-uid-1', risolviUid)).toEqual([
+      { id: 'r1', partita_giocatore_id: 'gp-uid-1', tipo: 'ricarica', importo: 20, pagata: null, contro_giocatore_id: null, ordine: 0 },
+      { id: 'r2', partita_giocatore_id: 'gp-uid-1', tipo: 'ricarica', importo: 10, pagata: true, contro_giocatore_id: null, ordine: 1 },
+      { id: 'pe1', partita_giocatore_id: 'gp-uid-1', tipo: 'pagamento_effettuato', importo: 5, pagata: false, contro_giocatore_id: 'giocatore-uid-2', ordine: 2 },
+      { id: 'pr1', partita_giocatore_id: 'gp-uid-1', tipo: 'pagamento_ricevuto', importo: 8, pagata: null, contro_giocatore_id: 'giocatore-uid-3', ordine: 3 },
+    ]);
+  });
+
+  it('lancia se un movimento non ha uid (generaUid mancante alla creazione)', () => {
+    const gp = gpConMovimenti();
+    gp.ricariche = [{ importo: 5 }]; // senza uid
+    expect(() => movimentiToCloudRows(gp, 'gp-uid-1', risolviUid)).toThrow(/uid/);
+  });
+
+  it('round-trip push→pull ricostruisce le stesse liste (uid preservato)', () => {
+    const gp = gpConMovimenti();
+    const rows = movimentiToCloudRows(gp, 'gp-uid-1', risolviUid)
+      .map((r) => ({ ...r, created_at: '', updated_at: '' }));
+    const risolviIdNome = (uid: string) => Number(uid.replace('giocatore-uid-', ''));
+    const back = movimentiFromCloudRows(rows, risolviIdNome);
+    expect(back.ricariche).toEqual(gp.ricariche);
+    expect(back.pagamenti_effettuati).toEqual(gp.pagamenti_effettuati);
+    expect(back.pagamenti_ricevuti).toEqual(gp.pagamenti_ricevuti);
   });
 });
 

@@ -52,6 +52,7 @@ export interface Premio {
 export interface Ricarica {
   importo: number;
   pagata?: boolean; // opzionale: cash non usa più pagata, torneo (rebuys) sì
+  uid?: string;     // identità cloud del movimento (poker_movimenti, R7.2d-3). Ledger append-only: solo uid, niente syncRev/deletedAt
 }
 
 export interface Seat {
@@ -131,11 +132,13 @@ export interface PagamentoEffettuato {
   to: number;
   amount: number;
   pagato?: boolean;
+  uid?: string; // identità cloud del movimento (poker_movimenti, R7.2d-3)
 }
 
 export interface PagamentoRicevuto {
   from: number;
   amount: number;
+  uid?: string; // identità cloud del movimento (poker_movimenti, R7.2d-3)
 }
 
 export interface GiocatorePartita {
