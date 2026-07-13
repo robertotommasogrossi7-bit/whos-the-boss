@@ -13,8 +13,9 @@
 - **I1 — Identità: ogni record sincronizzato ha un `uid` immutabile.** UUIDv7 generato dal client
   **alla creazione**, mai rigenerato, mai riusato; un retry ripusha **lo stesso uid con lo stesso
   payload**. L'`uid` è **l'unica chiave di sync**: gli id interi locali non attraversano mai il
-  confine come chiavi. *Imposto: creazione uid su 9 entità (R7.2a) + UNIQUE su uid nel DB (R6-B5).
-  Pendente: uid sui movimenti del ledger → **d3**; upsert-by-uid nel push → **R7.4**.*
+  confine come chiavi. *Imposto: creazione uid su 9 entità (R7.2a) + UNIQUE su uid nel DB (R6-B5) +
+  `uid?` sui movimenti del ledger con push mapping (R7.2d-3). Pendente: generazione uid alla creazione
+  dei movimenti + upsert-by-uid nel push → **R7.4**.*
 
 - **I2 — Tempo: `updated_at` è SOLO del server** (trigger `now()` su INSERT/UPDATE). Nessun clock
   di device partecipa MAI alla risoluzione dei conflitti. **Semantica dichiarata (S8)**:
@@ -39,7 +40,8 @@
 - **I5 — Il ledger non si tocca: `poker_movimenti` è solo-INSERT.** Mai UPDATE/DELETE (imposto
   anche da trigger DB, R6-B5); correggere = **movimento inverso**, quindi i movimenti non hanno
   `deleted_at`. Push del ledger = `INSERT … ON CONFLICT (uid) DO NOTHING`. *Imposto: trigger DB +
-  modello locale (annullo = inverso). Pendente: uid + push mapping → **d3**.*
+  modello locale (annullo = inverso) + `uid?` sui movimenti e `movimentiToCloudRows` (R7.2d-3).
+  Pendente: generazione uid alla creazione + INSERT effettivo → **R7.4**.*
 
 - **I6 — Idempotenza: ogni push e ogni pull sono ripetibili senza danni.** Un doppio push non
   duplica e non cambia dati (upsert su uid, I1); un doppio pull converge allo stesso stato

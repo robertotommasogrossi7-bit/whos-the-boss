@@ -356,9 +356,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   (`syncRev`/`syncedRev`, non più orologi — S5) + **delete-wins** nel merge (I4) + helper
   `nuovoSync`/`touchSync` + **property-based test** (298 test core). ⏭️ **Cablaggio store spostato a
   R7.4** (deciso con l'utente: non testabile senza push, si fa insieme). Spiegazione didattica
-  gitignorata in **`_studio/01-dirty-tracking-contatore-vs-orologio.md`**. **ORA: R7.2d-3** (uid sui
-  movimenti del ledger, S2 — Sonnet high) → d4 (mappa id↔uid, Opus xhigh) → **d5 = gate su DB reale**
-  (DS6 accettata).
+  gitignorata in **`_studio/01-dirty-tracking-contatore-vs-orologio.md`**. ~~R7.2d-3~~ ✅ **FATTO**
+  (parte pura, 2026-07-13): `uid?` sui movimenti + `movimentiToCloudRows` (push) + round-trip testato
+  (S2/S10; generazione uid alla creazione → R7.4). **ORA: R7.2d-4** (mappa id↔uid a inizio sync,
+  S4/S15 — Opus xhigh) → **d5 = gate su DB reale** (DS6 accettata).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 

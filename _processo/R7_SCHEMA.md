@@ -399,9 +399,11 @@ locali/cloud **fixture**, non serve un account reale né la UI.
     scrive `syncedRev`, il bump non cambia nulla di osservabile → si cabla insieme al push, dove è
     verificabile col round-trip reale, evitando 15+ edit a vuoto nello store dei soldi. Gli helper
     sono già pronti.
-- **R7.2d-3 — uid sui movimenti** [S2]: aggiungere `uid` a `Ricarica`/`Pagamento*` + generarlo alla
-  creazione + scrivere il **push mapping** di `poker_movimenti` (`INSERT … ON CONFLICT (uid) DO NOTHING`).
-  Chiude anche S10 (retry). *[no ricerca — stesso pattern di R7.2a · Sonnet high]*
+- **R7.2d-3 — uid sui movimenti** [S2] ✅ **FATTO (parte pura) 2026-07-13**: `uid?` su
+  `Ricarica`/`Pagamento*` + **push mapping** `movimentiToCloudRows` (+ pull che ora conserva l'uid →
+  round-trip testato). Chiude anche S10 (retry idempotenti via uid stabile). ⏭️ La **generazione**
+  dell'uid alla creazione del movimento e l'`INSERT … ON CONFLICT (uid) DO NOTHING` = cablaggio store +
+  orchestrazione → **R7.4** (come d2, stessa ragione). *[no ricerca — stesso pattern di R7.2a]*
 - **R7.2d-4 — Mappa risoluzione id↔uid** [S4,S15]: `Map<local,uid>`/`Map<uid,local>` per-lega a
   inizio sync; definire il comportamento con creazione offline a catena (padre non ancora syncato).
   *[mini-spec · Opus xhigh]*

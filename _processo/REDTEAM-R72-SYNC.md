@@ -99,7 +99,7 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 | ID | Sev | Finding | Verdetto | Verifica | Dove si risolve |
 |----|-----|---------|----------|----------|-----------------|
 | **S1** | ALTA | Sync mai provata contro **Postgres reale** (solo test su funzioni pure) | **CONFERMATO** | solo vitest puri, zero integrazione | **R7.2d-5 (GATE)** — vertical slice 1 tabella su DB reale |
-| **S2** | ALTA | `poker_movimenti` **senza uid stabile** → push non idempotente | **CONFERMATO** | `Ricarica`/`Pagamento*` senza `uid`; push non scritto | **R7.2d-3** — uid client sui movimenti |
+| **S2** | ALTA | `poker_movimenti` **senza uid stabile** → push non idempotente | **CONFERMATO** | `Ricarica`/`Pagamento*` senza `uid`; push non scritto | ✅ **R7.2d-3** (parte pura fatta): `uid?` sui movimenti + `movimentiToCloudRows`; generazione uid alla creazione → R7.4 |
 | **S3** | ALTA | Push **senza CAS** (controllo concorrenza) → "LWW" = "vince chi pusha per ultimo" | **PREVENTIVO** | in `sync/` nessun codice di push (solo pull in `mergeLWW`) | **R7.4** — push CAS via RPC (mini-spec) |
 | **S4** | ALTA | Mappa `id_locale↔uid` non esiste, mal classificata "R7.4" | **CONFERMATO** | i mapper prendono callback `risolvi*` = stub | **R7.2d-4** — prerequisito, riclassificato |
 | **S5** | ALTA | Dirty-flag confronta **clock client vs clock server** → perdita silenziosa se l'orologio è storto | **CONFERMATO** | `syncUpdatedAt`=`new Date()` client, `lastSyncedAt`=server | **R7.2d-2** — flag/counter locale |
@@ -107,7 +107,7 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 | **S7** | MEDIA | Nessuna regola esplicita **tombstone-vs-edit** (delete può "resuscitare") | **CONFERMATO** | `merge.ts` ignora `deletedAt` | **R7.2d-1** — regola delete-wins |
 | **S8** | MEDIA | `updated_at` = "quando il server ha ricevuto", NON "quando l'utente ha editato" | **CONFERMATO** | semantica del trigger server | **R7.2d-1** — documentare |
 | **S9** | MEDIA | FK DEFERRABLE **inutile** se il push non è una singola transazione | **PREVENTIVO** | push non scritto | **R7.4** — push per-lega in 1 transazione |
-| **S10** | MEDIA | Retry non idempotenti senza chiave stabile | **PREVENTIVO** (risolto dall'uid per 12 tab; resta S2) | — | **R7.4** — uid riusato, mai rigenerato |
+| **S10** | MEDIA | Retry non idempotenti senza chiave stabile | **PREVENTIVO** (ora anche i movimenti hanno uid, d3 → S2 chiuso lato mapping) | — | **R7.4** — uid riusato, mai rigenerato nel push |
 | **S11** | MEDIA | Race tra 2 cicli di sync sullo stesso device (background + timer) | **PREVENTIVO** | — | **R7.4** — mutex "sync in corso? skip" |
 | **S12** | MEDIA | Figlio orfano sotto padre tombstonato (creato offline su altro device) | **PREVENTIVO** | — | **R7.4** — flag revisione al pull |
 | **S13** | MEDIA | `settlements` (derivati) sincronizzati prima dei `movimenti` sorgente | **PREVENTIVO** | — | **R7.4** — ordine ledger→settlement, o ricalcolo client |
