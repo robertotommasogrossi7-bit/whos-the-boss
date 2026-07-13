@@ -15,6 +15,7 @@ export * from './utils/serate';
 export * from './utils/sessioneGioco';
 export * from './utils/settlement';
 export * from './utils/settlementTorneo';
+export * from './sync/idMap';
 export * from './sync/mapping';
 export * from './sync/mappingMultigioco';
 export * from './sync/mappingPoker';
