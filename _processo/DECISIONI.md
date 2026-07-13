@@ -741,7 +741,12 @@
 
 - **DS1 — Dirty tracking = flag/counter locale, NON confronto di clock** [S5]. Il confronto
   `syncUpdatedAt`(client) vs `lastSyncedAt`(server) mette a rischio dati se l'orologio del device è
-  storto. Corregge una scelta di R7.2a. → R7.2d-2.
+  storto. Corregge una scelta di R7.2a. → R7.2d-2. ✅ **Core FATTO (2026-07-13)**: contatore
+  `syncRev`/`syncedRev` in `merge.ts` + helper `nuovoSync`/`touchSync` + property-based test. Il
+  **cablaggio del bump nello store è spostato a R7.4** (deciso con l'utente): senza il push
+  `syncedRev` non viene mai scritto, quindi il bump non è osservabile/testabile ora → si cabla
+  insieme al push, evitando 15+ edit a vuoto nello store dei soldi. Spiegazione didattica in
+  `_studio/01-dirty-tracking-contatore-vs-orologio.md` (gitignorata).
 - **DS2 — Ogni entità sincronizzata, MOVIMENTI INCLUSI, ha un uid client** [S2]. I `poker_movimenti`
   erano senza uid per-elemento → push non idempotente. Estende R7.2a ai movimenti. → R7.2d-3.
 - **DS3 — Push = optimistic concurrency (CAS) via RPC, una transazione per lega** [S3,S9]. Senza

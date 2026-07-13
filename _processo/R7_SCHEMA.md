@@ -386,10 +386,19 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   campi a rischio · delete-wins · semantica `updated_at` · piano GC tombstone con prerequisito
   cursore per-device). d2-d5 e R7.4 citano l'invariante che implementano nei commit; il gate d5
   verifica dal vivo I1/I2/I6/I7.
-- **R7.2d-2 — Dirty tracking corretto** [S5]: sostituire il confronto di clock in `merge.ts` con un
-  **flag/counter locale** (`needsSync`), settato a ogni scrittura, azzerato solo dopo push confermato.
-  Tocca core (tipi + `merge.ts`) e store (wiring `syncUpdatedAt`). + **property-based test** su
-  `mergeLWW`. *[mini-spec + ricerca: come lo fanno WatermelonDB (`_status/_changed`) / Legend-State · Opus xhigh]*
+- **R7.2d-2 — Dirty tracking corretto** [S5] ✅ **FATTO (core) 2026-07-13** (ricerca: WatermelonDB
+  `_status`/`_changed` + Legend-State pending-changes → confermano "stato locale, mai orologi"; fonti
+  nel file di studio `_studio/01-...`):
+  - `merge.ts` non confronta più due timestamp ma due **contatori** (`syncRev` locale vs `syncedRev`
+    confermato dal server); `mergeLWW` impone anche **delete-wins** (I4). Property-based test (500
+    input) sulle invarianti.
+  - Tipi: `syncRev?`/`syncedRev?` sulle 9 entità; helper **`nuovoSync()`** (creazione, rev 1) e
+    **`touchSync()`** (bump su mutazione) in `utils/uid.ts`, testati. `syncUpdatedAt` declassato a
+    diagnostica.
+  - ⏭️ **Cablaggio nello store SPOSTATO a R7.4** (deciso con l'utente 2026-07-13): finché il push non
+    scrive `syncedRev`, il bump non cambia nulla di osservabile → si cabla insieme al push, dove è
+    verificabile col round-trip reale, evitando 15+ edit a vuoto nello store dei soldi. Gli helper
+    sono già pronti.
 - **R7.2d-3 — uid sui movimenti** [S2]: aggiungere `uid` a `Ricarica`/`Pagamento*` + generarlo alla
   creazione + scrivere il **push mapping** di `poker_movimenti` (`INSERT … ON CONFLICT (uid) DO NOTHING`).
   Chiude anche S10 (retry). *[no ricerca — stesso pattern di R7.2a · Sonnet high]*
@@ -410,7 +419,9 @@ locali/cloud **fixture**, non serve un account reale né la UI.
 - **R7.4 — aggancio store**: qui confluiscono **S3** (push CAS via RPC), **S9** (1 transazione per
   lega), **S10** (retry idempotenti), **S11** (mutex anti-race), **S12** (orfani), **S13** (ordine
   ledger→settlement), **S15** (cache lookup), **S18** (compat versioni), **S20** (logout durante sync).
-  *[mini-spec + ricerca (delta-sync, retry/backoff) + chaos test · Opus xhigh]*
+  **+ cablaggio dirty-tracking** (spostato da d2, 2026-07-13): `nuovoSync()` sui punti di creazione +
+  `touchSync()` sulle mutazioni delle 9 entità, verificato col push reale. *[mini-spec + ricerca
+  (delta-sync, retry/backoff) + chaos test · Opus xhigh]*
 - **R8** — + **S16** (float→int-centesimi, decisione B6) + **S14** (GC tombstone).
 - **H-block** — + **S19** (osservabilità sync + sync-log).
 

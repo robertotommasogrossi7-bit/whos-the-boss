@@ -32,8 +32,9 @@
   mai DELETE fisico, solo `deleted_at`. In conflitto delete-vs-edit vince il tombstone **a
   prescindere dai timestamp**; la "resurrezione" è vietata nei due sensi (un pull non pulisce un
   tombstone locale; un push non riporta in vita una riga tombstonata sul server). Il tombstone di
-  un padre tombstona i figli application-side **nella stessa transazione**. *Pendente (S7):
-  `merge.ts` oggi IGNORA `deletedAt` → regola nel merge = **d2**; guardia lato push = **R7.4**.*
+  un padre tombstona i figli application-side **nella stessa transazione**. *Imposto (R7.2d-2):
+  `mergeLWW` applica delete-wins (un tombstone locale o cloud vince sempre). Pendente: guardia lato
+  push + cascade dei tombstone sui figli = **R7.4**.*
 
 - **I5 — Il ledger non si tocca: `poker_movimenti` è solo-INSERT.** Mai UPDATE/DELETE (imposto
   anche da trigger DB, R6-B5); correggere = **movimento inverso**, quindi i movimenti non hanno
@@ -42,8 +43,8 @@
 
 - **I6 — Idempotenza: ogni push e ogni pull sono ripetibili senza danni.** Un doppio push non
   duplica e non cambia dati (upsert su uid, I1); un doppio pull converge allo stesso stato
-  (`merge(a,a)=a`). *Imposto: `mergeLWW` sul pull (test R7.2c; property-based test → **d2**).
-  Pendente: lato push → **R7.4**.*
+  (`merge(a,a)=a`). *Imposto: `mergeLWW` sul pull + **property-based test** (500 input casuali,
+  R7.2d-2). Pendente: lato push → **R7.4**.*
 
 - **I7 — Il server non riscrive il payload** (eccezione unica: `updated_at`). Niente default,
   trigger o normalizzazioni server-side che modificano campi pushati: ciò che un device pusha è
@@ -58,9 +59,10 @@
 
 - **I10 — Il "cosa pushare" lo decide un flag locale, mai un confronto di orologi.** Il dirty
   tracking è un marcatore locale (`needsSync`-style: set a ogni scrittura, clear solo a push
-  confermato); i timestamp servono al massimo per diagnostica. *Pendente (S5): oggi
-  `haCambiamentiLocaliNonSincronizzati()` confronta due timestamp (stesso device, ma fragile) →
-  sostituito in **d2**.*
+  confermato); i timestamp servono al massimo per diagnostica. *Imposto (R7.2d-2):
+  `haCambiamentiLocaliNonSincronizzati()` confronta i contatori `syncRev`/`syncedRev` — zero
+  orologi; helper `touchSync()`/`nuovoSync()` pronti e testati. Pendente: cablaggio del bump nelle
+  azioni dello store = **R7.4** (insieme al push, che scrive `syncedRev`).*
 
 ## Verbale delle decisioni (chiude S6, S7, S8, S14)
 

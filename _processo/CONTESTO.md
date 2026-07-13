@@ -351,11 +351,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     (pulsanti coperti dalla nav bar Android → deciso: si fa col restyle R12, la disposizione
     cambia comunque) · giocatori per-lega poco evidenti in UI (non era un bug) · ⭐ requisito
     R8/R9: claim guest + richiesta dati devono coprire guest **in lega E nel Personale altrui**.
-- **Prossimo concreto**: ~~crash-su-Leghe~~ ✅ · ~~giro di test~~ ✅ · ~~R7.2d-1~~ ✅ **FATTO**
-  (2026-07-13): **`SYNC_INVARIANTI.md`** (10 invarianti + verbale V-S6/7/8/14). **ORA: R7.2d-2**
-  (dirty tracking a flag locale, S5 — mini-spec + ricerca WatermelonDB/Legend-State, **Opus xhigh**,
-  chat nuova) → d3 (uid movimenti, Sonnet high) → d4 (mappa id↔uid, Opus xhigh) →
-  **d5 = il gate su DB reale** (DS6 già accettata).
+- **Prossimo concreto**: ~~crash-su-Leghe~~ ✅ · ~~giro di test~~ ✅ · ~~R7.2d-1~~ ✅
+  (`SYNC_INVARIANTI.md`) · ~~R7.2d-2 core~~ ✅ **FATTO** (2026-07-13, Opus): `merge.ts` a **contatore**
+  (`syncRev`/`syncedRev`, non più orologi — S5) + **delete-wins** nel merge (I4) + helper
+  `nuovoSync`/`touchSync` + **property-based test** (298 test core). ⏭️ **Cablaggio store spostato a
+  R7.4** (deciso con l'utente: non testabile senza push, si fa insieme). Spiegazione didattica
+  gitignorata in **`_studio/01-dirty-tracking-contatore-vs-orologio.md`**. **ORA: R7.2d-3** (uid sui
+  movimenti del ledger, S2 — Sonnet high) → d4 (mappa id↔uid, Opus xhigh) → **d5 = gate su DB reale**
+  (DS6 accettata).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
