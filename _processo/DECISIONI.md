@@ -767,6 +767,10 @@
 - **Convergenza revisori**: star schema **fuori scope** confermato (store OLTP giusto); impianto
   "sopra la media / pulito". Le 3 cose che contano: S1 (DB reale) · S2 (uid movimenti) · S3+S5
   (push+dirty non sicuri finché non sistemati).
+- ✅ **DS4/DS5/DS7 codificate (2026-07-13, R7.2d-1)**: le regole assolute del sync vivono in
+  **`_processo/SYNC_INVARIANTI.md`** (10 invarianti I1-I10 con stato di imposizione reale + verbale
+  V-S6/V-S7/V-S8/V-S14, watchlist campi a rischio, piano GC tombstone). Da qui in poi: violare
+  un'invariante richiede PRIMA di aggiornare quel file (con ok utente) e registrare qui.
 
 ## Nuove feature messe in coda (oltre a Card Tracker)
 

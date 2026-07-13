@@ -380,11 +380,12 @@ locali/cloud **fixture**, non serve un account reale né la UI.
 > team R6). Quindi si inserisce un blocco **R7.2d** PRIMA di R7.3.
 
 ## R7.2d — hardening del sync prima di usarlo (NUOVO, prima di R7.3)
-- **R7.2d-1 — Documento "invarianti di sync" (1 pagina)** + decisioni a verbale [S6,S7,S8,S14].
-  Le regole assolute: ogni record ha uid immutabile · delete = tombstone (delete-wins) · push
-  idempotente · il server non modifica il payload tranne `updated_at` · mai UPDATE sul ledger ·
-  import una volta sola · LWW-per-riga accettato (merge-per-colonna solo per campi a rischio) · piano
-  GC tombstone. **Nessun codice** (codifica). *[mini-spec: no · ricerca: no · Fable o Sonnet]*
+- **R7.2d-1 — Documento "invarianti di sync"** ✅ **FATTO** (2026-07-13, Fable):
+  **`_processo/SYNC_INVARIANTI.md`** — 10 invarianti (I1-I10), ognuna con lo stato di imposizione
+  reale (imposta oggi vs pendente→fase), + verbale V-S6/V-S7/V-S8/V-S14 (LWW per-riga con watchlist
+  campi a rischio · delete-wins · semantica `updated_at` · piano GC tombstone con prerequisito
+  cursore per-device). d2-d5 e R7.4 citano l'invariante che implementano nei commit; il gate d5
+  verifica dal vivo I1/I2/I6/I7.
 - **R7.2d-2 — Dirty tracking corretto** [S5]: sostituire il confronto di clock in `merge.ts` con un
   **flag/counter locale** (`needsSync`), settato a ogni scrittura, azzerato solo dopo push confermato.
   Tocca core (tipi + `merge.ts`) e store (wiring `syncUpdatedAt`). + **property-based test** su

@@ -351,9 +351,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     (pulsanti coperti dalla nav bar Android → deciso: si fa col restyle R12, la disposizione
     cambia comunque) · giocatori per-lega poco evidenti in UI (non era un bug) · ⭐ requisito
     R8/R9: claim guest + richiesta dati devono coprire guest **in lega E nel Personale altrui**.
-- **Prossimo concreto**: ~~crash-su-Leghe~~ ✅ fixato e confermato · ~~giro di test~~ ✅ chiuso
-  (2026-07-13). **ORA: R7.2d-1** (documento invarianti + decisioni a verbale) → d2/d3/d4 →
-  **d5 = il gate su DB reale**.
+- **Prossimo concreto**: ~~crash-su-Leghe~~ ✅ · ~~giro di test~~ ✅ · ~~R7.2d-1~~ ✅ **FATTO**
+  (2026-07-13): **`SYNC_INVARIANTI.md`** (10 invarianti + verbale V-S6/7/8/14). **ORA: R7.2d-2**
+  (dirty tracking a flag locale, S5 — mini-spec + ricerca WatermelonDB/Legend-State, **Opus xhigh**,
+  chat nuova) → d3 (uid movimenti, Sonnet high) → d4 (mappa id↔uid, Opus xhigh) →
+  **d5 = il gate su DB reale** (DS6 già accettata).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
