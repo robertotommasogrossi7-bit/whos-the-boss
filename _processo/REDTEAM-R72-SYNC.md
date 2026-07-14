@@ -98,7 +98,7 @@ Niente allarmismo enterprise: siamo un'app tra amici, non una banca — ma non n
 
 | ID | Sev | Finding | Verdetto | Verifica | Dove si risolve |
 |----|-----|---------|----------|----------|-----------------|
-| **S1** | ALTA | Sync mai provata contro **Postgres reale** (solo test su funzioni pure) | **CONFERMATO** | solo vitest puri, zero integrazione | **R7.2d-5 (GATE)** — vertical slice 1 tabella su DB reale |
+| **S1** | ALTA | Sync mai provata contro **Postgres reale** (solo test su funzioni pure) | **CONFERMATO** | solo vitest puri, zero integrazione | ✅ **R7.2d-5 FATTO** — gate `scripts/gate-db.mjs` su Supabase locale, 8/8 verdi; ha scovato il bug grant (fix migration #7) |
 | **S2** | ALTA | `poker_movimenti` **senza uid stabile** → push non idempotente | **CONFERMATO** | `Ricarica`/`Pagamento*` senza `uid`; push non scritto | ✅ **R7.2d-3** (parte pura fatta): `uid?` sui movimenti + `movimentiToCloudRows`; generazione uid alla creazione → R7.4 |
 | **S3** | ALTA | Push **senza CAS** (controllo concorrenza) → "LWW" = "vince chi pusha per ultimo" | **PREVENTIVO** | in `sync/` nessun codice di push (solo pull in `mergeLWW`) | **R7.4** — push CAS via RPC (mini-spec) |
 | **S4** | ALTA | Mappa `id_locale↔uid` non esiste, mal classificata "R7.4" | **CONFERMATO** | i mapper prendono callback `risolvi*` = stub | ✅ **R7.2d-4 FATTO** (`sync/idMap.ts`); aggancio ai mapping reali → R7.4 |

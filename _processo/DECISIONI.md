@@ -766,6 +766,13 @@
     (crash SSR `window`, env var mancanti) e (b) il red team ha confermato che rimandare il primo run
     nasconde i bug, non li evita. Il confronto con l'approccio incrementale di All for Music si chiude:
     **vince l'incrementale**. Da ora l'app si verifica su device a ogni pezzo testabile.
+  - ✅ **ESEGUITO (2026-07-14)**: installati Docker + Supabase CLI locale; `scripts/gate-db.mjs`
+    prova il sync vero su `leghe`+`giocatori` con 2 utenti → **8/8 verdi** (round-trip, `updated_at`
+    server-side, RLS owner-only lettura+scrittura, upsert-by-uid, FK), su DB **ricreato da zero**.
+    **Il gate ha ripagato subito**: ha scovato un bug di portabilità (grant di default impliciti,
+    assenti in un DB pulito → `permission denied`) → fix migration #7 (GRANT espliciti a
+    `authenticated`). Conferma la tesi del red team: un layer validato solo con unit test puri
+    nasconde bug d'ambiente. `numeric↔float` resta l'unico check non coperto (→ R7.4, su `buy_in`).
 - **DS7 — GC tombstone = pianificata, non ora** [S14]: conferma G4 "mai purgare" con un piano
   esplicito (dopo che tutti i device hanno sincronizzato). → R7.2d-1 (piano) + R8/R10 (impl).
 - **DS8 — Float+r100 → rivalutare int-centesimi a R8** [S16]: conferma la vecchia B6, non ora.

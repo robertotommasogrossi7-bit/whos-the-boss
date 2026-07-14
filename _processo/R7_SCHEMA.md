@@ -409,12 +409,15 @@ locali/cloud **fixture**, non serve un account reale né la UI.
   usata) + `idSenzaUid`. Costruita una volta a inizio sync (evita N lookup, S15). Comportamento
   creazione offline a catena (S4): entità senza uid fuori dalla mappa, l'ordine di push lo gestisce
   R7.4. Funzione pura, 7 test. *(L'aggancio della mappa ai mapping reali = R7.4.)*
-- **R7.2d-5 — GATE: vertical slice su Postgres reale** [S1]: **1 tabella** (`giocatori`), push+pull
-  VERI contro Supabase con RLS attiva, via **Supabase CLI locale (Docker)** così è automatizzabile in
-  CI. Valida RLS+upsert, FK deferite, round-trip `updated_at`, `numeric↔float` PRIMA di scrivere il
-  push completo. **← il #1 dei revisori.** *[mini-spec + ricerca: Supabase CLI local dev + integration
-  test · red team leggero opzionale · Opus xhigh]* ⚠️ **è una deviazione dalla "scelta di studio (un
-  test gigante alla fine)" — richiede l'ok esplicito dell'utente (vedi `DECISIONI.md` DS6).**
+- **R7.2d-5 — GATE: vertical slice su Postgres reale** [S1] ✅ **FATTO 2026-07-14** (Docker + Supabase
+  CLI locale installati; DB ricreato da zero → tutte le migration → gate verde SENZA interventi manuali):
+  `scripts/gate-db.mjs` prova un giro vero su `leghe`+`giocatori` con 2 utenti reali — **8/8 check**:
+  round-trip, `updated_at` server-side, **RLS owner-only in lettura E scrittura**, upsert-by-uid
+  idempotente, FK. **Il gate ha subito trovato un bug reale di portabilità** (i grant di default
+  impliciti mancano in un DB pulito → `permission denied`): fix migration `20260714140000` (GRANT DML
+  espliciti a `authenticated`). ⏳ **`numeric↔float` NON ancora coperto** dal gate (leghe/giocatori non
+  hanno colonne soldi) → follow-up rapido su `partite_poker.buy_in` quando il poker entra nel sync (R7.4).
+  npm: `db:start`/`db:reset`/`gate:db`.
 
 ## Poi (invariate come posizione, ora poggiano su R7.2d)
 - **R7.3 — import one-shot** (backup-first, RPC transazionale, guardato da `profiles.imported_at`).

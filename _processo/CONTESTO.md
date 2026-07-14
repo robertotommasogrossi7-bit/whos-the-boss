@@ -360,10 +360,13 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   (parte pura, 2026-07-13): `uid?` sui movimenti + `movimentiToCloudRows` (push) + round-trip testato
   (S2/S10; generazione uid alla creazione → R7.4). ~~R7.2d-4~~ ✅ **FATTO** (2026-07-13):
   `sync/idMap.ts` (mappa id↔uid, S4/S15; aggancio ai mapping → R7.4). → **Tutta la parte pura di
-  R7.2d è chiusa** (d1+d2+d3+d4). **ORA resta solo R7.2d-5 = il GATE su DB reale** (DS6 accettata):
-  vertical slice 1 tabella su Postgres vero via Supabase CLI/Docker — passo con setup ambiente,
-  da fare in sessione dedicata. Poi R7.3 (import) → R7.4 (aggancio store: push CAS + cablaggio
-  dirty/uid + mappe). **308 test core.**
+  R7.2d è chiusa** (d1+d2+d3+d4). ~~R7.2d-5~~ ✅ **FATTO** (2026-07-14): **gate su DB reale**
+  (Docker + Supabase CLI locale, `scripts/gate-db.mjs`) **8/8 verde** su DB ricreato da zero; ha
+  scovato un bug di portabilità (grant di default impliciti → `permission denied`) → **fix migration
+  #7** (GRANT espliciti a `authenticated`, applicata solo in LOCALE, sul cloud pendente non urgente).
+  → **✅ R7.2d COMPLETO (d1-d5)** = tutto l'hardening del sync fatto. **PROSSIMO: R7.3 — import
+  one-shot** dal locale (backup-first, RPC transazionale, guardato da `profiles.imported_at`) → R7.4
+  (aggancio store: push CAS + cablaggio dirty/uid + mappe). **308 test core + gate DB verde.**
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
@@ -459,6 +462,14 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
 ## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
+- ⏳ **Migration #7 (`20260714140000_grants_authenticated.sql`) DA APPLICARE sul cloud** (R7.2d-5):
+  oggi applicata **solo in LOCALE** (per il gate). Sul cloud **non urgente** (i grant di default già
+  funzionano là), ma applicarla rende lo schema esplicito/portabile. Via dashboard SQL Editor o CLI.
+  Fonte di verità sullo stato: `supabase/README.md` (inventario, ora 7 file).
+- 🐳 **Ambiente dev sync (dal 2026-07-14)**: Docker + Supabase CLI locale installati. Comandi:
+  `pnpm db:start` (stack locale), `pnpm db:reset` (ricrea + riapplica migration), `pnpm gate:db`
+  (il gate). La CLI è dev-dep del monorepo; per `db push` sul cloud serve prima il `migration repair`
+  (vedi `supabase/README.md`, le prime 6 furono applicate a mano da dashboard).
 - ✅ **SQL Supabase — TUTTE e 6 le migration applicate** (confermato dall'utente 2026-07-11, ultima
   era `20260703100000_r6b5_hardening.sql`). Inventario numerato in `supabase/README.md`. Residuo
   minore non urgente: se un giorno si installa la Supabase CLI, va sanata la migration history con
