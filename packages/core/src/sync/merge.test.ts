@@ -125,20 +125,21 @@ describe('mergeLWW — proprietà su input casuali', () => {
    pegno del CAS segue SEMPRE l'updated_at del cloud, anche quando i dati
    restano locali. T_CLOUD = updated_at del server per la versione pullata. */
 describe('mergeConPegno — regola del pegno', () => {
+  type R = ConSync & { nome: string };  // fixture tipate: evita l'inferenza troppo stretta di mergeConPegno<L>
   const T_CLOUD = '2026-07-17T12:00:00.000Z';
   const T_VECCHIO = '2026-07-01T00:00:00.000Z';
   // `daCloud` è già in forma locale: porta lastSyncedAt = updated_at del server.
-  const daCloud = { nome: 'Dal cloud', syncRev: 3, syncedRev: 3, lastSyncedAt: T_CLOUD };
+  const daCloud: R = { nome: 'Dal cloud', syncRev: 3, syncedRev: 3, lastSyncedAt: T_CLOUD };
 
   it('vince il cloud: dati del cloud, pegno del cloud', () => {
-    const locale = { nome: 'Locale pulito', syncRev: 1, syncedRev: 1, lastSyncedAt: T_VECCHIO };
+    const locale: R = { nome: 'Locale pulito', syncRev: 1, syncedRev: 1, lastSyncedAt: T_VECCHIO };
     const out = mergeConPegno(locale, daCloud);
     expect(out.nome).toBe('Dal cloud');
     expect(out.lastSyncedAt).toBe(T_CLOUD);
   });
 
   it('IL CASO CHIAVE — vince il locale dirty: DATI locali ma PEGNO del cloud', () => {
-    const localeDirty = { nome: 'Modificato qui', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
+    const localeDirty: R = { nome: 'Modificato qui', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
     const out = mergeConPegno(localeDirty, daCloud);
     expect(out.nome, 'i dati restano locali').toBe('Modificato qui');
     expect(out.syncRev, 'ancora dirty: si pusherà').toBe(2);
@@ -147,22 +148,22 @@ describe('mergeConPegno — regola del pegno', () => {
   });
 
   it('tombstone locale dirty che vince: resta il tombstone, ma col pegno rinfrescato', () => {
-    const tombLocale = { nome: 'Cancellato qui', syncRev: 2, syncedRev: 1, deletedAt: T_VECCHIO, lastSyncedAt: T_VECCHIO };
+    const tombLocale: R = { nome: 'Cancellato qui', syncRev: 2, syncedRev: 1, deletedAt: T_VECCHIO, lastSyncedAt: T_VECCHIO };
     const out = mergeConPegno(tombLocale, daCloud);
     expect(out.deletedAt, 'resta cancellato').toBe(T_VECCHIO);
     expect(out.lastSyncedAt, 'ma il tombstone si potrà pushare').toBe(T_CLOUD);
   });
 
   it('tombstone cloud: vince, pegno del cloud', () => {
-    const cloudTomb = { ...daCloud, deletedAt: T_CLOUD };
-    const locale = { nome: 'vivo qui', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
+    const cloudTomb: R = { ...daCloud, deletedAt: T_CLOUD };
+    const locale: R = { nome: 'vivo qui', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
     const out = mergeConPegno(locale, cloudTomb);
     expect(out.deletedAt).toBe(T_CLOUD);
     expect(out.lastSyncedAt).toBe(T_CLOUD);
   });
 
   it('idempotente: rifare il pull non cambia nulla (il pegno già combacia)', () => {
-    const localeDirty = { nome: 'x', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
+    const localeDirty: R = { nome: 'x', syncRev: 2, syncedRev: 1, lastSyncedAt: T_VECCHIO };
     const uno = mergeConPegno(localeDirty, daCloud);
     const due = mergeConPegno(uno, daCloud);
     expect(due).toEqual(uno);
@@ -172,7 +173,7 @@ describe('mergeConPegno — regola del pegno', () => {
     const rint = (m: number) => Math.floor(Math.random() * m);
     const forse = <T>(v: T): T | undefined => (Math.random() < 0.5 ? v : undefined);
     for (let i = 0; i < 300; i++) {
-      const locale: ConSync & { nome: string } = {
+      const locale: R = {
         nome: 'l', syncRev: forse(rint(4)), syncedRev: forse(rint(4)),
         deletedAt: forse(T_VECCHIO), lastSyncedAt: forse(T_VECCHIO),
       };

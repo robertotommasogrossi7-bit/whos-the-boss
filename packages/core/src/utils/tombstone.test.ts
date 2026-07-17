@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Partita } from '../types';
-import { haCambiamentiLocaliNonSincronizzati } from '../sync/merge';
-import { soloVive, tombstona, tombstonaPartita, èVivo } from './tombstone';
+import { haCambiamentiLocaliNonSincronizzati, type ConSync } from '../sync/merge';
+import { soloVive, tombstona, tombstonaPartita, type Cancellabile, èVivo } from './tombstone';
 
 describe('tombstone — soloVive / èVivo', () => {
   it('èVivo: true senza deletedAt, false con', () => {
@@ -29,7 +29,7 @@ describe('tombstona', () => {
   const NOW = '2026-07-17T10:00:00.000Z';
 
   it('marca deletedAt e bumpa syncRev (dirty → il push lo spedisce)', () => {
-    const out = tombstona({ uid: 'u1', syncRev: 1, syncedRev: 1 }, NOW);
+    const out = tombstona({ uid: 'u1', syncRev: 1, syncedRev: 1 } as ConSync & Cancellabile, NOW);
     expect(out.deletedAt).toBe(NOW);
     expect(out.syncRev).toBe(2);
     expect(haCambiamentiLocaliNonSincronizzati(out)).toBe(true);

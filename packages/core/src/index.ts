@@ -24,6 +24,7 @@ export * from './sync/mappingMultigioco';
 export * from './sync/mappingPoker';
 export * from './sync/mappingPonti';
 export * from './sync/merge';
+export * from './sync/pull';
 export * from './utils/statsGiochi';
 export * from './utils/storico';
 export * from './utils/tavoli';

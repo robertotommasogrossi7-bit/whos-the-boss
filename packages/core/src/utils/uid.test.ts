@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { haCambiamentiLocaliNonSincronizzati } from '../sync/merge';
+import { haCambiamentiLocaliNonSincronizzati, type ConSync } from '../sync/merge';
 import { generaUid, nuovoSync, touchSync } from './uid';
 
 const UUIDV7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -41,7 +41,7 @@ describe('nuovoSync', () => {
 
 describe('touchSync', () => {
   it('bumpa la revisione locale di 1 (undefined → 1, poi +1)', () => {
-    expect(touchSync({}).syncRev).toBe(1);
+    expect(touchSync({} as ConSync).syncRev).toBe(1);
     expect(touchSync({ syncRev: 1 }).syncRev).toBe(2);
     expect(touchSync({ syncRev: 4, syncedRev: 4 }).syncRev).toBe(5);
   });
