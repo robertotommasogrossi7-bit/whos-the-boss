@@ -223,14 +223,20 @@ describe('preflightImport (R7.3a, I-R8)', () => {
     expect(preflightImport(d)[0].messaggio).toMatch(/id 99/);
   });
 
-  it('FK orfana: sessione su un gioco non più configurato', () => {
+  /* G1 (R7_SCHEMA sez. Q): questo test pretendeva l'OPPOSTO — che una sessione
+     su un gioco non presente in `lega.giochi` fosse una FK orfana. Era il
+     modello sbagliato: `lega.giochi` è un layer di override OPZIONALE sopra il
+     catalogo globale, e l'app non lo popola MAI (la UI giochi custom è M5).
+     Quel check bloccava OGNI import multigioco reale. Ora l'identità del gioco
+     viaggia in `sessioni_gioco.gioco_key`, e il caso qui sotto è la normalità. */
+  it('sessione su un gioco del catalogo (lega.giochi vuoto) NON è un problema: è il caso normale', () => {
     const d = battezzaDb(db([lega({
       nomi: [{ id: 1, nome: 'Anna' }],
       giochi: [],
       sessioniGioco: [sessioneGioco({ giocoId: 'briscola', partecipanti: [1] })],
     })]));
-    expect(tipi(d)).toContain('fk_orfana');
-    expect(preflightImport(d).some((p) => /briscola/.test(p.messaggio))).toBe(true);
+    expect(preflightImport(d)).toEqual([]);
+    expect(costruisciPayloadImport(d, 'owner-1').sessioni_gioco[0].gioco_key).toBe('briscola');
   });
 
   it('FK orfana: sessione legata a una serata inesistente', () => {

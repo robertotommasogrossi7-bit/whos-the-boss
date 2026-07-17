@@ -829,8 +829,14 @@ tenuto solo la parte *opzionale* (la FK all'override). È questa l'origine del d
   conflitto — per un dato che è già nel binario e non cambia mai per-lega;
 - ❌ richiede una migrazione dei dati locali esistenti.
 
-**B — `sessioni_gioco.gioco_id text`** (l'identità nel cloud, come in locale). `giochi_lega` resta
+**B — `sessioni_gioco.gioco_key text`** (l'identità nel cloud, come in locale). `giochi_lega` resta
 il layer di override/custom, sincronizzato **quando esiste** (cioè da M5 in poi).
+
+> 📌 **Nome della colonna: `gioco_key`, non `gioco_id`** (emendato in implementazione). `giochi_lega`
+> ha già `gioco_key text not null` con il commento *"'magic' | 'scopa' | 'custom-<ts>'
+> **(referenziato da sessioni_gioco)**"*: l'intenzione originale dello schema era ESATTAMENTE questa,
+> solo che è stata implementata come FK uuid. Stesso concetto = stesso nome; e `gioco_id` si
+> confonderebbe con `gioco_lega_id` (uuid). B non inventa nulla: ripristina l'intento di R7.1.
 - ✅ **fedele al modello locale**: la colonna rispecchia 1:1 `SessioneGioco.giocoId`;
 - ✅ `sessioneGiocoFromCloudRow` diventa corretto (`giocoId: row.gioco_id`, niente ripiego su
   `base` — che è proprio il buco di R7.4b);
@@ -846,18 +852,23 @@ diventa ridondante per l'identità: si può lasciare (nullable, popolata solo se
 
 ## Q.5 — Design proposto (se B)
 
-1. **Migration #9**: `alter table sessioni_gioco add column gioco_id text;` + backfill dalle righe
-   esistenti via `giochi_lega` dove non nullo (oggi: nessuna). Non `not null` subito: le righe già
-   nel cloud dell'utente non ce l'hanno (→ `not null` solo dopo il backfill, se vale la pena).
-2. **Mapping**: `sessioneGiocoToCloudRow` scrive `gioco_id: s.giocoId`;
-   `sessioneGiocoFromCloudRow` legge `giocoId: row.gioco_id ?? base.giocoId` (il `??` copre solo le
-   righe pre-#9).
+1. **Migration #9**: `alter table sessioni_gioco add column gioco_key text;` + `create or replace`
+   della RPC `import_locale` (la #8 è già sul cloud, e `create or replace` vuole tutto il corpo).
+   Non `not null`: le righe pre-#9 non ce l'hanno (oggi sono **zero**, ma il vincolo non paga).
+2. **Mapping**: `sessioneGiocoToCloudRow` scrive `gioco_key: s.giocoId`;
+   `sessioneGiocoFromCloudRow` legge `giocoId: row.gioco_key ?? base.giocoId` e **perde il parametro
+   `risolviGiocoId`**: risolvere l'identità passando dall'override era il modello sbagliato, e
+   tenere due strade per lo stesso dato è proprio ciò che ha creato il bug.
 3. **Preflight**: **togliere** il check `fk_orfana` sul `giocoId` — codifica un modello sbagliato.
    Gli altri check (serata, nomi, uid) restano.
 4. **Test**: nel gate di a1 il flusso multigioco pretende `preflightImport(db) === []` e
-   `payload.sessioni_gioco[0].gioco_id === 'scopa'`; round-trip `to→from` senza base locale.
-5. **RPC `import_locale`**: la insert di `sessioni_gioco` porta anche `gioco_id` (la #8 è già sul
-   cloud → serve la #9 comunque).
+   `payload.sessioni_gioco[0].gioco_key === 'scopa'`; round-trip `to→from` senza base locale.
+5. **Fixture del gate d'integrazione** (`scripts/gate-import.ts`): oggi scrive `giochi: [...]` **a
+   mano** — ed è per questo che il gate di R7.3 passava 10/10 mentre l'app reale si sarebbe
+   bloccata. La fixture va allineata a ciò che lo store produce davvero (nessun `giochi`), altrimenti
+   continua a validare un mondo che non esiste. **Lezione**: le fixture scritte a mano dal modello
+   *come progettato* non provano il percorso reale; il gate di a1 guida le azioni vere ed è così che
+   il difetto è saltato fuori.
 
 ## Q.6 — Sotto-fasi (micro-commit)
 - **G1-a** — migration #9 + mapping + preflight + test (gate multigioco verde end-to-end).

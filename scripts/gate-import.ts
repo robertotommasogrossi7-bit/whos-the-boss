@@ -61,7 +61,12 @@ function dbFinto(): Db {
       lega({
         id: 2, nome: 'Amici del giovedì',
         nomi: [{ id: 1, nome: 'Anna' }, { id: 2, nome: 'Bruno' }],
-        giochi: [{ id: 'scopa', nome: 'Scopa', preimpostato: true, attivo: true, pareggioComeVittoria: true }],
+        // ⚠️ NIENTE `giochi`: l'app non popola MAI `lega.giochi` (i giochi
+        // vengono dal catalogo globale; la UI custom è M5). Questa fixture
+        // scriveva `giochi: [{ id: 'scopa', ... }]` a mano ed è per questo che
+        // il gate passava 10/10 mentre l'app reale si bloccava sul preflight
+        // (finding G1, R7_SCHEMA sez. Q): validava un mondo che non esiste.
+        // Una fixture deve somigliare a ciò che lo store produce davvero.
         serate: [{ id: 1, data: '2026-07-17', partecipanti: [1, 2] }],
         sessioniGioco: [{
           id: 1, giocoId: 'scopa', data: '2026-07-17', stato: 'chiusa',
@@ -124,6 +129,14 @@ async function main() {
   const { data: sett } = await A.client.from('settlements').select('amount, pagato');
   assert.equal(Number(sett![0].amount), 15, 'importo del debito alterato dal round-trip (numeric↔float)');
   ok('round-trip: leghe, movimenti e debiti rileggibili e integri (numeric↔float ok)');
+
+  // G1: il cloud deve sapere A COSA si è giocato. Prima esisteva solo la FK a
+  // giochi_lega (mai popolata) → il gioco si perdeva in silenzio.
+  const { data: sg } = await A.client.from('sessioni_gioco').select('gioco_key, gioco_lega_id');
+  assert.equal(sg?.length, 1, 'la sessione di gioco non si rilegge');
+  assert.equal(sg![0].gioco_key, 'scopa', 'il cloud non sa quale gioco è stato giocato (G1)');
+  assert.equal(sg![0].gioco_lega_id, null, 'nessun override in giochi_lega: è il caso normale finché non arriva M5');
+  ok('G1: `gioco_key` arriva nel cloud anche senza riga di override (sez. Q)');
 
   assert.ok(await importedAt(A), 'imported_at non valorizzato dopo un import riuscito');
   ok('guardia `imported_at` valorizzata dall\'import riuscito');

@@ -139,7 +139,13 @@ export function preflightImport(db: Db): ProblemaImport[] {
     };
     l.nomi.forEach((n) => chkUid(n.uid, `giocatore "${n.nome}" in ${inLega}`));
 
-    const giochiKeys = new Set((l.giochi ?? []).map((g) => g.id));
+    // ⚠️ NIENTE check "il giocoId è in lega.giochi": `lega.giochi` è un layer di
+    // override OPZIONALE sopra il catalogo globale (resolveGiocoLega: "cerca
+    // prima in lega.giochi, poi nel catalogo"), oggi mai popolato — la UI dei
+    // giochi custom è M5. L'identità del gioco viaggia in `sessioni_gioco.
+    // gioco_key` (G1). Il vecchio check la trattava come FK obbligatoria e
+    // bloccava OGNI import multigioco con un messaggio pure falso ("non è più
+    // configurato": non lo è mai stato). Vedi R7_SCHEMA sez. Q.
     l.giochi?.forEach((g) => chkUid(g.uid, `gioco "${g.nome}" in ${inLega}`));
 
     const serateIds = new Set((l.serate ?? []).map((s) => s.id));
@@ -151,7 +157,6 @@ export function preflightImport(db: Db): ProblemaImport[] {
     l.sessioniGioco?.forEach((s) => {
       const dove = `sessione "${s.giocoId}" del ${s.data} in ${inLega}`;
       chkUid(s.uid, dove);
-      if (!giochiKeys.has(s.giocoId)) err('fk_orfana', `${dove}: il gioco "${s.giocoId}" non è più configurato nella lega.`);
       if (s.serataId !== undefined && !serateIds.has(s.serataId)) err('fk_orfana', `${dove}: serata di appartenenza inesistente.`);
       s.partecipanti.forEach((id) => chkNome(id, dove));
       s.partite.forEach((p) => {

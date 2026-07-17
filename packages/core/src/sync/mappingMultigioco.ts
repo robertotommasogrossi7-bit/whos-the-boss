@@ -47,6 +47,13 @@ export interface SessioneGiocoCloudRow {
   id: string;
   lega_id: string;
   local_id: number | null;
+  /** G1: QUALE gioco — la chiave locale `SessioneGioco.giocoId` ('scopa',
+      'custom-<ts>'). È l'identità, ed è l'unica cosa che serve per ricostruire
+      la sessione su un altro device. `null` solo per le righe scritte prima
+      della migration #9 (in pratica: nessuna). */
+  gioco_key: string | null;
+  /** Collegamento alla riga di override in `giochi_lega`, se esiste (M5).
+      NON è l'identità del gioco: vedi R7_SCHEMA sez. Q. */
   gioco_lega_id: string | null;
   data: string | null;
   stato: 'pre' | 'attiva' | 'chiusa' | null;
@@ -59,10 +66,12 @@ export interface SessioneGiocoCloudRow {
   deleted_at: string | null;
 }
 
-/** `giocoLegaUid` risolto da chi chiama (SessioneGioco.giocoId è la chiave
-    stringa locale 'magic'/'custom-<ts>', non l'uid della riga giochi_lega —
-    quella traduzione la fa chi orchestra, con la lista dei giochi della
-    lega). `serataUid` opzionale, stesso discorso per `serataId`. */
+/** `gioco_key` (= `s.giocoId`) porta l'identità del gioco: si scrive SEMPRE.
+    `giocoLegaUid` è il collegamento all'eventuale riga di override in
+    `giochi_lega` — lo risolve chi chiama, ed è `null` finché M5 non crea quei
+    record (il caso normale oggi). Prima di G1 esisteva solo quest'ultimo, e il
+    cloud non sapeva mai quale gioco fosse stato giocato (R7_SCHEMA sez. Q).
+    `serataUid` opzionale, stesso discorso per `serataId`. */
 export function sessioneGiocoToCloudRow(
   s: SessioneGioco,
   legaUid: string,
@@ -74,6 +83,7 @@ export function sessioneGiocoToCloudRow(
     id: s.uid,
     lega_id: legaUid,
     local_id: s.id,
+    gioco_key: s.giocoId,
     gioco_lega_id: giocoLegaUid,
     data: s.data || null,
     stato: s.stato,
@@ -85,19 +95,21 @@ export function sessioneGiocoToCloudRow(
   };
 }
 
-/** `risolviGiocoId` traduce l'uid di giochi_lega nella chiave stringa
-    locale (giocoId): l'inverso di `giocoLegaUid` sopra. `risolviSerataId`
-    analogo per serataId (locale = int, cloud = uid). Non tocca
+/** Il `giocoId` arriva diretto da `gioco_key`: nessuna traduzione, nessuna
+    dipendenza dall'override. (Prima di G1 si risaliva al gioco dalla FK
+    `gioco_lega_id`, con ripiego su `base` — che per una riga materializzata
+    ex-novo su un 2° device NON esiste: il gioco si sarebbe perso. Vedi
+    R7_SCHEMA sez. Q.) Il `??` copre solo le righe scritte prima della #9.
+    `risolviSerataId` traduce l'uid serata nell'id locale (int). Non tocca
     `partecipanti`/`partite` (ponte + tabella figlia, altre funzioni). */
 export function sessioneGiocoFromCloudRow(
   row: SessioneGiocoCloudRow,
   base: SessioneGioco,
-  risolviGiocoId: (giocoLegaUid: string) => string,
   risolviSerataId: (serataUid: string) => number | undefined,
 ): SessioneGioco {
   return {
     ...base,
-    giocoId: row.gioco_lega_id ? risolviGiocoId(row.gioco_lega_id) : base.giocoId,
+    giocoId: row.gioco_key ?? base.giocoId,
     data: row.data ?? base.data,
     stato: row.stato ?? base.stato,
     ora_inizio: row.ora_inizio ?? base.ora_inizio,

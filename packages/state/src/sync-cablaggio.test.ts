@@ -182,5 +182,15 @@ describe('R7.4a-1 — le entità create dallo store nascono pronte per il sync',
       expect(haCambiamentiLocaliNonSincronizzati(e), `${dove} non è dirty`).toBe(true);
       expect(e.uid, `${dove} senza uid`).toBeTruthy();
     }
+
+    /* G1 (R7_SCHEMA sez. Q): è QUI che il difetto è saltato fuori. L'app non
+       popola mai `lega.giochi` (i giochi vengono dal catalogo globale), e il
+       preflight lo trattava come FK obbligatoria → ogni import multigioco
+       bloccato. Il gioco ora viaggia in `gioco_key`: senza, il cloud non
+       saprebbe MAI a cosa si è giocato. */
+    const db = s().db;
+    expect(db.leghe[0].giochi, 'l\'app non popola lega.giochi: è il caso normale, non un errore').toBeUndefined();
+    expect(preflightImport(db)).toEqual([]);
+    expect(costruisciPayloadImport(db, 'owner-1').sessioni_gioco[0].gioco_key).toBe('scopa');
   });
 });

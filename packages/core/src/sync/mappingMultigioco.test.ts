@@ -50,27 +50,49 @@ describe('sessioneGiocoToCloudRow / sessioneGiocoFromCloudRow', () => {
     expect(row.serata_id).toBe('serata-uid-1');
   });
 
+  /* G1 (R7_SCHEMA sez. Q): l'identità del gioco viaggia SEMPRE in gioco_key,
+     anche quando non esiste nessuna riga di override in giochi_lega — che è il
+     caso normale finché non arriva M5. Prima esisteva solo la FK, e il cloud
+     non sapeva mai quale gioco fosse stato giocato. */
+  it('gioco_key porta l\'identità del gioco anche senza riga di override (caso normale)', () => {
+    const row = sessioneGiocoToCloudRow(sessioneGiocoBase({ giocoId: 'scopa' }), 'lega-uid-1', null);
+    expect(row.gioco_key).toBe('scopa');
+    expect(row.gioco_lega_id).toBeNull();
+  });
+
   it('senza serata (sessione libera, non in una serata multi-gioco): serata_id null', () => {
     const row = sessioneGiocoToCloudRow(sessioneGiocoBase(), 'lega-uid-1', 'gioco-uid-1');
     expect(row.serata_id).toBeNull();
   });
 
-  it('fromCloudRow traduce gioco_lega_id/serata_id tramite le lookup fornite', () => {
+  it('fromCloudRow prende il gioco da gioco_key e traduce la serata con la lookup', () => {
     const base = sessioneGiocoBase();
     const row = {
-      id: 'sessione-uid-1', lega_id: 'lega-uid-1', local_id: 1, gioco_lega_id: 'gioco-uid-1',
+      id: 'sessione-uid-1', lega_id: 'lega-uid-1', local_id: 1,
+      gioco_key: 'scopa', gioco_lega_id: null,
       data: '2026-07-11', stato: 'chiusa' as const, ora_inizio: '20:00', ora_fine: '23:00',
       esito_pareggio: false, serata_id: 'serata-uid-1',
       created_at: '2026-07-11T09:00:00.000Z', updated_at: '2026-07-11T12:00:00.000Z', deleted_at: null,
     };
-    const out = sessioneGiocoFromCloudRow(
-      row, base,
-      (uid) => (uid === 'gioco-uid-1' ? 'scopa' : 'briscola'),
-      (uid) => (uid === 'serata-uid-1' ? 7 : undefined),
-    );
+    const out = sessioneGiocoFromCloudRow(row, base, (uid) => (uid === 'serata-uid-1' ? 7 : undefined));
     expect(out.giocoId).toBe('scopa');
     expect(out.serataId).toBe(7);
     expect(out.stato).toBe('chiusa');
+  });
+
+  /* Il caso che G1 sblocca per R7.4b: una riga che arriva da un ALTRO device
+     non ha una `base` locale sensata — il gioco DEVE venire dal cloud. Prima
+     si ripiegava su `base.giocoId`, che qui sarebbe un valore inventato. */
+  it('materializzazione da un altro device: il gioco arriva dal cloud, non dalla base', () => {
+    const row = {
+      id: 'sessione-uid-9', lega_id: 'lega-uid-1', local_id: 4,
+      gioco_key: 'briscola', gioco_lega_id: null,
+      data: '2026-07-17', stato: 'chiusa' as const, ora_inizio: '21:00', ora_fine: '22:00',
+      esito_pareggio: false, serata_id: null,
+      created_at: '2026-07-17T09:00:00.000Z', updated_at: '2026-07-17T12:00:00.000Z', deleted_at: null,
+    };
+    const out = sessioneGiocoFromCloudRow(row, sessioneGiocoBase({ giocoId: 'scopa' }), () => undefined);
+    expect(out.giocoId).toBe('briscola');
   });
 });
 
