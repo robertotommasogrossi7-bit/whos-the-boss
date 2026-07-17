@@ -374,9 +374,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   (I-R2) · **contratto syncedRev R7.3→R7.4** (I-R3, il pezzo che mancava) · 2° device divergente = mai
   clean, si unisce in R7.4 (I-R4) · battesimo→persist confermato→RPC (I-R5) · conteggi di ritorno per
   tabella (I-R6) · payload versionato (I-R7) · pre-flight strutturale + grant execute (I-R8).
-  **PROSSIMO: implementare R7.3a→d** (sotto-fasi in sez. O.4: a=funzioni pure test-first, Opus high ·
-  b=RPC+integration test su Docker locale · c=orchestrazione app · d=chaos). Calibrazione utente a
-  verbale: dati attuali usa-e-getta, fase corta, priorità ai test. Poi R7.4.
+  ✅ **R7.3a FATTO** (2026-07-17, Opus, 3 micro-commit): `sync/import.ts` — **battesimo idempotente**
+  degli uid mancanti (I-R5) · **pre-flight strutturale** con messaggi leggibili (I-R8) +
+  **riconciliazione soft** dei soldi (F2: flagga, non blocca) · **payload builder v1** (13 tabelle + 4
+  ponti, riusa mapping+idMap, versionato I-R7) + **conteggi attesi** (I-R6). **339 test core.**
+  ✅ **R7.3b FATTO** (2026-07-17): migration **#8** `import_locale` (RPC transazionale, SECURITY
+  INVOKER, guardia ATOMICA I-R1, parent-first I-R2, conteggi di ritorno) + gate `pnpm gate:import`
+  → **10/10 verde al primo colpo** su Postgres reale (import concorrente: ne passa uno solo ·
+  rollback + guardia riazzerata → ritentabile · RLS). #8 applicata **solo in locale** (sul cloud
+  quando l'app la userà, R7.3c). **PROSSIMO: R7.3c** (orchestrazione app: backup/Share → battesimo +
+  persist confermato → RPC → verifica conteggi → **stamp per-riga** e ramo `already_imported` senza
+  clean, contratto O.3) → **R7.3d** (chaos test). Poi R7.4. Calibrazione utente a verbale: dati
+  attuali usa-e-getta, fase corta, priorità ai test.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 

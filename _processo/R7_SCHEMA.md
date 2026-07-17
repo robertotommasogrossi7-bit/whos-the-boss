@@ -611,9 +611,14 @@ WatermelonDB/RxDB nella pratica (chiudono/ri-aprono il DB ad ogni cambio utente,
 ## O.4 — Sotto-fasi (micro-commit, pause tra i pezzi)
 - **R7.3a** — funzioni pure core: battesimo idempotente + pre-flight + payload builder v1 +
   conteggi attesi. Test-first. *(Opus high)*
-- **R7.3b** — migration RPC + **integration test su Supabase locale** (Docker, riusa il gate d5):
-  import ok → conteggi giusti · doppio import → `already_imported` · **import CONCORRENTE** (2 client
-  simultanei → uno solo passa) [I-R1] · kill a metà → rollback totale · versione payload ignota → rifiuto.
+- **R7.3b** ✅ **FATTO (2026-07-17)** — migration **#8** `import_locale` (`20260717120000_r73_import_rpc.sql`)
+  + gate `scripts/gate-import.ts` (`pnpm gate:import`): **10/10 verde al primo colpo** su Postgres reale.
+  Verificati dal vivo: conteggi RPC == payload (I-R6, 23 righe) · round-trip (numeric↔float integro) ·
+  doppio import → `already_imported` senza duplicati · **import CONCORRENTE 2 client → ne passa UNO
+  SOLO** (I-R1, la guardia atomica regge) · versione ignota rifiutata con guardia intatta (I-R7) ·
+  **rollback totale + guardia riazzerata → import ritentabile** (il caso che avrebbe bloccato per
+  sempre un account) · RLS sui dati importati. Il gate usa il **payload builder vero** di R7.3a →
+  valida il contratto builder↔RPC, che nessun unit test copre.
 - **R7.3c** — orchestrazione app: backup/Share → battesimo+persist → RPC → verifica conteggi →
   stamp per-riga + ramo `already_imported` (avviso, niente stamp). UI minima.
 - **R7.3d** — chaos: crash post-commit pre-risposta (retry → already_imported → NO clean) ·
