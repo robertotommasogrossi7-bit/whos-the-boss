@@ -33,8 +33,20 @@
   sync che parte PRIMA dell'import sullo stesso account; import su device B mentre A sincronizza)?
 - Cosa manca **del tutto** che a questa scala servirebbe davvero?
 
-## Registro finding R7.4 (da compilare al ritorno)
+## Registro finding R7.4 (compilato 2026-07-17 — agente Opus interno, tutti verificati su file:riga)
 
-| ID | Sev | Finding | Verdetto | Fix |
-|----|-----|---------|----------|-----|
-| — | — | *(in attesa)* | — | — |
+| ID | Sev | Finding | Verdetto | Fix (recepito in sez. P emendata) |
+|----|-----|---------|----------|-----------------------------------|
+| **S4-R1** | **CRITICO** | Il sync per-uid **non può unire** i dati di un 2° device (uid nati per-device → le stesse entità reali hanno uid diversi): li **DUPLICA** — la promessa "li unirà R7.4" scritta nell'import è falsa | **CONFERMATO** (`orchestraImport.ts` ramo `gia_importato`; merge uid-keyed) | **P.8 — adozione del 2° device** (decisione di prodotto, all'utente): il caso comune "telefono nuovo, locale vuoto" fila liscio da solo; se il locale HA dati e l'account ha già importato altrove → il sync NON parte, si passa da un flusso esplicito di adozione. Correggere anche i testi/commenti che promettono l'unione. |
+| **S4-R2** | **CRITICO** | **Deadlock permanente**: la Personale del 2° device pushata come INSERT sbatte su `leghe_personale_uniq` → abort dell'intera transazione **a ogni ciclo, per sempre** (il CAS non c'entra: è un vincolo natural-key) | **CONFERMATO** (`r7_core.sql:42`) | Risolto a monte da P.8 (l'adozione evita il push di una seconda Personale) + difesa in profondità: la RPC intercetta `unique_violation` e torna un errore parlante, mai un abort muto ripetuto. |
+| **S4-R3** | ALTO | Passando a tombstone, **nessun** util filtra `deletedAt`: partite "cancellate" contate in classifiche/storico/stats (soldi sbagliati a video) | **CONFERMATO** (grep: zero filtri in `packages/core/src/utils`; classifiche/storico iterano le collezioni intere) | Filtro **al confine, in un punto solo**: helper core `soloVive()` dentro gli utils che calcolano (classifiche/storico/personale/giocatori), NON in 20 viste. + test anti-regressione. |
+| **S4-R4** | ALTO | Tombstone del padre **senza cascade**: figli vivi sul server, figlio dirty che "resuscita" sotto un padre cancellato | **CONFERMATO** (eliminaPartita oggi fisica; I4 esige cascade nella stessa transazione) | `elimina*` → `deletedAt`+`touchSync` su TUTTO il sottoalbero (giocatori-partita, settlement) nella stessa azione. I movimenti (senza deletedAt, I5) si escludono via il padre. |
+| **S4-R7** | ALTO | **Non-sync silenzioso**: le creazioni odierne settano uid ma NON `syncRev` → `0>0=false` → il push le salta; una partita salvata dopo l'import non lascia mai il telefono | **CONFERMATO** (`store.ts` creazioni senza syncRev; `merge.ts` contatore) | Cablare `nuovoSync()` (non i campi a mano) + **test anti-regressione**: "creo una partita → è dirty → compare nel payload push". Non fidarsi di 12 chiamate manuali senza rete di test. |
+| **S4-R5** | MEDIO | idMap "costruita una volta" → i riferimenti a giocatori **materializzati durante il pull** non si risolvono | **CONFERMATO** (design P.3 + `idMap.ts`) | idMap **estesa live**: ogni entità materializzata registra subito `uid→id locale` prima di risolvere i figli. |
+| **S4-R6** | MEDIO | `lastSyncedAt` si riallinea solo col pull successivo (la RPC torna solo conteggi) → dipendenza nascosta "pull sempre prima del push"; un riordino futuro reintroduce il deadlock CAS | **CONFERMATO** (design P.2) | La RPC push ritorna **`updated_at` per-riga**; `lastSyncedAt` si stampa **al push**, insieme a `syncedRev`. Dipendenza implicita eliminata. |
+
+**Q1 (regola del pegno)**: **corretta e necessaria** — verdetto del revisore: senza, il CAS va in deadlock; con, si risolve in ≤1 retry e realizza il "LWW dichiarato". **Q4 (loop abort)**: impossibile da sostenere a questa scala (niente timer di background). **Alternativa senza CAS** (upsert LWW incondizionato) considerata e **SCARTATA**: DS3 resta, il CAS costa poco ed è protezione in più.
+
+**Scartati dal revisore** (una riga): clobber per-campo watchlist = già accettato V-S6 · livelock CAS da peer insistente = non si sostiene senza timer · collisione local_id in materializzazione = non è chiave · eco del proprio push = si auto-risana via uid · stamp durante push in volo = pattern import già provato · crescita tombstone/ledger = fuori scope I9/R10.
+
+**Verdetto d'insieme**: P.1/P.5/P.6 TIENI · P.2 CAMBIA (natural-key + updated_at per-riga) · P.3 TIENI con fix (idMap live) · P.4 CAMBIA (cascade + filtro al confine + test) · P.7 CAMBIA (R7.4a spezzato, è la superficie più rischiosa). **La cosa che mancava del tutto: P.8** (il ponte d'identità del 2° device).

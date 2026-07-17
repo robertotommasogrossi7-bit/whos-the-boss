@@ -716,3 +716,33 @@ HH:MM" nel Profilo) · claim ospiti (R8).
   logout guard + "ultimo sync" nel Profilo.
 - **R7.4e** — chaos su DB reale: 2 device che editano offline la stessa riga / righe diverse ·
   conflitto CAS → re-pull → re-push · kill a metà push · logout durante sync · retry doppio.
+
+## P.8 — Emendamenti post red-team (2026-07-17, registro `REDTEAM-R74-SYNC.md`)
+
+> 7 finding S4-R1..R7, tutti confermati su codice. I fix entrano QUI (la sez. P sopra resta come
+> scritta per storia; in caso di contrasto vince P.8).
+
+- **P.8.1 — Adozione del 2° device (S4-R1+S4-R2, i due CRITICI).** Gli uid nascono per-device: il
+  delta-sync per-uid NON può "unire" i dati creati indipendentemente su due telefoni — li
+  duplicherebbe, e la seconda lega Personale manderebbe il push in deadlock permanente su
+  `leghe_personale_uniq`. Regola nuova, **prima del primo push di un device**:
+  - locale VUOTO (caso comune: telefono nuovo) → il pull materializza tutto, nessun problema;
+  - locale CON dati + account già importato altrove → **il sync NON parte**: flusso esplicito di
+    **adozione** (decisione utente ⏳: vedi DECISIONI DS9) — il telefono adotta il cloud; prima
+    di sostituire, il blob locale si salva in una chiave di backup (`…:backup-pre-adozione`).
+  - Correggere i testi che promettono l'unione (commento `orchestraImport.ts` + card in
+    `carica-dati.tsx`): oggi direbbero il falso.
+- **P.8.2 — Push (S4-R2 difesa + S4-R6):** la RPC `push_lega` intercetta `unique_violation` →
+  errore parlante (mai abort muto ripetuto); e ritorna **`updated_at` per-riga** applicata, così
+  `lastSyncedAt` si stampa **al push** insieme a `syncedRev` (niente dipendenza nascosta dal pull).
+- **P.8.3 — Tombstone (S4-R3+S4-R4):** filtro **al confine in un punto solo** — helper core
+  `soloVive()` dentro gli utils che calcolano (classifiche/storico/personale/giocatori), non nelle
+  viste; `elimina*` casca `deletedAt`+`touchSync` su tutto il sottoalbero nella stessa azione.
+- **P.8.4 — Cablaggio (S4-R7):** `nuovoSync()` cablato (mai campi a mano) + **test
+  anti-regressione obbligatorio**: "creo una partita → è dirty → è nel payload push"; "tombstono →
+  sparisce dalle stats". È il gate di R7.4a.
+- **P.8.5 — idMap live (S4-R5):** durante la materializzazione ogni entità nuova registra subito
+  `uid→id locale` nella mappa, prima di risolvere i figli.
+- **P.7 emendato:** R7.4a (cablaggio) è la superficie più rischiosa, spezzata in: a1 = creazioni
+  con `nuovoSync` + test dirty→payload · a2 = mutazioni con `touchSync` · a3 = cancellazioni→
+  tombstone con cascade + `soloVive()` + test stats. R7.4d include il flusso di adozione (P.8.1).
