@@ -1,5 +1,5 @@
 import type { SessioneGioco, PartitaGioco } from '../types';
-import { generaUid } from './uid';
+import { nuovoSync } from './uid';
 
 /* ══════════════════════════════════════════════════════
    SESSIONE/PARTITA GIOCO (Card Tracker M3) — funzioni pure
@@ -38,8 +38,7 @@ export function nuovaSessioneGioco(
     partecipanti: [...partecipanti],
     partite: [],
     esitoPareggio: false,
-    uid: generaUid(),
-    syncUpdatedAt: new Date().toISOString(),
+    ...nuovoSync(),
   };
 }
 
@@ -52,7 +51,7 @@ export function prossimoIdPartita(sess: SessioneGioco): number {
 export function nuovaPartitaGioco(id: number, ora: string): PartitaGioco {
   return {
     id, ora_inizio: ora, ora_fine: '', vincitori: [], pareggio: false,
-    uid: generaUid(), syncUpdatedAt: new Date().toISOString(),
+    ...nuovoSync(),
   };
 }
 

@@ -1,6 +1,6 @@
 import type { Lega, NomeGiocatore, User } from '../types';
 import { normalizzaNome } from './normalizzaNome';
-import { generaUid } from './uid';
+import { nuovoSync } from './uid';
 
 /* ══════════════════════════════════════════════════════
    LEGA "PERSONALE" (Card Tracker §2)
@@ -26,8 +26,7 @@ export function creaLegaPersonale(id: number): Lega {
     _sgid: 1,
     serate: [],
     _serataId: 1,
-    uid: generaUid(),
-    syncUpdatedAt: new Date().toISOString(),
+    ...nuovoSync(),
   };
 }
 
@@ -83,7 +82,7 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
     if (!u || personale.nomi.some(n => normalizzaNome(n.nome) === u)) return personale;
     return {
       ...personale,
-      nomi: [...personale.nomi, { id: personale._nid, nome: display, uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
+      nomi: [...personale.nomi, { id: personale._nid, nome: display, ...nuovoSync() }],
       _nid: personale._nid + 1,
     };
   }
@@ -98,7 +97,7 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   // 3) nuovo record dell'account
   return {
     ...personale,
-    nomi: [...personale.nomi, { id: personale._nid, nome: display, accountId, uid: generaUid(), syncUpdatedAt: new Date().toISOString() }],
+    nomi: [...personale.nomi, { id: personale._nid, nome: display, accountId, ...nuovoSync() }],
     _nid: personale._nid + 1,
   };
 }
