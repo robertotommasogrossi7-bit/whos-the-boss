@@ -141,6 +141,10 @@ export default function RootLayout() {
                 name="giocatori/[legaId]"
                 options={{ headerShown: true, title: 'Giocatori' }}
               />
+              <Stack.Screen
+                name="carica-dati"
+                options={{ headerShown: true, title: 'Carica sul cloud' }}
+              />
               <Stack.Screen name="serata/[legaId]/[serataId]" options={{ headerShown: false }} />
             </Stack>
           )}

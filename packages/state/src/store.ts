@@ -135,6 +135,10 @@ interface StoreActions {
   setAuthUser: (user: User | null) => void;
   setDbReady: (ready: boolean) => void;
   clearDbLocale: () => void;   // logout: niente storage da leggere, azzera e basta
+  /** Rimpiazza l'INTERO db locale. Riservata all'import one-shot (R7.3), che
+      lo riscrive due volte: col battesimo degli uid e con lo stamp post-import.
+      Non usarla dalle azioni di dominio (quelle mutano il pezzo che toccano). */
+  sostituisciDb: (db: Db) => void;
 
   // Overlay
   openOverlay:  () => void;
@@ -384,6 +388,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       setAuthUser: (user) => set({ authUser: user }),
       setDbReady: (ready) => set({ dbReady: ready }),
       clearDbLocale: () => set({ db: emptyDb() }),
+      sostituisciDb: (db) => set({ db }),
       initAuth: () => set({ authLoading: false }),
       login: async () => null,
       register: async () => null,

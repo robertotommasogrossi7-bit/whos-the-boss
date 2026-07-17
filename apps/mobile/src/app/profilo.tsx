@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -53,6 +54,16 @@ export default function ProfiloScreen() {
           title="Cambia email"
           right={<IconChevronRight size={18} color={t.textMuted} />}
           onPress={() => { setOk(null); setSheet('email'); }}
+        />
+      </Card>
+
+      <Card style={styles.card}>
+        <Text style={[styles.section, { color: t.textMuted }]}>DATI</Text>
+        <ListRow
+          title="Carica i dati sul tuo account"
+          subtitle="Una volta sola: li ritrovi sugli altri dispositivi"
+          right={<IconChevronRight size={18} color={t.textMuted} />}
+          onPress={() => router.push('/carica-dati')}
         />
       </Card>
 
