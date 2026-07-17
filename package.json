@@ -11,7 +11,8 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "gate:db": "node scripts/gate-db.mjs",
-    "gate:import": "tsx scripts/gate-import.ts"
+    "gate:import": "tsx scripts/gate-import.ts",
+    "gate:push": "tsx scripts/gate-push.ts"
   },
   "devDependencies": {
     "supabase": "^2.109.1",
