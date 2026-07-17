@@ -392,11 +392,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   → **✅✅ R7.3 COMPLETA.** **357 test core + state · gate+chaos 17/17 su Postgres reale.**
   ✅ **Migration #8 applicata anche sul cloud** (conferma utente 2026-07-17): l'import è usabile dal
   telefono. 8/8 migration allineate.
-  **PROSSIMO: R7.4** — aggancio del delta-sync allo store: push CAS (S3) · 1 transazione per lega (S9)
-  · mutex anti-race (S11) · ordine ledger→settlement (S13) · cache lookup (S15) · **+ cablaggio
-  dirty-tracking** (`nuovoSync` sulle creazioni + `touchSync` sulle mutazioni, rimandato da R7.2d-2)
-  · **+ generazione uid dei movimenti** (rimandata da R7.2d-3). *[mini-spec + red team + Opus xhigh]*
-  Calibrazione utente a verbale: dati attuali usa-e-getta, fase corta, priorità ai test.
+  ✅ **R7.4 SPEC CHIUSA post red-team** (2026-07-17): mini-spec **`R7_SCHEMA.md` sez. P** (ciclo
+  pull→merge→push→stamp stile WatermelonDB · pull completo senza cursore · push CAS 1 tx/lega ·
+  materializzazione + regola del pegno · cablaggio dirty + cancellazioni→tombstone) + **red team
+  agente Opus interno**: 7 finding S4-R1..R7 confermati su codice (registro `REDTEAM-R74-SYNC.md`),
+  fix in **sez. P.8**. I 2 critici: il sync per-uid duplicherebbe i dati di un 2° device e la 2ª
+  Personale andrebbe in deadlock → **DS9 DECISA (utente): il 2° device ADOTTA il cloud**
+  (sostituzione con conferma + backup locale; mai "unione" per-uid — correggere i testi dell'import
+  che la promettevano). **PROSSIMO: implementare R7.4 a1→e** (sotto-fasi in P.7 emendato + P.8:
+  a1=creazioni nuovoSync+test dirty→payload · a2=mutazioni touchSync · a3=tombstone+cascade+
+  soloVive()+test stats · b=pull/materializzatori · c=push RPC #9 · d=orchestratore+adozione DS9 ·
+  e=chaos). **Opus xhigh, chat nuova consigliata** (milestone pulito). Calibrazione: fase corta,
+  priorità ai test.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
