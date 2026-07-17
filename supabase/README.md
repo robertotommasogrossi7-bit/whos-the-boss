@@ -19,8 +19,11 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | 6 | `migrations/20260703100000_r6b5_hardening.sql` | R6-B5 | Hardening post-audit: `ON DELETE SET NULL` (M14) · trigger `updated_at` split insert/update (B31+B35) · `poker_movimenti` **append-only vero** (B32) · `UNIQUE(partita_id,giocatore_id)` (B33) · RLS `(select ...)` + `TO authenticated` su ~17 policy (B34). + query di verifica M14 in fondo al file. | ✅ **APPLICATA** (confermato dall'utente 2026-07-11) |
 | 7 | `migrations/20260714140000_grants_authenticated.sql` | R7.2d-5 | **GRANT DML espliciti** a `authenticated` (schema-as-code portabile). Scoperto dal **gate su DB reale**: senza, un DB ricreato da zero dà `permission denied for table` (i grant di default ci sono sul cloud, non in un ambiente pulito). Idempotente/additiva. | ✅ **APPLICATA** (locale: gate d5 · cloud: confermato dall'utente 2026-07-17) |
 
-> ✅ **TUTTE e 7 le migration sono APPLICATE sul cloud** (1→6 il 2026-07-11; #7 il 2026-07-17).
-> Cloud e file del repo sono allineati.
+| 8 | `migrations/20260717120000_r73_import_rpc.sql` | R7.3b | **RPC `import_locale(payload jsonb)`**: travaso one-shot del db locale (13 tabelle + 4 ponti) in **una transazione** (PostgREST). `SECURITY INVOKER` (RLS attiva) · **guardia atomica** su `profiles.imported_at` (I-R1: due import concorrenti non passano entrambi) · payload **versionato** (I-R7) · insert **parent-first** (I-R2: la RLS non è deferibile) · ritorna i **conteggi per tabella** (I-R6) · `grant execute` (I-R8). | ⏳ **SCRITTA, non ancora applicata** (né locale né cloud): attende il gate d'integrazione (`pnpm gate:import`) su Supabase locale |
+
+> ✅ Le migration **1→7 sono APPLICATE sul cloud** (1→6 il 2026-07-11; #7 il 2026-07-17): per esse
+> cloud e repo sono allineati. La **#8 è nuova e non applicata da nessuna parte** — prima va verde il
+> gate in locale, poi si applica al cloud (con conferma esplicita, come sempre).
 > ✅ **Sync vero validato in locale** (gate `scripts/gate-db.mjs`, R7.2d-5): round-trip, RLS owner-only,
 > upsert-by-uid, `updated_at` server-side — 8/8 verdi su Postgres reale ricreato da zero.
 
