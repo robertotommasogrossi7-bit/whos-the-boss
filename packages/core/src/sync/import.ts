@@ -19,7 +19,7 @@
 import type {
   Db, GiocatorePartita, Lega, Partita, SessioneGioco,
 } from '../types';
-import { generaUid } from '../utils/uid';
+import { conUid, generaUid } from '../utils/uid';
 import { mappaGiocatori } from './idMap';
 import {
   giocatoreToCloudRow, giocoLegaToCloudRow, legaToCloudRow,
@@ -50,17 +50,16 @@ function battezzaEntita<T extends { uid?: string; syncRev?: number }>(e: T): T {
   return { ...e, uid: e.uid ?? generaUid(), syncRev: e.syncRev ?? 1 };
 }
 
-/** Movimento del ledger: solo uid (append-only → niente syncRev/deletedAt, I5). */
-function battezzaMovimento<T extends { uid?: string }>(m: T): T {
-  return m.uid ? m : { ...m, uid: generaUid() };
-}
-
+/* Movimento del ledger: solo uid (append-only → niente syncRev/deletedAt, I5).
+   Da R7.4a-2 i movimenti nascono già con l'uid (`conUid` nello store): qui
+   resta per i dati storici creati prima. È lo STESSO helper — un movimento ha
+   una sola definizione di "identità cloud", non due. */
 function battezzaGiocatorePartita(gp: GiocatorePartita): GiocatorePartita {
   return {
     ...battezzaEntita(gp),
-    ricariche: gp.ricariche.map(battezzaMovimento),
-    pagamenti_effettuati: gp.pagamenti_effettuati.map(battezzaMovimento),
-    pagamenti_ricevuti: gp.pagamenti_ricevuti.map(battezzaMovimento),
+    ricariche: gp.ricariche.map(conUid),
+    pagamenti_effettuati: gp.pagamenti_effettuati.map(conUid),
+    pagamenti_ricevuti: gp.pagamenti_ricevuti.map(conUid),
   };
 }
 

@@ -42,6 +42,22 @@ export function nuovoSync(): { uid: string; syncRev: number; syncUpdatedAt: stri
   return { uid: generaUid(), syncRev: 1, syncUpdatedAt: new Date().toISOString() };
 }
 
+/** Identità cloud di un movimento del ledger (ricariche/pagamenti): SOLO uid —
+    niente syncRev/deletedAt, perché `poker_movimenti` è append-only (I5): un
+    movimento non si modifica e non si cancella, quindi non ha revisioni da
+    tracciare. **Idempotente**: un uid già assegnato non si rigenera MAI (un
+    movimento nasce nella sessione live e viene ricopiato nella partita salvata
+    alla chiusura — se cambiasse uid, il retry di un push lo duplicherebbe).
+
+    ⚠️ Firma: `m: T & { uid?: string }`, NON `<T extends { uid?: string }>`. Col
+    vincolo, TypeScript non riesce a inferire T da un literal privo di `uid`
+    (il vincolo ha solo campi opzionali → nessun aggancio) e ripiega sul vincolo
+    stesso: `conUid({ importo, pagata })` diventerebbe un errore "importo non
+    esiste su { uid?: string }". Con l'intersezione T si infersce dal literal. */
+export function conUid<T>(m: T & { uid?: string }): T & { uid?: string } {
+  return m.uid ? m : { ...m, uid: generaUid() };
+}
+
 /** Segna una mutazione locale: bump della revisione locale (+1) così supererà
     syncedRev finché il push non la conferma, e aggiorna il timestamp diagnostico.
     NON tocca syncedRev/lastSyncedAt (li scrive il sync). Ritorna una COPIA

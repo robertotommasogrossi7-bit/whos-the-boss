@@ -16,7 +16,7 @@ import { validaRinomina, giocatoreInUso } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
-import { nuovoSync } from '@whos-the-boss/core';
+import { conUid, nuovoSync } from '@whos-the-boss/core';
 import { calcolaSettlement } from '@whos-the-boss/core';
 import { calcolaSettlementTorneo } from '@whos-the-boss/core';
 import type { Trasferimento } from '@whos-the-boss/core';
@@ -792,7 +792,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const sess = lega.sessioneAttiva;
         const giocatori = sess.giocatori.map(g =>
           g.id_nome === idNome
-            ? { ...g, ricariche: [...g.ricariche, { importo, pagata }] }
+            ? { ...g, ricariche: [...g.ricariche, conUid({ importo, pagata })] }
             : g,
         );
         saveLega({ ...lega, sessioneAttiva: { ...sess, giocatori } });
@@ -1140,7 +1140,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         }
         const giocatori = sess.giocatori.map(x => {
           if (x.id_nome !== idNome) return x;
-          const rebuys = [...(x.rebuys ?? []), { importo: sess.buy_in, pagata }];
+          const rebuys = [...(x.rebuys ?? []), conUid({ importo: sess.buy_in, pagata })];
           return x.eliminato
             ? { ...x, rebuys, eliminato: false, elim_ts_ms: null, posizione_finale: null }
             : { ...x, rebuys };
@@ -1501,10 +1501,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             const sessG = settlement.sessione.giocatori.find(g => g.id_nome === gc.id_nome);
             const pagamenti_effettuati: PagamentoEffettuato[] = trasf
               .filter(t => t.from === gc.id_nome)
-              .map(t => ({ to: t.to, amount: t.importo }));
+              .map(t => conUid({ to: t.to, amount: t.importo }));
             const pagamenti_ricevuti: PagamentoRicevuto[] = trasf
               .filter(t => t.to === gc.id_nome)
-              .map(t => ({ from: t.from, amount: t.importo }));
+              .map(t => conUid({ from: t.from, amount: t.importo }));
             return {
               id_nome:             gc.id_nome,
               entrate:             sessG?.entrata ?? sa.buy_in,
@@ -1517,7 +1517,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
               vincitore:           false,
               buy_in_pagato:       true,
               extra_pagato:        true,
-              ricariche:           sessG?.ricariche ?? [],
+              // conUid: i movimenti nati nel live hanno già il loro uid (lo
+              // conservano); lo riceve qui solo chi viene da una sessione
+              // aperta prima di R7.4a-2 — mai una rigenerazione (idempotente).
+              ricariche:           (sessG?.ricariche ?? []).map(conUid),
               pagamenti_effettuati,
               pagamenti_ricevuti,
               posizione_finale:    null,
@@ -1567,7 +1570,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const giocatori: GiocatorePartita[] = settlement.entrati.map(c => {
           const isDebtor = c.contributo_residuo > 0.005;
           const pagamenti_effettuati: PagamentoEffettuato[] = isDebtor
-            ? (settlement.allocazioni[c.id_nome] ?? []).map(a => ({ to: a.to, amount: a.amount }))
+            ? (settlement.allocazioni[c.id_nome] ?? []).map(a => conUid({ to: a.to, amount: a.amount }))
             : [];
           // B04 (audit 2026-07-03): niente gate su c.netto (dovuto-vs-premio
           // teorico) — un giocatore può ricevere allocazioni reali anche con
@@ -1577,7 +1580,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
           const pagamenti_ricevuti: PagamentoRicevuto[] = settlement.losers.flatMap(l =>
             (settlement.allocazioni[l.id_nome] ?? [])
               .filter(a => a.to === c.id_nome)
-              .map(a => ({ from: l.id_nome, amount: a.amount }))
+              .map(a => conUid({ from: l.id_nome, amount: a.amount }))
           );
           return {
             id_nome:             c.id_nome,
@@ -1591,7 +1594,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             vincitore:           false,
             buy_in_pagato:       c.buy_in_pagato,
             extra_pagato:        c.extra_pagato,
-            ricariche:           c.ricariche,
+            ricariche:           c.ricariche.map(conUid),   // vedi nota nel ramo cash
             pagamenti_effettuati,
             pagamenti_ricevuti,
             posizione_finale:    c.posizione_finale,
