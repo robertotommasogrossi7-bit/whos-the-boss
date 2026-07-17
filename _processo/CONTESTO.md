@@ -428,9 +428,27 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     (`core/tombstone.ts`, S4-R3), cablato in tutti i lettori che calcolano + le viste che elencano la rosa.
     Movimenti ledger NON tombstonati (append-only). Test: tombstono → fuori da stats/storico, ma resta
     lapide dirty da spedire coi figli. Tutti i test anti-regressione **verificati che sappiano fallire**.
-  - **PROSSIMO: R7.4b** (pull puro: materializzatori + ciclo merge con regola del pegno + orfani; fixtures).
-    ⏭️ **Ancora da fare in R7.4d**: correggere i testi che promettono l'"unione" del 2° device
-    (`orchestraImport.ts` + `carica-dati.tsx`) → adozione DS9 (P.8.1).
+  ✅ **R7.4b COMPLETO** (2026-07-17, branch `rn-r74-sync`, Opus): il **pull puro**, funzione
+    `(db, snapshot) → db` senza rete né orologio. **396 test core + 18 state**, core+mobile tsc +
+    expo export verdi a ogni commit.
+  - **b1** (`7c97321`): 9 **materializzatori** (`sync/materializza.ts`) — righe cloud nuove → entità
+    locali ex-novo. id locale NUOVO dai contatori (non il local_id cloud: spazi id indipendenti,
+    l'uid è l'unica chiave — I1); riga PULITA (syncRev===syncedRev) col pegno lastSyncedAt =
+    updated_at server; fallback catalogo per i preset (F4).
+  - **b2** (`215bf70`): **`mergeConPegno`** — la regola del pegno (P.3, "delicata da red-teamare"):
+    il pegno del CAS segue SEMPRE l'updated_at del cloud, anche quando i dati restano locali (dirty
+    vince) → il push successivo non va in deadlock. Property test + verificato che fallisca.
+  - **b3** (`7d4c087`): **`applicaPull`** (`sync/pull.ts`) — ciclo lega+giocatori+**poker** (soldi):
+    merge-o-materializza per uid, parent-first, **idMap viva** (P.8.5). Tipo `SnapshotCloud` (13
+    tabelle + 4 ponti). Leghe solo-locali intatte, idempotente. Pulizia: `tsc -p core` ora pulito
+    (4 type-error di test preesistenti sistemati).
+  - **b4** (`6bf59db`): estensione **multigioco** (giochi/serate/sessioni/partite-gioco + ponti) +
+    **orfani ancestor-aware** (C4): una partita-gioco nuova sotto una sessione tombstonata nasce
+    tombstonata (mai resurrezione cross-device). Verificato che fallisca.
+  - **PROSSIMO: R7.4c** (push: migration **#10** `push_lega` CAS + costruzione payload dirty +
+    stamp; gate su Postgres reale). Poi R7.4d (orchestratore + adozione DS9 + correggere i testi
+    "unione" in `orchestraImport.ts`/`carica-dati.tsx`) ed R7.4e (chaos). ⚠️ **La migration del push
+    sarà la #10** (la #9 `gioco_key` è già presa da G1).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
