@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Db, GiocatorePartita, Lega, Partita, Sessione, SessioneGioco } from '../types';
+import { touchSync } from '../utils/uid';
+import { haCambiamentiLocaliNonSincronizzati } from './merge';
 import {
-  battezzaDb, conteggiPayload, costruisciPayloadImport, PAYLOAD_VERSION,
-  preflightImport, riconciliaSoldi,
+  applicaStampImport, battezzaDb, conteggiPayload, costruisciPayloadImport, PAYLOAD_VERSION,
+  preflightImport, revisioniSpedite, riconciliaSoldi,
 } from './import';
 
 /* ── fixture compatte ─────────────────────────────────────────────────── */
@@ -381,5 +383,103 @@ describe('costruisciPayloadImport (R7.3a)', () => {
   it('è deterministico: due build dello stesso db danno lo stesso payload (retry sicuro)', () => {
     const d = legaCompleta();
     expect(costruisciPayloadImport(d, 'owner-1')).toEqual(costruisciPayloadImport(d, 'owner-1'));
+  });
+});
+
+describe('stamp post-import — contratto R7.3→R7.4 (sez. O.3, I-R3/I-R4)', () => {
+  const sporca = (e: { syncRev?: number; syncedRev?: number }) => haCambiamentiLocaliNonSincronizzati(e);
+
+  /** Db battezzato tipico: 2 giocatori, una partita con debito e movimenti. */
+  const dbSpedibile = () => battezzaDb(db([lega({
+    nomi: [{ id: 1, nome: 'Anna' }, { id: 2, nome: 'Bruno' }],
+    partite: [partita({
+      giocatori: [gp({ id_nome: 1, ricariche: [{ importo: 10 }] })],
+      settlements: [{ from: 2, to: 1, amount: 15, pagato: false }],
+    })],
+    sessioniGioco: [sessioneGioco({ partite: [{ id: 1, ora_inizio: '21:00', ora_fine: '21:30', vincitori: [1], pareggio: false }] })],
+  })]));
+
+  it('dopo lo stamp, TUTTE le righe spedite risultano sincronizzate (pulite)', () => {
+    const prima = dbSpedibile();
+    const dopo = applicaStampImport(prima, revisioniSpedite(prima));
+    const l = dopo.leghe[0];
+
+    expect(sporca(l)).toBe(false);
+    expect(l.nomi.some(sporca)).toBe(false);
+    expect(sporca(l.partite[0])).toBe(false);
+    expect(l.partite[0].giocatori.some(sporca)).toBe(false);
+    expect(l.partite[0].settlements.some(sporca)).toBe(false);
+    expect(sporca(l.sessioniGioco![0])).toBe(false);
+    expect(l.sessioniGioco![0].partite.some(sporca)).toBe(false);
+  });
+
+  it('prima dello stamp erano tutte sporche (mai sincronizzate)', () => {
+    const prima = dbSpedibile();
+    expect(sporca(prima.leghe[0])).toBe(true);
+    expect(prima.leghe[0].nomi.every(sporca)).toBe(true);
+  });
+
+  it('CASO CRITICO: la riga modificata MENTRE l\'import è in volo resta dirty (I-R3)', () => {
+    const prima = dbSpedibile();
+    const spedite = revisioniSpedite(prima); // istantanea al momento dell'invio
+
+    // ... l'utente rinomina Anna mentre la RPC è in volo → syncRev 1 → 2
+    const durante: Db = {
+      ...prima,
+      leghe: [{ ...prima.leghe[0], nomi: [touchSync(prima.leghe[0].nomi[0]), prima.leghe[0].nomi[1]] }],
+    };
+
+    const dopo = applicaStampImport(durante, spedite);
+    // Anna: syncRev 2 > syncedRev 1 → sporca, la pusherà R7.4 (nessun edit perso)
+    expect(dopo.leghe[0].nomi[0].syncedRev).toBe(1);
+    expect(dopo.leghe[0].nomi[0].syncRev).toBe(2);
+    expect(sporca(dopo.leghe[0].nomi[0])).toBe(true);
+    // Bruno, non toccato: pulito
+    expect(sporca(dopo.leghe[0].nomi[1])).toBe(false);
+  });
+
+  it('una riga creata DOPO l\'istantanea (mai spedita) resta dirty', () => {
+    const prima = dbSpedibile();
+    const spedite = revisioniSpedite(prima);
+    const conNuovo = battezzaDb({
+      ...prima,
+      leghe: [{ ...prima.leghe[0], nomi: [...prima.leghe[0].nomi, { id: 3, nome: 'Carla' }] }],
+    });
+    const dopo = applicaStampImport(conNuovo, spedite);
+    const carla = dopo.leghe[0].nomi[2];
+    expect(carla.syncedRev).toBeUndefined(); // mai stampata: non era nel payload
+    expect(sporca(carla)).toBe(true);
+  });
+
+  it('i movimenti del ledger non sono toccati (append-only: niente syncRev/syncedRev)', () => {
+    const prima = dbSpedibile();
+    const dopo = applicaStampImport(prima, revisioniSpedite(prima));
+    const ric = dopo.leghe[0].partite[0].giocatori[0].ricariche[0] as { syncedRev?: number; uid?: string };
+    expect(ric.syncedRev).toBeUndefined();
+    expect(ric.uid).toBeTruthy(); // l'uid però c'è (serve al push idempotente)
+  });
+
+  it('revisioniSpedite: mappa uid → revisione, movimenti esclusi', () => {
+    const d = dbSpedibile();
+    const m = revisioniSpedite(d);
+    expect(m.get(d.leghe[0].uid!)).toBe(1);
+    expect(m.get(d.leghe[0].nomi[0].uid!)).toBe(1);
+    // il movimento ha un uid ma non entra nella mappa (non ha revisione)
+    expect(m.has(d.leghe[0].partite[0].giocatori[0].ricariche[0].uid!)).toBe(false);
+  });
+
+  it('stamp con mappa vuota (ramo `already_imported`, I-R4): NIENTE viene marcato pulito', () => {
+    // 2° device con dati divergenti: la RPC risponde already_imported → non si stampa nulla
+    const prima = dbSpedibile();
+    const dopo = applicaStampImport(prima, new Map());
+    expect(dopo.leghe[0].nomi.every(sporca)).toBe(true);
+    expect(sporca(dopo.leghe[0])).toBe(true);
+  });
+
+  it('non muta il db originale (funzione pura)', () => {
+    const prima = dbSpedibile();
+    applicaStampImport(prima, revisioniSpedite(prima));
+    expect(prima.leghe[0].syncedRev).toBeUndefined();
+    expect(sporca(prima.leghe[0])).toBe(true);
   });
 });

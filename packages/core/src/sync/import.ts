@@ -350,3 +350,73 @@ export function conteggiPayload(p: PayloadImport): Record<string, number> {
   }
   return out;
 }
+
+/* ── Stamp post-import: il contratto R7.3 → R7.4 (sez. O.3) ───────────────
+   Il vero output dell'import NON è "le righe sono sul server": è **"locale e
+   cloud sono in uno stato da cui il delta-sync non duplica e non perde"**.
+   Il red team l'ha indicato come il pezzo che, lasciato implicito, trasforma
+   un import "riuscito" in perdita o duplicazione di soldi al primo sync (I-R3).
+
+   La regola, in una riga:
+     per ogni riga importata `syncedRev` = **la revisione spedita**;
+     ogni edit avvenuto nella finestra dell'import resta dirty;
+     nessuna riga divergente di un altro device viene mai marcata pulita.
+
+   Il meccanismo si appoggia al dirty-tracking a contatore (R7.2d-2) e non ha
+   bisogno di altra logica: se durante l'import l'utente tocca una riga, la sua
+   `syncRev` avanza oltre la revisione spedita e la riga risulta sporca **da
+   sola** (syncRev > syncedRev). Nessuna finestra di perdita silenziosa. */
+
+/** Istantanea di ciò che si sta spedendo: uid → revisione spedita. Va presa
+    dal db battezzato usato per costruire il payload, PRIMA della RPC. */
+export function revisioniSpedite(db: Db): Map<string, number> {
+  const out = new Map<string, number>();
+  const add = (e: { uid?: string; syncRev?: number }) => {
+    if (e.uid) out.set(e.uid, e.syncRev ?? 0);
+  };
+  for (const l of db.leghe) {
+    add(l);
+    l.nomi.forEach(add);
+    l.giochi?.forEach(add);
+    l.serate?.forEach(add);
+    l.sessioniGioco?.forEach((s) => { add(s); s.partite.forEach(add); });
+    for (const p of l.partite) {
+      add(p);
+      p.settlements.forEach(add);
+      p.giocatori.forEach(add);
+      // i movimenti non hanno syncRev (append-only, I5): niente stamp
+    }
+  }
+  return out;
+}
+
+/**
+ * Marca come sincronizzate SOLO le righe effettivamente spedite, con la
+ * revisione spedita (contratto O.3). Da chiamare **dopo** che la RPC ha
+ * confermato E i conteggi combaciano (I-R6).
+ *
+ * ⚠️ NON va chiamata sul ramo `already_imported` di un secondo device con dati
+ * divergenti: quei dati non sono sul server, marcarli puliti li perderebbe
+ * (I-R4). Restano dirty e li unirà il delta-sync (R7.4).
+ */
+export function applicaStampImport(db: Db, spedite: Map<string, number>): Db {
+  const stampa = <T extends { uid?: string; syncedRev?: number }>(e: T): T => {
+    const rev = e.uid ? spedite.get(e.uid) : undefined;
+    return rev === undefined ? e : { ...e, syncedRev: rev };
+  };
+  return {
+    ...db,
+    leghe: db.leghe.map((l) => ({
+      ...stampa(l),
+      nomi: l.nomi.map(stampa),
+      giochi: l.giochi?.map(stampa),
+      serate: l.serate?.map(stampa),
+      sessioniGioco: l.sessioniGioco?.map((s) => ({ ...stampa(s), partite: s.partite.map(stampa) })),
+      partite: l.partite.map((p) => ({
+        ...stampa(p),
+        giocatori: p.giocatori.map(stampa),
+        settlements: p.settlements.map(stampa),
+      })),
+    })),
+  };
+}
