@@ -21,8 +21,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import assert from 'node:assert/strict';
 import {
-  battezzaDb, conteggiPayload, costruisciPayloadImport, preflightImport,
-  type Db, type Lega,
+  battezzaDb, conteggiPayload, costruisciPayloadImport,
+  haCambiamentiLocaliNonSincronizzati, orchestraImport, preflightImport,
+  type Db, type DepsImport, type Lega,
 } from '../packages/core/src/index';
 
 const URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
@@ -185,7 +186,85 @@ async function main() {
   assert.equal(spiate?.length ?? 0, 0, `RLS BUCATA: un altro account vede ${spiate?.length} leghe importate!`);
   ok('RLS: i dati importati non sono visibili ad altri account');
 
-  console.log(`\n✅ GATE IMPORT PASSATO — ${passed} check verdi contro Postgres reale.\n`);
+  await chaos();
+  console.log(`\n✅ GATE + CHAOS PASSATI — ${passed} check verdi contro Postgres reale.\n`);
 }
 
-main().catch((e) => { console.error(`\n❌ GATE IMPORT FALLITO: ${e.message}\n`); process.exit(1); });
+/* ════════════════════════════════════════════════════════════════════════
+   CHAOS TEST (R7.3d) — l'orchestratore VERO contro il DB VERO, guasti veri.
+   Gli unit test provano i rami con dipendenze finte; qui il server committa
+   davvero e il client, davvero, non lo viene a sapere.
+════════════════════════════════════════════════════════════════════════ */
+function depsDi(u: Utente, dbIniziale: Db, over: Partial<DepsImport> = {}): { deps: DepsImport; db: () => Db } {
+  let corrente = dbIniziale;
+  const deps: DepsImport = {
+    leggiDb: () => corrente,
+    scriviDb: (d) => { corrente = d; },
+    confermaPersist: async () => true,
+    chiamaRpc: async (payload) => {
+      const { data, error } = await u.client.rpc('import_locale', { payload });
+      if (error) return { errore: error.message };
+      return { conteggi: (data ?? {}) as Record<string, number> };
+    },
+    ownerId: u.userId,
+    ...over,
+  };
+  return { deps, db: () => corrente };
+}
+
+async function chaos() {
+  console.log('\n── CHAOS (R7.3d): guasti veri ──\n');
+
+  // ── CHAOS 1: il server committa, la risposta si perde, l'utente ritenta ──
+  const F = await nuovoUtente('F');
+  const primo = depsDi(F, dbFinto(), {
+    chiamaRpc: async (payload) => {
+      await F.client.rpc('import_locale', { payload }); // il COMMIT avviene davvero
+      return { errore: 'network request failed' };      // ...ma il client non lo sa
+    },
+  });
+  const e1 = await orchestraImport(primo.deps);
+  assert.equal(e1.stato, 'errore', 'il client deve vedere l\'errore di rete');
+  ok('crash post-commit: il client vede un errore (il server invece HA importato)');
+
+  const dopo = primo.db();
+  assert.ok(haCambiamentiLocaliNonSincronizzati(dopo.leghe[0]), 'dopo un errore il locale deve restare da sincronizzare');
+  ok('dopo l\'errore il locale resta "da sincronizzare" (nessuno stamp)');
+
+  // retry con lo STESSO db: uid già battezzati e salvati (I-R5)
+  const retry = depsDi(F, dopo);
+  const e2 = await orchestraImport(retry.deps);
+  assert.equal(e2.stato, 'gia_importato', `retry: atteso gia_importato, ricevuto ${e2.stato}`);
+  ok('retry dopo la risposta persa: riconosciuto `gia_importato`, nessun secondo import');
+
+  const { data: legheF } = await F.client.from('leghe').select('id');
+  assert.equal(legheF?.length, 2, `DUPLICATI: ${legheF?.length} leghe invece di 2`);
+  const { data: movF } = await F.client.from('poker_movimenti').select('id');
+  assert.equal(movF?.length, 3, `DUPLICATI nei movimenti: ${movF?.length} invece di 3`);
+  ok('zero duplicati sul server dopo il retry (gli uid stabili hanno retto)');
+
+  assert.ok(haCambiamentiLocaliNonSincronizzati(retry.db().leghe[0]), 'su gia_importato il locale NON va marcato pulito');
+  ok('su `gia_importato` il locale resta dirty: lo unira il delta-sync (I-R4)');
+
+  // ── CHAOS 2: il disco non conferma → non si spedisce nulla ──
+  const G = await nuovoUtente('G');
+  const senzaDisco = depsDi(G, dbFinto(), { confermaPersist: async () => false });
+  const e3 = await orchestraImport(senzaDisco.deps);
+  assert.equal(e3.stato, 'errore', 'persist non confermato deve dare errore');
+  const { data: legheG } = await G.client.from('leghe').select('id');
+  assert.equal(legheG?.length ?? 0, 0, 'BUG: ha spedito uid non salvati sul telefono!');
+  ok('disco che non conferma: NIENTE viene spedito (mai uid non salvati, I-R5)');
+
+  // ── CHAOS 3: doppio tap sul pulsante ──
+  const H = await nuovoUtente('H');
+  const tap1 = depsDi(H, dbFinto());
+  const tap2 = depsDi(H, dbFinto());
+  const esiti = await Promise.all([orchestraImport(tap1.deps), orchestraImport(tap2.deps)]);
+  const riusciti = esiti.filter((e) => e.stato === 'ok').length;
+  assert.equal(riusciti, 1, `doppio tap: ${riusciti} import riusciti invece di 1`);
+  const { data: legheH } = await H.client.from('leghe').select('id');
+  assert.equal(legheH?.length, 2, `doppio tap ha duplicato: ${legheH?.length} leghe invece di 2`);
+  ok('doppio tap sul pulsante: un solo import, zero duplicati');
+}
+
+main().catch((e) => { console.error(`\n❌ GATE/CHAOS FALLITO: ${e.message}\n`); process.exit(1); });
