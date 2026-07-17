@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Db, GiocatorePartita, Lega, Partita, Sessione, SessioneGioco } from '../types';
-import { battezzaDb } from './import';
+import { battezzaDb, preflightImport, riconciliaSoldi } from './import';
 
 /* ── fixture compatte ─────────────────────────────────────────────────── */
 const gp = (over: Partial<GiocatorePartita> = {}): GiocatorePartita => ({
@@ -171,5 +171,115 @@ describe('battezzaDb (R7.3a, I-R5)', () => {
     battezzaDb(originale);
     expect(originale.leghe[0].uid).toBeUndefined();
     expect(originale.leghe[0].nomi[0].uid).toBeUndefined();
+  });
+});
+
+describe('preflightImport (R7.3a, I-R8)', () => {
+  const tipi = (d: Db) => preflightImport(d).map((p) => p.tipo);
+
+  it('db battezzato e coerente: nessun problema', () => {
+    const buono = battezzaDb(db([lega({
+      personale: true,
+      nomi: [{ id: 1, nome: 'Anna' }, { id: 2, nome: 'Bruno' }],
+      giochi: [{ id: 'scopa', nome: 'Scopa', preimpostato: true, attivo: true, pareggioComeVittoria: true }],
+      serate: [{ id: 1, data: '2026-07-17', partecipanti: [1, 2] }],
+      sessioniGioco: [sessioneGioco({ serataId: 1, partecipanti: [1, 2], partite: [{ id: 1, ora_inizio: '21:00', ora_fine: '21:30', vincitori: [1], pareggio: false }] })],
+      partite: [partita({
+        giocatori: [gp({ id_nome: 1, pagamenti_effettuati: [{ to: 2, amount: 5 }] }), gp({ id_nome: 2, netto_finale: 0 })],
+        settlements: [{ from: 2, to: 1, amount: 15, pagato: false }],
+      })],
+    })]));
+    expect(preflightImport(buono)).toEqual([]);
+  });
+
+  it('due leghe Personale: blocca (violerebbe leghe_personale_uniq)', () => {
+    const d = battezzaDb(db([lega({ id: 1, personale: true }), lega({ id: 2, personale: true })]));
+    expect(tipi(d)).toContain('personale_duplicata');
+  });
+
+  it('uid mancante (battesimo non eseguito): segnalato', () => {
+    expect(tipi(db([lega({ nomi: [{ id: 1, nome: 'Anna' }] })]))).toContain('uid_mancante');
+  });
+
+  it('uid duplicato tra entità: segnalato', () => {
+    const d = db([lega({
+      uid: 'stesso-uid', syncRev: 1,
+      nomi: [{ id: 1, nome: 'Anna', uid: 'stesso-uid', syncRev: 1 }],
+    })]);
+    expect(tipi(d)).toContain('uid_duplicato');
+  });
+
+  it('FK orfana: settlement che punta a un giocatore inesistente', () => {
+    const d = battezzaDb(db([lega({
+      nomi: [{ id: 1, nome: 'Anna' }],
+      partite: [partita({ settlements: [{ from: 99, to: 1, amount: 10, pagato: false }] })],
+    })]));
+    expect(tipi(d)).toContain('fk_orfana');
+    expect(preflightImport(d)[0].messaggio).toMatch(/id 99/);
+  });
+
+  it('FK orfana: sessione su un gioco non più configurato', () => {
+    const d = battezzaDb(db([lega({
+      nomi: [{ id: 1, nome: 'Anna' }],
+      giochi: [],
+      sessioniGioco: [sessioneGioco({ giocoId: 'briscola', partecipanti: [1] })],
+    })]));
+    expect(tipi(d)).toContain('fk_orfana');
+    expect(preflightImport(d).some((p) => /briscola/.test(p.messaggio))).toBe(true);
+  });
+
+  it('FK orfana: sessione legata a una serata inesistente', () => {
+    const d = battezzaDb(db([lega({
+      nomi: [{ id: 1, nome: 'Anna' }],
+      giochi: [{ id: 'scopa', nome: 'Scopa', preimpostato: true, attivo: true, pareggioComeVittoria: true }],
+      serate: [],
+      sessioniGioco: [sessioneGioco({ giocoId: 'scopa', serataId: 42, partecipanti: [1] })],
+    })]));
+    expect(preflightImport(d).some((p) => /serata di appartenenza inesistente/.test(p.messaggio))).toBe(true);
+  });
+
+  it('i messaggi sono leggibili (niente gergo SQL)', () => {
+    const d = battezzaDb(db([lega({ nome: 'Amici', partite: [partita({ giocatori: [gp({ id_nome: 7 })] })] })]));
+    const msg = preflightImport(d)[0].messaggio;
+    expect(msg).toMatch(/giocatore inesistente/);
+    expect(msg).not.toMatch(/violates|constraint|SQLSTATE/i);
+  });
+});
+
+describe('riconciliaSoldi (R7.3a, F2 — flagga, non blocca)', () => {
+  it('partita coerente (netti a somma zero): nessuna anomalia', () => {
+    const d = db([lega({ partite: [partita({ giocatori: [gp({ netto_finale: 15 }), gp({ id_nome: 2, netto_finale: -15 })] })] })]);
+    expect(riconciliaSoldi(d)).toEqual([]);
+  });
+
+  it('tollera il drift da centesimi (float+r100)', () => {
+    const d = db([lega({ partite: [partita({ giocatori: [gp({ netto_finale: 10.005 }), gp({ id_nome: 2, netto_finale: -10 })] })] })]);
+    expect(riconciliaSoldi(d)).toEqual([]);
+  });
+
+  it('netti che non sommano a zero: anomalia con importo leggibile', () => {
+    const d = db([lega({ partite: [partita({ giocatori: [gp({ netto_finale: 50 }), gp({ id_nome: 2, netto_finale: -10 })] })] })]);
+    const a = riconciliaSoldi(d);
+    expect(a).toHaveLength(1);
+    expect(a[0].tipo).toBe('soldi_anomali');
+    expect(a[0].messaggio).toMatch(/40\.00 €/);
+  });
+
+  it('valori corrotti (NaN/Infinity) e debiti negativi: segnalati', () => {
+    const nan = db([lega({ partite: [partita({ giocatori: [gp({ netto_finale: NaN })] })] })]);
+    expect(riconciliaSoldi(nan)[0].messaggio).toMatch(/non è un numero valido/);
+
+    const neg = db([lega({ partite: [partita({ giocatori: [gp({ netto_finale: 0 })], settlements: [{ from: 1, to: 2, amount: -5, pagato: false }] })] })]);
+    expect(riconciliaSoldi(neg).some((p) => /negativo/.test(p.messaggio))).toBe(true);
+  });
+
+  it('è indipendente dal pre-flight: un dato strano non blocca l\'import', () => {
+    // netti sbilanciati ma struttura valida → preflight pulito, solo anomalia soft
+    const d = battezzaDb(db([lega({
+      nomi: [{ id: 1, nome: 'Anna' }],
+      partite: [partita({ giocatori: [gp({ id_nome: 1, netto_finale: 99 })] })],
+    })]));
+    expect(preflightImport(d)).toEqual([]);
+    expect(riconciliaSoldi(d)).toHaveLength(1);
   });
 });
