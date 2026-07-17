@@ -49,3 +49,26 @@ export function mergeLWW<L extends ConSync>(locale: L | undefined, daCloud: L): 
   if (haCambiamentiLocaliNonSincronizzati(locale)) return locale;
   return daCloud;
 }
+
+/**
+ * Merge del pull CON la regola del pegno (P.3, R7.4b). `daCloud` è già in forma
+ * locale (via i *FromCloudRow), quindi porta `lastSyncedAt = updated_at` del
+ * server. Sui DATI decide `mergeLWW`; ma il **pegno del CAS** (`lastSyncedAt`)
+ * segue SEMPRE l'`updated_at` del cloud appena visto, chiunque vinca:
+ *
+ *  - vince il cloud → `daCloud` ha già il pegno giusto;
+ *  - vince il locale DIRTY → i dati restano locali, ma il pegno va rinfrescato
+ *    all'`updated_at` del cloud. Senza, il push successivo (CAS: `expected ==
+ *    updated_at server`) confronterebbe un pegno vecchio e **abortirebbe per
+ *    sempre** — deadlock. Con il refresh, il push dopo sovrascrive il server:
+ *    l'LWW dichiarato diventa LWW reale ("vince chi pusha per ultimo", I2/V-S8).
+ *
+ * Idempotente: `mergeConPegno(a, a) = a` (nessun cambiamento se il pegno già
+ * combacia). Vale anche per il tombstone locale che vince: dovrà propagarsi col
+ * push, e senza pegno aggiornato non partirebbe mai.
+ */
+export function mergeConPegno<L extends ConSync>(locale: L | undefined, daCloud: L): L {
+  const vincitore = mergeLWW(locale, daCloud);
+  if (vincitore.lastSyncedAt === daCloud.lastSyncedAt) return vincitore;
+  return { ...vincitore, lastSyncedAt: daCloud.lastSyncedAt };
+}
