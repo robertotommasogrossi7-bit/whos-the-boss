@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Db, GiocatorePartita, Lega, Partita, Sessione, SessioneGioco } from '../types';
-import { battezzaDb, preflightImport, riconciliaSoldi } from './import';
+import {
+  battezzaDb, conteggiPayload, costruisciPayloadImport, PAYLOAD_VERSION,
+  preflightImport, riconciliaSoldi,
+} from './import';
 
 /* ── fixture compatte ─────────────────────────────────────────────────── */
 const gp = (over: Partial<GiocatorePartita> = {}): GiocatorePartita => ({
@@ -281,5 +284,102 @@ describe('riconciliaSoldi (R7.3a, F2 — flagga, non blocca)', () => {
     })]));
     expect(preflightImport(d)).toEqual([]);
     expect(riconciliaSoldi(d)).toHaveLength(1);
+  });
+});
+
+describe('costruisciPayloadImport (R7.3a)', () => {
+  /** Lega completa e coerente: poker (con movimenti e debiti) + multigioco (serata, sessione, partita). */
+  const legaCompleta = () => battezzaDb(db([lega({
+    id: 3, nome: 'Amici', personale: false,
+    nomi: [{ id: 1, nome: 'Anna' }, { id: 2, nome: 'Bruno' }],
+    giochi: [{ id: 'scopa', nome: 'Scopa', preimpostato: true, attivo: true, pareggioComeVittoria: true }],
+    serate: [{ id: 1, data: '2026-07-17', partecipanti: [1, 2] }],
+    sessioniGioco: [sessioneGioco({
+      serataId: 1, partecipanti: [1, 2],
+      partite: [{ id: 1, ora_inizio: '21:00', ora_fine: '21:30', vincitori: [1], pareggio: false, partecipanti: [1, 2] }],
+    })],
+    partite: [partita({
+      giocatori: [
+        gp({ id_nome: 1, netto_finale: 15, ricariche: [{ importo: 10 }], pagamenti_ricevuti: [{ from: 2, amount: 15 }] }),
+        gp({ id_nome: 2, netto_finale: -15, pagamenti_effettuati: [{ to: 1, amount: 15 }] }),
+      ],
+      settlements: [{ from: 2, to: 1, amount: 15, pagato: false }],
+    })],
+  })]));
+
+  it('db vuoto: payload versionato con tutte le tabelle vuote', () => {
+    const p = costruisciPayloadImport(db([]), 'owner-1');
+    expect(p.version).toBe(PAYLOAD_VERSION);
+    expect(conteggiPayload(p)).toEqual({
+      leghe: 0, giocatori: 0, giochi_lega: 0, partite_poker: 0, partita_poker_giocatori: 0,
+      poker_movimenti: 0, settlements: 0, serate: 0, serata_partecipanti: 0, sessioni_gioco: 0,
+      sessione_gioco_partecipanti: 0, partite_gioco: 0, partita_gioco_vincitori: 0, partita_gioco_partecipanti: 0,
+    });
+  });
+
+  it('mappa tutte le 13 tabelle + ponti con i conteggi giusti', () => {
+    expect(conteggiPayload(costruisciPayloadImport(legaCompleta(), 'owner-1'))).toEqual({
+      leghe: 1, giocatori: 2, giochi_lega: 1,
+      partite_poker: 1, partita_poker_giocatori: 2, poker_movimenti: 3, settlements: 1,
+      serate: 1, serata_partecipanti: 2,
+      sessioni_gioco: 1, sessione_gioco_partecipanti: 2,
+      partite_gioco: 1, partita_gioco_vincitori: 1, partita_gioco_partecipanti: 2,
+    });
+  });
+
+  it('le relazioni passano per gli uid, mai per gli id locali', () => {
+    const d = legaCompleta();
+    const p = costruisciPayloadImport(d, 'owner-1');
+    const l = d.leghe[0];
+
+    expect(p.leghe[0].id).toBe(l.uid);
+    expect(p.leghe[0].owner_id).toBe('owner-1');
+    expect(p.leghe[0].local_id).toBe(3); // l'id locale viaggia come ponte, non come chiave
+    expect(p.giocatori.every((g) => g.lega_id === l.uid)).toBe(true);
+    // il debito punta agli uid dei due giocatori, non a 1/2
+    expect(p.settlements[0].from_giocatore_id).toBe(l.nomi[1].uid);
+    expect(p.settlements[0].to_giocatore_id).toBe(l.nomi[0].uid);
+    // la sessione punta al gioco e alla serata via uid
+    expect(p.sessioni_gioco[0].gioco_lega_id).toBe(l.giochi![0].uid);
+    expect(p.sessioni_gioco[0].serata_id).toBe(l.serate![0].uid);
+    // i movimenti puntano al giocatore-partita e alla controparte via uid
+    expect(p.poker_movimenti.every((m) => !!m.id && !!m.partita_giocatore_id)).toBe(true);
+    expect(p.poker_movimenti.find((m) => m.tipo === 'pagamento_effettuato')?.contro_giocatore_id).toBe(l.nomi[0].uid);
+  });
+
+  it('NON spedisce created_at/updated_at (li mette il server, I2/I7)', () => {
+    const p = costruisciPayloadImport(legaCompleta(), 'owner-1');
+    const righe = [...p.leghe, ...p.giocatori, ...p.partite_poker, ...p.poker_movimenti] as Record<string, unknown>[];
+    expect(righe.every((r) => !('created_at' in r) && !('updated_at' in r))).toBe(true);
+  });
+
+  it('NON include lo stato live (fuori scope R7)', () => {
+    const sessioneFinta = { stato: 'live' } as unknown as Sessione;
+    const d = battezzaDb(db([lega({ sessioneAttiva: sessioneFinta, serate_bg: [sessioneFinta] })]));
+    const json = JSON.stringify(costruisciPayloadImport(d, 'owner-1'));
+    expect(json).not.toMatch(/"stato":"live"/);
+  });
+
+  it('porta con sé le anomalie della riconciliazione (non bloccano, I-R6/F2)', () => {
+    const d = battezzaDb(db([lega({ nomi: [{ id: 1, nome: 'Anna' }], partite: [partita({ giocatori: [gp({ id_nome: 1, netto_finale: 99 })] })] })]));
+    const p = costruisciPayloadImport(d, 'owner-1');
+    expect(p.anomalie).toHaveLength(1);
+    expect(p.anomalie[0].tipo).toBe('soldi_anomali');
+    expect(conteggiPayload(p).partite_poker).toBe(1); // importata comunque
+  });
+
+  it('db non battezzato: errore chiaro invece di payload monco', () => {
+    expect(() => costruisciPayloadImport(db([lega({ nome: 'Senza uid' })]), 'owner-1'))
+      .toThrow(/battezzaDb/);
+  });
+
+  it('FK orfana: errore che rimanda al pre-flight', () => {
+    const d = battezzaDb(db([lega({ nomi: [{ id: 1, nome: 'Anna' }], partite: [partita({ giocatori: [gp({ id_nome: 99 })] })] })]));
+    expect(() => costruisciPayloadImport(d, 'owner-1')).toThrow(/fk_orfana/);
+  });
+
+  it('è deterministico: due build dello stesso db danno lo stesso payload (retry sicuro)', () => {
+    const d = legaCompleta();
+    expect(costruisciPayloadImport(d, 'owner-1')).toEqual(costruisciPayloadImport(d, 'owner-1'));
   });
 });

@@ -20,6 +20,21 @@ import type {
   Db, GiocatorePartita, Lega, Partita, SessioneGioco,
 } from '../types';
 import { generaUid } from '../utils/uid';
+import { mappaGiocatori } from './idMap';
+import {
+  giocatoreToCloudRow, giocoLegaToCloudRow, legaToCloudRow,
+  type GiocatoreCloudRow, type GiocoLegaCloudRow, type LegaCloudRow,
+} from './mapping';
+import {
+  partitaGiocoToCloudRow, serataToCloudRow, sessioneGiocoToCloudRow,
+  type PartitaGiocoCloudRow, type SerataCloudRow, type SessioneGiocoCloudRow,
+} from './mappingMultigioco';
+import {
+  giocatorePartitaToCloudRow, movimentiToCloudRows, partitaToCloudRow, settlementToCloudRow,
+  type GiocatorePartitaCloudRow, type PartitaPokerCloudRow, type PokerMovimentoCloudRow,
+  type SettlementCloudRow,
+} from './mappingPoker';
+import { ponteToUids } from './mappingPonti';
 
 /* ── Battesimo ────────────────────────────────────────────────────────────
    I dati storici (creati prima di R7.2a) non hanno `uid`: senza identità
@@ -196,6 +211,142 @@ export function riconciliaSoldi(db: Db): ProblemaImport[] {
         else if (s.amount < 0) err(`${dove}: un debito ha importo negativo (${s.amount.toFixed(2)} €).`);
       });
     }
+  }
+  return out;
+}
+
+/* ── Payload builder ──────────────────────────────────────────────────────
+   Il db locale → UN solo oggetto JSONB con tutte le tabelle, spedito alla RPC
+   `import_locale` (transazione unica, all-or-nothing). Riusa i mapping puri
+   già testati (mapping*.ts) e la mappa id↔uid (idMap.ts): qui c'è solo
+   l'assemblaggio. `created_at`/`updated_at` non si spediscono: li mette il
+   server (I2/I7). L'ORDINE delle chiavi rispecchia l'ordine di insert
+   parent-first che la RPC deve seguire (I-R2: la RLS non è deferibile). */
+
+/** Versione del formato del payload. La RPC rifiuta le versioni che non
+    conosce invece di indovinare (I-R7). */
+export const PAYLOAD_VERSION = 1;
+
+type Riga<T> = Omit<T, 'created_at' | 'updated_at'>;
+interface RigaPonte { giocatore_id: string }
+
+export interface PayloadImport {
+  version: number;
+  // ── ordine parent-first (I-R2) ──
+  leghe: Riga<LegaCloudRow>[];
+  giocatori: Riga<GiocatoreCloudRow>[];
+  giochi_lega: Riga<GiocoLegaCloudRow>[];
+  partite_poker: Riga<PartitaPokerCloudRow>[];
+  partita_poker_giocatori: Riga<GiocatorePartitaCloudRow>[];
+  poker_movimenti: Riga<PokerMovimentoCloudRow>[];
+  settlements: Riga<SettlementCloudRow>[];
+  serate: Riga<SerataCloudRow>[];
+  serata_partecipanti: (RigaPonte & { serata_id: string })[];
+  sessioni_gioco: Riga<SessioneGiocoCloudRow>[];
+  sessione_gioco_partecipanti: (RigaPonte & { sessione_gioco_id: string })[];
+  partite_gioco: Riga<PartitaGiocoCloudRow>[];
+  partita_gioco_vincitori: (RigaPonte & { partita_gioco_id: string })[];
+  partita_gioco_partecipanti: (RigaPonte & { partita_gioco_id: string })[];
+  /** Anomalie della riconciliazione soft: viaggiano col payload, non bloccano (F2). */
+  anomalie: ProblemaImport[];
+}
+
+function esigiUid(uid: string | undefined, dove: string): string {
+  if (!uid) throw new Error(`costruisciPayloadImport: ${dove} senza uid — battezzaDb() non è stato eseguito.`);
+  return uid;
+}
+
+/**
+ * Db locale (già battezzato) → payload per la RPC `import_locale`.
+ * Presuppone `preflightImport(db) === []`: se una FK è orfana o un uid manca,
+ * qui si lancia (meglio un errore chiaro che un payload monco).
+ * Lo stato LIVE non entra nel payload (fuori scope R7).
+ */
+export function costruisciPayloadImport(db: Db, ownerId: string): PayloadImport {
+  const p: PayloadImport = {
+    version: PAYLOAD_VERSION,
+    leghe: [], giocatori: [], giochi_lega: [],
+    partite_poker: [], partita_poker_giocatori: [], poker_movimenti: [], settlements: [],
+    serate: [], serata_partecipanti: [],
+    sessioni_gioco: [], sessione_gioco_partecipanti: [],
+    partite_gioco: [], partita_gioco_vincitori: [], partita_gioco_partecipanti: [],
+    anomalie: riconciliaSoldi(db),
+  };
+
+  for (const l of db.leghe) {
+    const legaUid = esigiUid(l.uid, `lega "${l.nome}"`);
+    p.leghe.push(legaToCloudRow(l, ownerId));
+
+    const { toUid } = mappaGiocatori(l.nomi);
+    const risolviUid = (idNome: number): string => {
+      const u = toUid.get(idNome);
+      if (!u) throw new Error(`costruisciPayloadImport: giocatore id ${idNome} inesistente nella lega "${l.nome}" (preflightImport() lo segnala come fk_orfana).`);
+      return u;
+    };
+
+    l.nomi.forEach((n) => p.giocatori.push(giocatoreToCloudRow(n, legaUid)));
+    l.giochi?.forEach((g) => p.giochi_lega.push(giocoLegaToCloudRow(g, legaUid)));
+
+    // ── poker ──
+    for (const pt of l.partite) {
+      const partitaUid = esigiUid(pt.uid, `partita del ${pt.data}`);
+      p.partite_poker.push(partitaToCloudRow(pt, legaUid));
+      pt.settlements.forEach((s, i) => {
+        p.settlements.push(settlementToCloudRow(s, partitaUid, risolviUid(s.from), risolviUid(s.to), i));
+      });
+      for (const gp of pt.giocatori) {
+        const gpUid = esigiUid(gp.uid, `giocatore della partita del ${pt.data}`);
+        p.partita_poker_giocatori.push(giocatorePartitaToCloudRow(gp, partitaUid, risolviUid(gp.id_nome)));
+        p.poker_movimenti.push(...movimentiToCloudRows(gp, gpUid, risolviUid));
+      }
+    }
+
+    // ── multigioco ──
+    const giochiUid = new Map((l.giochi ?? []).map((g) => [g.id, esigiUid(g.uid, `gioco "${g.nome}"`)]));
+    const serateUid = new Map((l.serate ?? []).map((s) => [s.id, esigiUid(s.uid, `serata del ${s.data}`)]));
+
+    l.serate?.forEach((s) => {
+      const serataUid = serateUid.get(s.id)!;
+      p.serate.push(serataToCloudRow(s, legaUid));
+      ponteToUids(s.partecipanti, risolviUid).forEach((giocatore_id) => {
+        p.serata_partecipanti.push({ serata_id: serataUid, giocatore_id });
+      });
+    });
+
+    l.sessioniGioco?.forEach((s) => {
+      const sessioneUid = esigiUid(s.uid, `sessione "${s.giocoId}" del ${s.data}`);
+      p.sessioni_gioco.push(sessioneGiocoToCloudRow(
+        s, legaUid,
+        giochiUid.get(s.giocoId) ?? null,
+        s.serataId !== undefined ? serateUid.get(s.serataId) : undefined,
+      ));
+      ponteToUids(s.partecipanti, risolviUid).forEach((giocatore_id) => {
+        p.sessione_gioco_partecipanti.push({ sessione_gioco_id: sessioneUid, giocatore_id });
+      });
+      s.partite.forEach((pg) => {
+        const pgUid = esigiUid(pg.uid, `partita delle ${pg.ora_inizio}`);
+        p.partite_gioco.push(partitaGiocoToCloudRow(pg, sessioneUid));
+        ponteToUids(pg.vincitori, risolviUid).forEach((giocatore_id) => {
+          p.partita_gioco_vincitori.push({ partita_gioco_id: pgUid, giocatore_id });
+        });
+        pg.partecipanti?.forEach((idNome) => {
+          p.partita_gioco_partecipanti.push({ partita_gioco_id: pgUid, giocatore_id: risolviUid(idNome) });
+        });
+      });
+    });
+  }
+  return p;
+}
+
+/**
+ * Righe per tabella nel payload. Il client le confronta con i conteggi che la
+ * RPC restituisce, PRIMA di considerare l'import riuscito: è il vero controllo
+ * anti-perdita (I-R6) — una tabella saltata in silenzio verrebbe scoperta qui.
+ */
+export function conteggiPayload(p: PayloadImport): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (Array.isArray(v) && k !== 'anomalie') out[k] = v.length;
   }
   return out;
 }
