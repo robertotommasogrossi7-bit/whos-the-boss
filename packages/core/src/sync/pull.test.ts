@@ -154,3 +154,83 @@ describe('applicaPull — merge su lega esistente', () => {
     expect(out.leghe[0].nome).toBe('Locale');
   });
 });
+
+describe('applicaPull — multigioco da un altro device', () => {
+  it('materializza serata + sessione + partita-gioco, risolvendo ponti e serataId', () => {
+    const snap: SnapshotCloud = {
+      ...snapVuoto(),
+      leghe: [legaRow()],
+      giocatori: [giocatoreRow({ id: 'G1', nome: 'Anna' }), giocatoreRow({ id: 'G2', nome: 'Bruno' })],
+      serate: [{ id: 'SER1', lega_id: 'L1', local_id: 1, data: '2026-07-17', created_at: T, updated_at: T, deleted_at: null }],
+      serata_partecipanti: [{ serata_id: 'SER1', giocatore_id: 'G1' }, { serata_id: 'SER1', giocatore_id: 'G2' }],
+      sessioni_gioco: [{
+        id: 'SG1', lega_id: 'L1', local_id: 1, gioco_key: 'scopa', gioco_lega_id: null, data: '2026-07-17',
+        stato: 'chiusa', ora_inizio: '21:00', ora_fine: '22:00', esito_pareggio: false, serata_id: 'SER1',
+        created_at: T, updated_at: T, deleted_at: null,
+      }],
+      sessione_gioco_partecipanti: [{ sessione_gioco_id: 'SG1', giocatore_id: 'G1' }, { sessione_gioco_id: 'SG1', giocatore_id: 'G2' }],
+      partite_gioco: [{
+        id: 'PG1', sessione_gioco_id: 'SG1', local_id: 1, ora_inizio: '21:00', ora_fine: '21:30',
+        pareggio: false, nome_libero: null, ordine: 1, created_at: T, updated_at: T, deleted_at: null,
+      }],
+      partita_gioco_vincitori: [{ partita_gioco_id: 'PG1', giocatore_id: 'G1' }],
+    };
+    const out = applicaPull(dbVuoto(), snap);
+    const lega = out.leghe[0];
+    const [annaId, brunoId] = [lega.nomi[0].id, lega.nomi[1].id];
+
+    expect(lega.serate).toHaveLength(1);
+    expect(lega.serate![0].id).toBe(1);
+    expect(lega.serate![0].partecipanti).toEqual([annaId, brunoId]);
+    expect(lega._serataId).toBe(2);
+
+    expect(lega.sessioniGioco).toHaveLength(1);
+    const sess = lega.sessioniGioco![0];
+    expect(sess.giocoId).toBe('scopa');            // G1: dalla gioco_key
+    expect(sess.serataId).toBe(1);                 // risolto all'id locale della serata
+    expect(sess.partecipanti).toEqual([annaId, brunoId]);
+    expect(lega._sgid).toBe(2);
+
+    expect(sess.partite).toHaveLength(1);
+    expect(sess.partite[0].vincitori).toEqual([annaId]);
+    expect(haCambiamentiLocaliNonSincronizzati(sess)).toBe(false); // pulita
+  });
+
+  it('gioco custom: materializzato con i suoi campi', () => {
+    const snap: SnapshotCloud = {
+      ...snapVuoto(),
+      leghe: [legaRow()],
+      giochi_lega: [{
+        id: 'GL1', lega_id: 'L1', gioco_key: 'custom-1', nome: 'Briscolone', preimpostato: false,
+        foto: null, accent: '#ABCDEF', attivo: true, pareggio_come_vittoria: false, created_at: T, updated_at: T, deleted_at: null,
+      }],
+    };
+    const gioco = applicaPull(dbVuoto(), snap).leghe[0].giochi![0];
+    expect(gioco.id).toBe('custom-1');
+    expect(gioco.nome).toBe('Briscolone');
+    expect(gioco.pareggioComeVittoria).toBe(false);
+  });
+
+  it('ORFANO ancestor-aware (C4): una partita-gioco nuova sotto una sessione tombstonata nasce tombstonata', () => {
+    const snap: SnapshotCloud = {
+      ...snapVuoto(),
+      leghe: [legaRow()],
+      giocatori: [giocatoreRow({ id: 'G1', nome: 'Anna' })],
+      // la sessione è cancellata sul cloud...
+      sessioni_gioco: [{
+        id: 'SG1', lega_id: 'L1', local_id: 1, gioco_key: 'scopa', gioco_lega_id: null, data: '2026-07-17',
+        stato: 'chiusa', ora_inizio: '21:00', ora_fine: '22:00', esito_pareggio: false, serata_id: null,
+        created_at: T, updated_at: T, deleted_at: T,
+      }],
+      // ...ma una sua partita arriva ANCORA VIVA (un altro device l'ha aggiunta prima di vedere la cancellazione)
+      partite_gioco: [{
+        id: 'PG1', sessione_gioco_id: 'SG1', local_id: 1, ora_inizio: '21:00', ora_fine: '21:30',
+        pareggio: false, nome_libero: null, ordine: 1, created_at: T, updated_at: T, deleted_at: null,
+      }],
+      partita_gioco_vincitori: [{ partita_gioco_id: 'PG1', giocatore_id: 'G1' }],
+    };
+    const sess = applicaPull(dbVuoto(), snap).leghe[0].sessioniGioco![0];
+    expect(sess.deletedAt, 'la sessione è tombstonata').toBe(T);
+    expect(sess.partite[0].deletedAt, 'la partita orfana NON resuscita: nasce tombstonata').toBeTruthy();
+  });
+});

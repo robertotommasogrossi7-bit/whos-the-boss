@@ -11,20 +11,30 @@
    Zero rete e zero orologio: è una funzione pura `(db, snapshot) → db`. Chi
    scarica lo snapshot e lo scrive nello store è l'orchestratore (R7.4d).
 
-   ⚠️ Questo file copre lega + giocatori + POKER (il percorso "soldi"). Il
-   multigioco (giochi/serate/sessioni) e gli orfani ancestor-aware sono R7.4b-4.
+   Copre tutto l'albero: lega → giocatori → (poker: partite/giocatori-partita/
+   movimenti/settlement) + (multigioco: giochi/serate/sessioni/partite-gioco +
+   i 4 ponti M:N). Gli orfani sono ancestor-aware (C4): una partita-gioco NUOVA
+   sotto una sessione tombstonata nasce tombstonata — mai resurrezione.
 ══════════════════════════════════════════════════════ */
 
-import type { Db, Lega, NomeGiocatore, Partita } from '../types';
+import type { Db, GiocoLega, Lega, NomeGiocatore, Partita, PartitaGioco, SerataMulti, SessioneGioco } from '../types';
 import { mergeConPegno } from './merge';
-import { giocatoreFromCloudRow, legaFromCloudRow, type GiocatoreCloudRow, type GiocoLegaCloudRow, type LegaCloudRow } from './mapping';
-import type { PartitaGiocoCloudRow, SerataCloudRow, SessioneGiocoCloudRow } from './mappingMultigioco';
+import {
+  giocatoreFromCloudRow, giocoLegaFromCloudRow, legaFromCloudRow,
+  type GiocatoreCloudRow, type GiocoLegaCloudRow, type LegaCloudRow,
+} from './mapping';
+import {
+  partitaGiocoFromCloudRow, serataFromCloudRow, sessioneGiocoFromCloudRow,
+  type PartitaGiocoCloudRow, type SerataCloudRow, type SessioneGiocoCloudRow,
+} from './mappingMultigioco';
 import {
   giocatorePartitaFromCloudRow, movimentiFromCloudRows, partitaFromCloudRow, settlementFromCloudRow,
   type GiocatorePartitaCloudRow, type PokerMovimentoCloudRow, type PartitaPokerCloudRow, type SettlementCloudRow,
 } from './mappingPoker';
+import { ponteFromUids } from './mappingPonti';
 import {
-  materializzaGiocatore, materializzaGiocatorePartita, materializzaLega, materializzaPartita,
+  materializzaGiocatore, materializzaGiocatorePartita, materializzaGiocoLega, materializzaLega,
+  materializzaPartita, materializzaPartitaGioco, materializzaSerata, materializzaSessioneGioco,
   materializzaSettlement,
 } from './materializza';
 
@@ -76,6 +86,14 @@ export function applicaPull(db: Db, snap: SnapshotCloud): Db {
   const gpPerPartita = raggruppa(snap.partita_poker_giocatori, (g) => g.partita_id);
   const movimentiPerGp = raggruppa(snap.poker_movimenti, (m) => m.partita_giocatore_id);
   const settlementsPerPartita = raggruppa(snap.settlements, (s) => s.partita_id);
+  const giochiPerLega = raggruppa(snap.giochi_lega, (g) => g.lega_id);
+  const seratePerLega = raggruppa(snap.serate, (s) => s.lega_id);
+  const sessioniPerLega = raggruppa(snap.sessioni_gioco, (s) => s.lega_id);
+  const partiteGiocoPerSessione = raggruppa(snap.partite_gioco, (p) => p.sessione_gioco_id);
+  const serataPartPerSerata = raggruppa(snap.serata_partecipanti, (r) => r.serata_id);
+  const sessionePartPerSessione = raggruppa(snap.sessione_gioco_partecipanti, (r) => r.sessione_gioco_id);
+  const vincitoriPerPartita = raggruppa(snap.partita_gioco_vincitori, (r) => r.partita_gioco_id);
+  const partecipantiPerPartita = raggruppa(snap.partita_gioco_partecipanti, (r) => r.partita_gioco_id);
 
   let _lid = db._lid;
   const snapPerUid = new Map(snap.leghe.map((l) => [l.id, l]));
@@ -161,7 +179,84 @@ export function applicaPull(db: Db, snap: SnapshotCloud): Db {
       partite[idx] = { ...partita, giocatori: gioc, settlements: setts };
     }
 
-    return { ...lega, nomi, partite, _nid, _pid };
+    // ── Giochi (id locale = gioco_key, non un contatore) ──
+    const giochi: GiocoLega[] = [...(lega.giochi ?? [])];
+    const giochiByUid = new Map<string, number>();
+    giochi.forEach((g, i) => { if (g.uid) giochiByUid.set(g.uid, i); });
+    for (const gRow of giochiPerLega.get(row.id) ?? []) {
+      const i = giochiByUid.get(gRow.id);
+      if (i === undefined) giochi.push(materializzaGiocoLega(gRow));
+      else giochi[i] = mergeConPegno(giochi[i], giocoLegaFromCloudRow(gRow, giochi[i]));
+    }
+
+    // ── Serate: idMap VIVA uid → id locale (per il serataId delle sessioni) ──
+    let _serataId = lega._serataId ?? 1;
+    const serate: SerataMulti[] = [...(lega.serate ?? [])];
+    const serateToLocal = new Map<string, number>();   // uid → id locale
+    const serateIdx = new Map<string, number>();        // uid → indice
+    serate.forEach((s, i) => { if (s.uid) { serateToLocal.set(s.uid, s.id); serateIdx.set(s.uid, i); } });
+    for (const sRow of seratePerLega.get(row.id) ?? []) {
+      const i = serateIdx.get(sRow.id);
+      if (i === undefined) {
+        const partecipanti = ponteFromUids((serataPartPerSerata.get(sRow.id) ?? []).map((r) => r.giocatore_id), risolviIdNome);
+        const id = _serataId++;
+        serate.push(materializzaSerata(sRow, id, partecipanti));
+        serateToLocal.set(sRow.id, id); // P.8.5: subito, prima delle sessioni
+      } else {
+        serate[i] = mergeConPegno(serate[i], serataFromCloudRow(sRow, serate[i]));
+      }
+    }
+    const risolviSerataId = (uid: string): number | undefined => serateToLocal.get(uid);
+
+    // ── Sessioni gioco + le loro partite_gioco (con orfani ancestor-aware) ──
+    let _sgid = lega._sgid ?? 1;
+    const sessioni: SessioneGioco[] = [...(lega.sessioniGioco ?? [])];
+    const sessioniIdx = new Map<string, number>();
+    sessioni.forEach((s, i) => { if (s.uid) sessioniIdx.set(s.uid, i); });
+
+    /* Riconcilia le partite_gioco di una sessione. `ancestorDeleted` = il
+       deletedAt della sessione: una partita NUOVA sotto una sessione tombstonata
+       nasce tombstonata (C4, ancestor-aware) — mai resurrezione, mai crash.
+       prossimoIdPartita conta ANCHE le tombstonate: un id non si ricicla mai. */
+    const riconciliaPartiteGioco = (sessUid: string, base: PartitaGioco[], ancestorDeleted?: string): PartitaGioco[] => {
+      const pg: PartitaGioco[] = [...base];
+      const pgIdx = new Map<string, number>();
+      pg.forEach((p, i) => { if (p.uid) pgIdx.set(p.uid, i); });
+      let nextId = pg.reduce((m, p) => Math.max(m, p.id), 0) + 1;
+      for (const pgRow of partiteGiocoPerSessione.get(sessUid) ?? []) {
+        const vincitori = ponteFromUids((vincitoriPerPartita.get(pgRow.id) ?? []).map((r) => r.giocatore_id), risolviIdNome);
+        const partRows = partecipantiPerPartita.get(pgRow.id) ?? [];
+        const partecipanti = partRows.length ? ponteFromUids(partRows.map((r) => r.giocatore_id), risolviIdNome) : undefined;
+        const i = pgIdx.get(pgRow.id);
+        if (i === undefined) {
+          let nuova = materializzaPartitaGioco(pgRow, nextId++, vincitori, partecipanti);
+          if (ancestorDeleted && !nuova.deletedAt) nuova = { ...nuova, deletedAt: ancestorDeleted };
+          pg.push(nuova);
+        } else {
+          pg[i] = mergeConPegno(pg[i], partitaGiocoFromCloudRow(pgRow, pg[i]));
+        }
+      }
+      return pg;
+    };
+
+    for (const sgRow of sessioniPerLega.get(row.id) ?? []) {
+      const i = sessioniIdx.get(sgRow.id);
+      if (i === undefined) {
+        const partecipanti = ponteFromUids((sessionePartPerSessione.get(sgRow.id) ?? []).map((r) => r.giocatore_id), risolviIdNome);
+        const serataId = sgRow.serata_id ? risolviSerataId(sgRow.serata_id) : undefined;
+        const sess = materializzaSessioneGioco(sgRow, _sgid++, partecipanti, serataId);
+        sess.partite = riconciliaPartiteGioco(sgRow.id, [], sess.deletedAt);
+        sessioni.push(sess);
+      } else {
+        const merged = mergeConPegno(sessioni[i], sessioneGiocoFromCloudRow(sgRow, sessioni[i], risolviSerataId));
+        sessioni[i] = { ...merged, partite: riconciliaPartiteGioco(sgRow.id, merged.partite, merged.deletedAt) };
+      }
+    }
+
+    return {
+      ...lega, nomi, partite, giochi, serate, sessioniGioco: sessioni,
+      _nid, _pid, _sgid, _serataId,
+    };
   };
 
   // Leghe locali: riconcilia quelle nel cloud, tieni intatte le altre.
