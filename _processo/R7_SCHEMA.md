@@ -619,7 +619,19 @@ WatermelonDB/RxDB nella pratica (chiudono/ri-aprono il DB ad ogni cambio utente,
   **rollback totale + guardia riazzerata → import ritentabile** (il caso che avrebbe bloccato per
   sempre un account) · RLS sui dati importati. Il gate usa il **payload builder vero** di R7.3a →
   valida il contratto builder↔RPC, che nessun unit test copre.
-- **R7.3c** — orchestrazione app: backup/Share → battesimo+persist → RPC → verifica conteggi →
-  stamp per-riga + ramo `already_imported` (avviso, niente stamp). UI minima.
-- **R7.3d** — chaos: crash post-commit pre-risposta (retry → already_imported → NO clean) ·
-  uid-divergence dopo crash del persist [I-R5].
+- **R7.3c** ✅ **FATTO (2026-07-17)** — `sync/orchestraImport.ts` (deps iniettate → sequenza e rami
+  testati senza device, 10 test) + agganci app (`lib/import.ts`: `sostituisciDb` nello store ·
+  `confermaPersist` = **read-after-write su AsyncStorage** con chiave per-account, perché zustand
+  persist scrive async e non conferma · `supabase.rpc`) + schermata **`/carica-dati`** (rotta in
+  italiano: `import` è keyword JS) con voce nel Profilo. UX dalla ricerca local-first: dire sempre
+  cosa succede ai dati + poter **riprovare**; ogni ramo ha il suo messaggio (incluso il 2° device).
+  ⚠️ **Backup via Share NON implementato** (deciso): il red team l'ha classificato "TIENI, non gate"
+  e il locale non viene MAI cancellato dall'import → è già lui il backup. Con le foto dataURL in
+  base64 il JSON sarebbe da MB (Share inusabile): si rivaluterà quando le foto andranno su Storage (R10).
+  🪤 **Trappola annotata**: `expo export` **non** rigenera i typed routes → il typecheck fallisce su
+  rotte nuove che esistono già; serve un avvio di Metro (`expo start`).
+- **R7.3d** ✅ **FATTO (2026-07-17)** — chaos test in `gate-import.ts`, **17/17 verdi** (gate+chaos):
+  **crash post-commit** (RPC committa, risposta persa, retry con gli stessi uid → `gia_importato`,
+  **zero duplicati**, locale resta dirty) · **disco che non conferma** → niente spedito, server vuoto
+  (I-R5) · **doppio tap** → un solo import, zero duplicati.
+  → **✅ R7.3 COMPLETA (a+b+c+d).** Resta da applicare la **migration #8 sul cloud** per usarla dal telefono.

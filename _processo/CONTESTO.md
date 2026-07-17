@@ -382,10 +382,21 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   INVOKER, guardia ATOMICA I-R1, parent-first I-R2, conteggi di ritorno) + gate `pnpm gate:import`
   → **10/10 verde al primo colpo** su Postgres reale (import concorrente: ne passa uno solo ·
   rollback + guardia riazzerata → ritentabile · RLS). #8 applicata **solo in locale** (sul cloud
-  quando l'app la userà, R7.3c). **PROSSIMO: R7.3c** (orchestrazione app: backup/Share → battesimo +
-  persist confermato → RPC → verifica conteggi → **stamp per-riga** e ramo `already_imported` senza
-  clean, contratto O.3) → **R7.3d** (chaos test). Poi R7.4. Calibrazione utente a verbale: dati
-  attuali usa-e-getta, fase corta, priorità ai test.
+  quando l'app la userà, R7.3c). ✅ **R7.3c FATTO** (2026-07-17): `orchestraImport` (deps
+  iniettate → sequenza/rami testati senza device) + agganci app (`lib/import.ts`, `sostituisciDb`,
+  **read-after-write** su AsyncStorage per confermare gli uid prima di spedire) + schermata
+  **`/carica-dati`** (Profilo → "Carica i dati sul tuo account"). Backup Share **non fatto** (deciso:
+  non-gate, il locale non è mai cancellato → è lui il backup; foto base64 = JSON da MB → si rivaluta
+  con Storage R10). ✅ **R7.3d FATTO**: chaos test **17/17** (crash post-commit + retry → zero
+  duplicati · disco non confermato → niente spedito · doppio tap → un solo import).
+  → **✅✅ R7.3 COMPLETA.** **357 test core + state · gate+chaos 17/17 su Postgres reale.**
+  ⏳ **AZIONE UTENTE**: applicare la **migration #8** (`20260717120000_r73_import_rpc.sql`) sul cloud
+  per usare l'import dal telefono (in locale è già applicata e verde).
+  **PROSSIMO: R7.4** — aggancio del delta-sync allo store: push CAS (S3) · 1 transazione per lega (S9)
+  · mutex anti-race (S11) · ordine ledger→settlement (S13) · cache lookup (S15) · **+ cablaggio
+  dirty-tracking** (`nuovoSync` sulle creazioni + `touchSync` sulle mutazioni, rimandato da R7.2d-2)
+  · **+ generazione uid dei movimenti** (rimandata da R7.2d-3). *[mini-spec + red team + Opus xhigh]*
+  Calibrazione utente a verbale: dati attuali usa-e-getta, fase corta, priorità ai test.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
