@@ -470,11 +470,10 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   `pnpm db:start` (stack locale), `pnpm db:reset` (ricrea + riapplica migration), `pnpm gate:db`
   (il gate). La CLI è dev-dep del monorepo; per `db push` sul cloud serve prima il `migration repair`
   (vedi `supabase/README.md`, le prime 6 furono applicate a mano da dashboard).
-- ✅ **SQL Supabase — TUTTE e 6 le migration applicate** (confermato dall'utente 2026-07-11, ultima
-  era `20260703100000_r6b5_hardening.sql`). Inventario numerato in `supabase/README.md`. Residuo
-  minore non urgente: se un giorno si installa la Supabase CLI, va sanata la migration history con
-  `supabase migration repair` (comandi pronti in `supabase/README.md`) — le prime 6 sono state
-  applicate a mano da dashboard, non con la CLI.
+- ✅ **SQL Supabase — TUTTE e 7 le migration applicate sul cloud** (1→6 confermate 2026-07-11; #7
+  grant confermata dall'utente 2026-07-17). Inventario numerato in `supabase/README.md`. Residuo
+  minore non urgente: sanare la migration history del cloud con `supabase migration repair`
+  (comandi pronti in `supabase/README.md`) — applicate a mano da dashboard, non con la CLI.
 - **Closed testing Play Store — DA SPIEGARE all'utente quando arriviamo a RP** (2026-07-03): il
   requisito Google "12 tester × 14 giorni per account personali nuovi" non gli è chiaro → prima di
   pianificare RP, spiegarlo bene (cos'è, perché esiste, come si incastra col collaudo tra amici) e

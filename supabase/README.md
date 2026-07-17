@@ -17,10 +17,10 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | 4 | `migrations/20260701150100_r7_poker.sql` | R7.1b | Poker: `partite_poker · partita_poker_giocatori · poker_movimenti · settlements`. | ✅ **APPLICATA** |
 | 5 | `migrations/20260701150200_r7_multigioco.sql` | R7.1c | Multigioco: `serate · sessioni_gioco · partite_gioco` + ponti. | ✅ **APPLICATA** |
 | 6 | `migrations/20260703100000_r6b5_hardening.sql` | R6-B5 | Hardening post-audit: `ON DELETE SET NULL` (M14) · trigger `updated_at` split insert/update (B31+B35) · `poker_movimenti` **append-only vero** (B32) · `UNIQUE(partita_id,giocatore_id)` (B33) · RLS `(select ...)` + `TO authenticated` su ~17 policy (B34). + query di verifica M14 in fondo al file. | ✅ **APPLICATA** (confermato dall'utente 2026-07-11) |
-| 7 | `migrations/20260714140000_grants_authenticated.sql` | R7.2d-5 | **GRANT DML espliciti** a `authenticated` (schema-as-code portabile). Scoperto dal **gate su DB reale**: senza, un DB ricreato da zero dà `permission denied for table` (i grant di default ci sono sul cloud, non in un ambiente pulito). Idempotente/additiva. | ✅ **APPLICATA IN LOCALE** (Supabase CLI, gate d5 verde) · ⏳ **DA applicare sul cloud** (non urgente: sul cloud i grant di default già funzionano; applicarla allinea/rende esplicito) |
+| 7 | `migrations/20260714140000_grants_authenticated.sql` | R7.2d-5 | **GRANT DML espliciti** a `authenticated` (schema-as-code portabile). Scoperto dal **gate su DB reale**: senza, un DB ricreato da zero dà `permission denied for table` (i grant di default ci sono sul cloud, non in un ambiente pulito). Idempotente/additiva. | ✅ **APPLICATA** (locale: gate d5 · cloud: confermato dall'utente 2026-07-17) |
 
-> ✅ Le migration **1→6 sono APPLICATE sul cloud** (2026-07-11). La **#7 è applicata solo in LOCALE**
-> (Supabase CLI, per il gate d5); sul cloud è **pendente** ma non urgente (vedi Stato sopra).
+> ✅ **TUTTE e 7 le migration sono APPLICATE sul cloud** (1→6 il 2026-07-11; #7 il 2026-07-17).
+> Cloud e file del repo sono allineati.
 > ✅ **Sync vero validato in locale** (gate `scripts/gate-db.mjs`, R7.2d-5): round-trip, RLS owner-only,
 > upsert-by-uid, `updated_at` server-side — 8/8 verdi su Postgres reale ricreato da zero.
 

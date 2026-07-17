@@ -798,3 +798,15 @@
 - Settlement torneo: `contributo_residuo`/`premio_residuo` con auto-compensazione.
 - Tailwind: rimandato (obiettivo React Native). CSS con variabili va benissimo.
 - **AI dichiarata apertamente** (README + METODO): i commit **possono** portare `Co-Authored-By: Claude` (la history vecchia già lo fa). *(2026-06-04: stop al "sembra scritto solo da me" — da ora sfoggio l'uso dell'AI.)*
+
+## 2026-07-17 — R7.3 import: calibrazione del red team (decisione utente)
+
+- **Dati attuali = usa-e-getta** (parola dell'utente): sull'app oggi non ci sono dati da
+  preservare, i test veri si faranno con dati freschi. → L'import va progettato bene (sarà il
+  percorso dei dati VERI post-lancio) ma **senza gold-plating**: niente misure extra per proteggere
+  i dati di oggi. La priorità dopo il red team sono i TEST, non altre revisioni.
+- **Red team R7.3 = ibrido, non due chat esterne**: ChatGPT esterno ha fatto la meta-review del
+  dossier (suggerimenti accolti: device ostile, race sulla guardia imported_at, evoluzione schema
+  payload, invarianti pre/post, matrice operativa, meno anchoring); il red team di design vero lo
+  fa un **agente Opus interno** con accesso al codice reale (vantaggio: verifica sul codice, non
+  su descrizioni). Esito → registro in `REDTEAM-R73-IMPORT.md`.
