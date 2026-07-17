@@ -445,10 +445,20 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **b4** (`6bf59db`): estensione **multigioco** (giochi/serate/sessioni/partite-gioco + ponti) +
     **orfani ancestor-aware** (C4): una partita-gioco nuova sotto una sessione tombstonata nasce
     tombstonata (mai resurrezione cross-device). Verificato che fallisca.
-  - **PROSSIMO: R7.4c** (push: migration **#10** `push_lega` CAS + costruzione payload dirty +
-    stamp; gate su Postgres reale). Poi R7.4d (orchestratore + adozione DS9 + correggere i testi
-    "unione" in `orchestraImport.ts`/`carica-dati.tsx`) ed R7.4e (chaos). ⚠️ **La migration del push
-    sarà la #10** (la #9 `gioco_key` è già presa da G1).
+  🟢 **R7.4c IN CORSO** (branch `rn-r74-sync`, Opus): il **push**, simmetrico del pull.
+  - **c1 FATTO** (`9233135`): **parte pura** `sync/push.ts` — `costruisciPayloadPush(lega, ownerId)`
+    (solo righe dirty, per-lega, con `expected_updated_at` = pegno del CAS; `null` = INSERT, presente
+    = UPDATE con CAS; movimenti al seguito della gp) + `haRigheDaPushare` + `revisioniPush` +
+    `applicaStampPush` (syncedRev = revisione spedita, lastSyncedAt = updated_at ritornato dalla RPC —
+    chiude il contratto O.3/I-R3). **405 test core + 18 state.** Caso soldi coperto: settlement saldato
+    sotto partita pulita → UPDATE mirato. → **con c1, tutta la PARTE PURA di R7.4 è fatta** (a+b+c1).
+  - **PROSSIMO: R7.4c-c2** — la **migration #10 `push_lega`** (RPC CAS: UPDATE se `updated_at`==pegno,
+    altrimenti abort tx `conflict`; INSERT nuove `ON CONFLICT DO NOTHING`; ledger solo-INSERT
+    parent-first; `unique_violation`→errore parlante P.8.2; ritorna `updated_at` per-riga per lo
+    stamp + conteggi) + gate `scripts/gate-push.ts` (`pnpm gate:push`) su Postgres reale (Docker).
+    ⚠️ **È la #10** (la #9 `gioco_key` è già di G1). Poi **R7.4d** (orchestratore pull→push + trigger
+    boot/foreground + mutex + logout-guard + **adozione DS9** del 2° device + correggere i testi
+    "unione" in `orchestraImport.ts`/`carica-dati.tsx`) ed **R7.4e** (chaos su DB reale).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
