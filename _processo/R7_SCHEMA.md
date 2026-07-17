@@ -635,3 +635,84 @@ WatermelonDB/RxDB nella pratica (chiudono/ri-aprono il DB ad ogni cambio utente,
   **zero duplicati**, locale resta dirty) · **disco che non conferma** → niente spedito, server vuoto
   (I-R5) · **doppio tap** → un solo import, zero duplicati.
   → **✅ R7.3 COMPLETA (a+b+c+d).** Resta da applicare la **migration #8 sul cloud** per usarla dal telefono.
+
+---
+
+# P — R7.4: design del delta-sync agganciato allo store (mini-spec, 2026-07-17)
+
+> L'ultimo pezzo di R7: il sync che gira in app, continuo. Ricerca: protocollo WatermelonDB
+> (pull→push, push transazionale che abortisce sui conflitti) + pattern CAS/optimistic locking.
+> Qui confluisce tutto il rimandato: S3 (push CAS), S9 (1 tx/lega), S10 (retry), S11 (mutex),
+> S12 (orfani), S13 (ordine ledger), S15 (idMap), S18 (compat), S20 (logout) + cablaggio
+> dirty-tracking (da R7.2d-2) + generazione uid movimenti (da R7.2d-3).
+> Calibrazione utente: fase corta, niente enterprise, priorità ai test. Red team: `REDTEAM-R74-SYNC.md`.
+
+## P.1 — Il ciclo (ordine WatermelonDB: pull → merge → push → stamp)
+1. **Mutex** (S11): se un ciclo è in corso, il nuovo si salta (niente coda).
+2. **PULL completo** per account: a questa scala (KB–MB) si scaricano TUTTE le righe, niente
+   cursore incrementale (`lastPulledAt` e i suoi edge-case di visibilità transazionale non
+   esistono proprio; ottimizzazione delta → R10 se mai servirà).
+3. **Merge per-riga** con `mergeLWW` (già testato: delete-wins, dirty-wins). Righe cloud SENZA
+   corrispondente locale → **materializzazione** (P.3).
+4. **PUSH per lega, una transazione** (S9): righe dirty (`syncRev > syncedRev`) + movimenti nuovi.
+5. **Stamp**: a conferma, `syncedRev = syncRev spedito` per-riga (stesso pattern dell'import, O.3);
+   un edit avvenuto durante il push resta dirty da solo.
+
+## P.2 — Push CAS via RPC `push_lega` (migration #9) [S3+S9+S13]
+- **Una RPC per lega**, transazionale (PostgREST). Payload: righe nuove/modificate per tabella +
+  **pegno per-riga** = `expected_updated_at` (il `lastSyncedAt` locale, campo già esistente).
+- **Regola CAS**: UPDATE solo se `updated_at` sul server == expected; una riga che non combacia →
+  **abort dell'intera transazione** con errore `conflict` (stile WatermelonDB). Il client: re-pull
+  → merge → re-push al prossimo giro. Niente merge server-side, niente per-colonna.
+- INSERT righe nuove: upsert `ON CONFLICT (id) DO NOTHING` (retry idempotenti, S10 — l'eco di un
+  retry non duplica). **Ledger** (`poker_movimenti`): SOLO `INSERT … ON CONFLICT DO NOTHING` (I5),
+  spinto PRIMA dei settlements nello stesso ordine parent-first già imposto dall'import (I-R2/S13).
+- Tombstone: il push porta `deleted_at` come un campo qualsiasi (delete-wins già nel merge).
+- Ritorna i **conteggi applicati** per tabella (stesso anti-perdita dell'import, I-R6).
+
+## P.3 — Pull: materializzazione delle righe nuove dal cloud
+- I `*FromCloudRow` esistenti richiedono una base locale; per le righe create su un ALTRO device
+  servono i **materializzatori**: costruiscono l'entità locale ex-novo (id locale nuovo dai
+  contatori `_nid`/`_pid`/…, campi dal cloud, `syncRev = syncedRev` = pulita) risolvendo le
+  relazioni via `idMap` (S15, costruita una volta a inizio ciclo). Ordine parent-first.
+- **⚠️ Regola del pegno (decisione delicata, da red-teamare)**: quando sul pull il locale dirty
+  VINCE (mergeLWW), il campo `lastSyncedAt` della riga va comunque **aggiornato all'`updated_at`
+  del cloud** (solo il pegno: i dati restano locali). Senza questo refresh il CAS del push
+  successivo fallirebbe per sempre (deadlock); con il refresh il push successivo sovrascrive il
+  server = **LWW dichiarato che diventa LWW reale**.
+- Orfani (S12): figlio cloud sotto padre tombstonato → si materializza tombstonato ancestor-aware
+  (regola C4); mai crash, mai resurrezione.
+
+## P.4 — Cablaggio dirty nello store (il rimandato di R7.2d) 
+- **`touchSync()` su ogni mutazione** di entità sincronizzate salvate: rinomina/soprannome
+  giocatore, toggle `pagato` settlement, salda debiti, chiusure sessioni/serate, edit gioco.
+  Inventario esatto dei punti = primo micro-step (grep guidato, lista nel commit).
+- **`nuovoSync()` sulle creazioni** che ancora non ce l'hanno + **uid sui movimenti alla creazione**
+  (ricariche/pagamenti nel live e nella chiusura — chiude il rimando di d3).
+- **Cancellazioni → tombstone** (cambio semantico!): oggi `eliminaPartita`/`eliminaSessioneGioco`/
+  `eliminaGiocatore` rimuovono FISICAMENTE dall'array → il push non saprebbe mai della cancellazione.
+  Diventano `deletedAt = now` + `touchSync`, e le viste/selettori filtrano i tombstonati. Lo stato
+  LIVE (sessioneAttiva/serate_bg) resta fisico: non è sincronizzato.
+
+## P.5 — Trigger, race e logout [S11+S20+S18]
+- **Quando gira**: al boot (dopo `dbReady`, se loggato) · al ritorno in foreground (AppState) ·
+  bottone manuale. NIENTE timer di background (scala amici).
+- **Logout durante il sync** (S20): il ciclo cattura `accountId` all'avvio; al momento di scrivere
+  lo store, se l'account è cambiato → risultati SCARTATI.
+- **Compat versioni** (S18, minimo): il payload del push porta `version` come l'import; la RPC
+  rifiuta le versioni ignote. Nient'altro.
+
+## P.6 — FUORI scope (dichiarato)
+Realtime/multi-device live (R9) · GC tombstone (R10) · merge per-colonna (watchlist V-S6, solo se
+il campo morde) · cursore delta (R10) · sync-log/observability UI (H-block; qui solo "ultimo sync
+HH:MM" nel Profilo) · claim ospiti (R8).
+
+## P.7 — Sotto-fasi (micro-commit, pause fra i pezzi)
+- **R7.4a** — cablaggio store: touchSync/nuovoSync/uid movimenti + cancellazioni→tombstone +
+  filtri UI. Test store. *(la superficie più larga, zero rete)*
+- **R7.4b** — pull puro: materializzatori + ciclo di merge con regola del pegno + orfani. Fixtures.
+- **R7.4c** — push: migration #9 `push_lega` + costruzione payload dirty + stamp. Gate integrazione.
+- **R7.4d** — orchestratore `orchestraSync` (deps iniettate, come l'import) + trigger app + mutex +
+  logout guard + "ultimo sync" nel Profilo.
+- **R7.4e** — chaos su DB reale: 2 device che editano offline la stessa riga / righe diverse ·
+  conflitto CAS → re-pull → re-push · kill a metà push · logout durante sync · retry doppio.

@@ -390,8 +390,8 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   con Storage R10). ✅ **R7.3d FATTO**: chaos test **17/17** (crash post-commit + retry → zero
   duplicati · disco non confermato → niente spedito · doppio tap → un solo import).
   → **✅✅ R7.3 COMPLETA.** **357 test core + state · gate+chaos 17/17 su Postgres reale.**
-  ⏳ **AZIONE UTENTE**: applicare la **migration #8** (`20260717120000_r73_import_rpc.sql`) sul cloud
-  per usare l'import dal telefono (in locale è già applicata e verde).
+  ✅ **Migration #8 applicata anche sul cloud** (conferma utente 2026-07-17): l'import è usabile dal
+  telefono. 8/8 migration allineate.
   **PROSSIMO: R7.4** — aggancio del delta-sync allo store: push CAS (S3) · 1 transazione per lega (S9)
   · mutex anti-race (S11) · ordine ledger→settlement (S13) · cache lookup (S15) · **+ cablaggio
   dirty-tracking** (`nuovoSync` sulle creazioni + `touchSync` sulle mutazioni, rimandato da R7.2d-2)
@@ -498,10 +498,11 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   `pnpm db:start` (stack locale), `pnpm db:reset` (ricrea + riapplica migration), `pnpm gate:db`
   (il gate). La CLI è dev-dep del monorepo; per `db push` sul cloud serve prima il `migration repair`
   (vedi `supabase/README.md`, le prime 6 furono applicate a mano da dashboard).
-- ✅ **SQL Supabase — TUTTE e 7 le migration applicate sul cloud** (1→6 confermate 2026-07-11; #7
-  grant confermata dall'utente 2026-07-17). Inventario numerato in `supabase/README.md`. Residuo
-  minore non urgente: sanare la migration history del cloud con `supabase migration repair`
-  (comandi pronti in `supabase/README.md`) — applicate a mano da dashboard, non con la CLI.
+- ✅ **SQL Supabase — TUTTE e 8 le migration applicate sul cloud** (1→6 confermate 2026-07-11;
+  #7 grant e #8 RPC import confermate dall'utente 2026-07-17). **Nessun SQL pendente.** Inventario
+  numerato in `supabase/README.md`. Residuo minore non urgente: sanare la migration history del
+  cloud con `supabase migration repair` (comandi pronti in `supabase/README.md`) — applicate a
+  mano da dashboard, non con la CLI.
 - **Closed testing Play Store — DA SPIEGARE all'utente quando arriviamo a RP** (2026-07-03): il
   requisito Google "12 tester × 14 giorni per account personali nuovi" non gli è chiaro → prima di
   pianificare RP, spiegarlo bene (cos'è, perché esiste, come si incastra col collaudo tra amici) e
