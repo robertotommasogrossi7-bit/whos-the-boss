@@ -404,6 +404,33 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   soloVive()+test stats · b=pull/materializzatori · c=push RPC #9 · d=orchestratore+adozione DS9 ·
   e=chaos). **Opus xhigh, chat nuova consigliata** (milestone pulito). Calibrazione: fase corta,
   priorità ai test.
+  ✅ **R7.4a COMPLETO** (2026-07-17, branch `rn-r74-sync`, Opus): tutto il cablaggio dello store, la
+  superficie più larga di R7.4. **367 test core + 18 state**, typecheck + expo export verdi a ogni commit.
+  - **a1** (`e6fee54`,`ec3c244`,`b579457`): `nuovoSync()` su tutte le 17 creazioni (S4-R7: nascevano con
+    `syncRev` mai valorizzato → il push non le avrebbe MAI viste) + `conUid()` sui movimenti del ledger
+    (S2/d3, generati alla creazione, idempotenti) + **GATE** che pilota le AZIONI VERE dello store (creo
+    → dirty → payload senza battezzaDb). Primo test delle azioni store (prima: 0).
+  - **G1 — bonifica** (`eb005d8` spec, `2a4a223` codice, `53443fb` cloud): il gate di a1 ha scovato che
+    **il cloud non registrava MAI quale gioco si giocava** — `sessioni_gioco` aveva solo la FK a
+    `giochi_lega` (mai popolata: la UI custom è M5), e `preflightImport` bloccava OGNI import multigioco.
+    Mini-spec **`R7_SCHEMA.md` sez. Q** (ricerca BG Stats, ma driver non trasferibile) → **opzione B**:
+    **migration #9** `sessioni_gioco.gioco_key` = l'identità del gioco (come in locale; ripristina
+    l'intento di R7.1). Mapping riscritto (`sessioneGiocoFromCloudRow` perde `risolviGiocoId` — era anche
+    il buco della materializzazione R7.4b), preflight corretto, **fixture del gate d'integrazione allineata
+    alla realtà** (scriveva `giochi:[]` a mano → passava 10/10 mentre l'app si bloccava). Gate+chaos **18/18**
+    su Postgres reale. **#9 applicata sul cloud** (conferma utente; prova import da telefono ancora DA FARE).
+    **9/9 migration allineate.**
+  - **a2** (`fb07665`): `touchSync()` sulle 8 mutazioni di entità salvate (rinomina, toggle/salda debiti,
+    avvia/chiudi sessione gioco, chiudi partita gioco, reclamo accountId). Solo la riga che cambia davvero
+    (niente push a vuoto). Le ~40 restanti chiamate a `saveLega` toccano stato LIVE (non sync).
+  - **a3** (`bd209e4` filtro, `c54b241` semantica): cancellazioni FISICHE → **tombstone** (`deletedAt`+
+    `touchSync`) con **cascade** sul sottoalbero (S4-R4). Helper `soloVive()` in **un punto solo**
+    (`core/tombstone.ts`, S4-R3), cablato in tutti i lettori che calcolano + le viste che elencano la rosa.
+    Movimenti ledger NON tombstonati (append-only). Test: tombstono → fuori da stats/storico, ma resta
+    lapide dirty da spedire coi figli. Tutti i test anti-regressione **verificati che sappiano fallire**.
+  - **PROSSIMO: R7.4b** (pull puro: materializzatori + ciclo merge con regola del pegno + orfani; fixtures).
+    ⏭️ **Ancora da fare in R7.4d**: correggere i testi che promettono l'"unione" del 2° device
+    (`orchestraImport.ts` + `carica-dati.tsx`) → adozione DS9 (P.8.1).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
