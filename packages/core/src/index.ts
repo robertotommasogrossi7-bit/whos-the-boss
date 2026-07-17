@@ -18,6 +18,7 @@ export * from './utils/settlementTorneo';
 export * from './sync/idMap';
 export * from './sync/import';
 export * from './sync/mapping';
+export * from './sync/orchestraImport';
 export * from './sync/mappingMultigioco';
 export * from './sync/mappingPoker';
 export * from './sync/mappingPonti';
