@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { type Lega } from '@whos-the-boss/core';
+import { soloVive, type Lega } from '@whos-the-boss/core';
 
 import { IconChevronLeft } from '@/components/icons';
 import Placeholder from '@/components/Placeholder';
@@ -50,7 +50,7 @@ function PokerInner({ lega }: { lega: Lega }) {
         </Pressable>
         <View style={styles.grow}>
           <Text style={[styles.hTitle, { color: t.text }]} numberOfLines={1}>{lega.nome}</Text>
-          <Text style={[styles.hSub, { color: t.textMuted }]}>Poker · {lega.nomi.length} giocatori</Text>
+          <Text style={[styles.hSub, { color: t.textMuted }]}>Poker · {soloVive(lega.nomi).length} giocatori</Text>
         </View>
       </View>
 

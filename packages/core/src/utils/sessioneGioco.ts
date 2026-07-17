@@ -1,4 +1,5 @@
 import type { SessioneGioco, PartitaGioco } from '../types';
+import { soloVive } from './tombstone';
 import { nuovoSync } from './uid';
 
 /* ══════════════════════════════════════════════════════
@@ -42,7 +43,11 @@ export function nuovaSessioneGioco(
   };
 }
 
-/** Prossimo id partita interno alla sessione (max+1, 1-based). */
+/** Prossimo id partita interno alla sessione (max+1, 1-based).
+    ⚠️ NIENTE `soloVive` qui, ed è voluto: il max deve considerare ANCHE le
+    partite tombstonate, o l'id di una partita cancellata verrebbe riciclato e
+    la nuova collide con la lapide (stesso id nell'array → i `find` per id
+    pescherebbero quella sbagliata). Gli id non si riusano mai. */
 export function prossimoIdPartita(sess: SessioneGioco): number {
   return sess.partite.reduce((m, p) => Math.max(m, p.id), 0) + 1;
 }
@@ -71,7 +76,7 @@ export function partecipantiPartita(sess: SessioneGioco, p: PartitaGioco): numbe
 export function vittoriePartecipanti(sess: SessioneGioco): Map<number, number> {
   const m = new Map<number, number>();
   for (const p of sess.partecipanti) m.set(p, 0);
-  for (const partita of sess.partite) {
+  for (const partita of soloVive(sess.partite)) {
     for (const w of partita.vincitori) {
       const cur = m.get(w);
       if (cur !== undefined) m.set(w, cur + 1);

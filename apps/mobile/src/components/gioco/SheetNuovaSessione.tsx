@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { idBloccatiInclusi, normalizzaNome, nowHHMM, oggi, type Lega } from '@whos-the-boss/core';
+import { idBloccatiInclusi, normalizzaNome, nowHHMM, oggi, soloVive, type Lega } from '@whos-the-boss/core';
 
 import PickChip from '@/components/gioco/PickChip';
 import { IconPlus } from '@/components/icons';
@@ -26,7 +26,10 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
   const aggiungiGiocatore = useStore((s) => s.aggiungiGiocatore);
   const utente = useStore((s) => s.utente);
 
-  const [selected, setSelected] = useState<number[]>(lega.nomi.map((n) => n.id));
+  // soloVive: un giocatore eliminato non si sceglie (la sua lapide resta
+  // nell'array per il sync, R7.4a-3, ma non è più della partita).
+  const nomi = soloVive(lega.nomi);
+  const [selected, setSelected] = useState<number[]>(nomi.map((n) => n.id));
   const [newName, setNewName] = useState('');
   const [data, setData] = useState(oggi());
 
@@ -59,11 +62,11 @@ export default function SheetNuovaSessione({ lega, giocoId, onClose, onCreated }
   return (
     <Sheet open onClose={onClose} title="Nuova sessione">
       <Text style={[styles.label, { color: t.textMuted }]}>Partecipanti</Text>
-      {lega.nomi.length === 0 ? (
+      {nomi.length === 0 ? (
         <Text style={[styles.hint, { color: t.textMuted }]}>Aggiungi i giocatori qui sotto.</Text>
       ) : (
         <View style={styles.grid}>
-          {lega.nomi.map((n) => (
+          {nomi.map((n) => (
             <PickChip key={n.id} label={n.nome} selected={selected.includes(n.id)} locked={bloccati.includes(n.id)} onPress={() => toggle(n.id)} />
           ))}
         </View>

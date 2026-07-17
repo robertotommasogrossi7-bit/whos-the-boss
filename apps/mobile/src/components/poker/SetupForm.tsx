@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
-  creaSessione, idBloccatiInclusi, nuovoGiocatoreSessione, oggi, suggerisciTorneo,
+  creaSessione, idBloccatiInclusi, nuovoGiocatoreSessione, oggi, soloVive, suggerisciTorneo,
   type Lega, type TorneoSetupConfig,
 } from '@whos-the-boss/core';
 
@@ -29,6 +29,8 @@ export default function SetupForm({ lega }: { lega: Lega }) {
   const setSerataView = useStore((s) => s.setSerataView);
 
   const sessE = setupEditing ? lega.sessioneAttiva : undefined;
+  // soloVive: un giocatore eliminato non entra al tavolo (R7.4a-3).
+  const nomi = soloVive(lega.nomi);
 
   const [data, setData] = useState(() => sessE?.data ?? oggi());
   const [oraInizio, setOraInizio] = useState(() => sessE?.ora_inizio ?? '21:00');
@@ -47,7 +49,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
       : suggerisciTorneo(9, 3),
   );
 
-  if (!lega.nomi.length) {
+  if (!nomi.length) {
     return (
       <ScrollView contentContainerStyle={styles.content}>
         <Card>
@@ -62,7 +64,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
 
   function avvia() {
     if (!oraInizio.trim()) { Alert.alert('Attenzione', "Inserisci l'ora di inizio"); return; }
-    const giocatori = lega.nomi.filter((n) => isSel(n.id)).map((n) => nuovoGiocatoreSessione(n.id));
+    const giocatori = nomi.filter((n) => isSel(n.id)).map((n) => nuovoGiocatoreSessione(n.id));
     if (giocatori.length < 2) { Alert.alert('Attenzione', 'Seleziona almeno 2 partecipanti'); return; }
 
     const sess = creaSessione(
@@ -130,7 +132,7 @@ export default function SetupForm({ lega }: { lega: Lega }) {
       <Card>
         <Text style={[styles.cardTitle, { color: t.text }]}>Partecipanti alla serata</Text>
         <View style={styles.partGrid}>
-          {lega.nomi.map((n) => (
+          {nomi.map((n) => (
             <PickChip key={n.id} label={n.nome} selected={isSel(n.id)} locked={bloccati.includes(n.id)} onPress={() => toggleSetupPartId(n.id)} />
           ))}
         </View>

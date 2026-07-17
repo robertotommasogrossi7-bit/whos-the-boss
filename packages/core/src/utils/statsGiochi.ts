@@ -1,4 +1,5 @@
 import type { GiocoLega, SessioneGioco } from '../types';
+import { soloVive } from './tombstone';
 
 /* ══════════════════════════════════════════════════════
    STATISTICHE GIOCHI (Card Tracker M1) — funzioni pure
@@ -35,7 +36,10 @@ export function calcolaStatsGioco(
     percVittorie: 0,
   };
 
-  for (const sess of sessioni) {
+  // soloVive anche qui, non solo nei chiamanti (R7.4a-3): filtrare due volte è
+  // innocuo, dimenticarsene una volta rimette in classifica una sessione che
+  // l'utente ha cancellato.
+  for (const sess of soloVive(sessioni)) {
     // SPEC §7: solo sessioni CHIUSE del gioco a cui idNome partecipa.
     if (sess.stato !== 'chiusa') continue;
     if (sess.giocoId !== gioco.id) continue;
@@ -47,7 +51,7 @@ export function calcolaStatsGioco(
     const vittorie = new Map<number, number>();
     for (const p of sess.partecipanti) vittorie.set(p, 0);
 
-    for (const partita of sess.partite) {
+    for (const partita of soloVive(sess.partite)) {
       for (const w of partita.vincitori) {
         const cur = vittorie.get(w);
         if (cur !== undefined) vittorie.set(w, cur + 1);

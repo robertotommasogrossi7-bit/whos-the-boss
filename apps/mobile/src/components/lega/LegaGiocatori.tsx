@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { èSeiTuRecord, type Lega } from '@whos-the-boss/core';
+import { soloVive, èSeiTuRecord, type Lega } from '@whos-the-boss/core';
 
 import { IconCheck, IconClose, IconEdit, IconTrash, IconUser } from '@/components/icons';
 import { Button, Card, EmptyState } from '@/components/ui';
@@ -21,8 +21,11 @@ export default function LegaGiocatori({ lega }: { lega: Lega }) {
   const [editId, setEditId] = useState<number | null>(null);
   const [editVal, setEditVal] = useState('');
 
+  // soloVive: un giocatore eliminato resta nell'array come lapide (R7.4a-3) —
+  // qui NON si mostra, e le partite cancellate non si contano.
+  const nomi = soloVive(lega.nomi);
   const nPartite = (idNome: number) =>
-    lega.partite.filter((p) => p.giocatori.some((g) => g.id_nome === idNome)).length;
+    soloVive(lega.partite).filter((p) => soloVive(p.giocatori).some((g) => g.id_nome === idNome)).length;
 
   function aggiungi() {
     const err = aggiungiGiocatore(lega.id, nuovoNome);
@@ -68,11 +71,11 @@ export default function LegaGiocatori({ lega }: { lega: Lega }) {
       </Card>
 
       <Card>
-        <Text style={[styles.cardTitle, { color: t.text }]}>{lega.nomi.length} partecipanti</Text>
-        {lega.nomi.length === 0 ? (
+        <Text style={[styles.cardTitle, { color: t.text }]}>{nomi.length} partecipanti</Text>
+        {nomi.length === 0 ? (
           <EmptyState icon={<IconUser size={46} color={t.textMuted} />} title="Nessun partecipante" hint="Aggiungine uno!" />
         ) : (
-          lega.nomi.map((nm) => {
+          nomi.map((nm) => {
             const np = nPartite(nm.id);
             const seiTu = èSeiTuRecord(nm, utente?.id);
             const bloccato = lega.personale && seiTu;

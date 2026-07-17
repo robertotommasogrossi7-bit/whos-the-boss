@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { euroSigned, èSeiTuRecord, type Lega } from '@whos-the-boss/core';
+import { euroSigned, soloVive, èSeiTuRecord, type Lega } from '@whos-the-boss/core';
 
 import { GameIcon, IconChevronRight, IconTrophy } from '@/components/icons';
 import { Button, Card, EmptyState } from '@/components/ui';
@@ -13,12 +13,12 @@ import { useTheme } from '@/theme/ThemeContext';
 /* R1.4 — Le tue leghe (port di ListaLeghe web). Lista dallo store + stats
    personali (rendimento/vittorie) per lega; tap apre la lega. */
 function statsUtente(lega: Lega, accountId?: string) {
-  const meId = lega.nomi.find((n) => èSeiTuRecord(n, accountId))?.id;
+  const meId = soloVive(lega.nomi).find((n) => èSeiTuRecord(n, accountId))?.id;
   if (meId === undefined) return { rendimento: 0, vittorie: 0 };
   let rendimento = 0;
   let vittorie = 0;
-  lega.partite.forEach((p) => {
-    const g = p.giocatori.find((x) => x.id_nome === meId);
+  soloVive(lega.partite).forEach((p) => {
+    const g = soloVive(p.giocatori).find((x) => x.id_nome === meId);
     if (g) {
       rendimento += g.netto_finale ?? 0;
       if (g.vincitore) vittorie += 1;
@@ -56,13 +56,14 @@ export default function LegheScreen() {
         ) : (
           <>
             {leghe.map((lega) => {
-              const np = lega.nomi.length;
-              const ng = lega.partite.length;
+              const nomiVivi = soloVive(lega.nomi);   // i cancellati non si contano né si mostrano
+              const np = nomiVivi.length;
+              const ng = soloVive(lega.partite).length;
               const { rendimento, vittorie } = statsUtente(lega, utente?.id);
               const rendColor = rendimento > 0 ? t.ok : rendimento < 0 ? t.danger : t.textMuted;
               const preview =
-                lega.nomi.slice(0, 3).map((n) => n.nome).join(', ') +
-                (lega.nomi.length > 3 ? `, +${lega.nomi.length - 3}` : '');
+                nomiVivi.slice(0, 3).map((n) => n.nome).join(', ') +
+                (nomiVivi.length > 3 ? `, +${nomiVivi.length - 3}` : '');
 
               return (
                 <Pressable key={lega.id} onPress={() => apri(lega.id)}>

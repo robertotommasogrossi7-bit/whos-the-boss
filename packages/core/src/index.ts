@@ -28,6 +28,7 @@ export * from './utils/storico';
 export * from './utils/tavoli';
 export * from './utils/tema';
 export * from './utils/tempoGioco';
+export * from './utils/tombstone';
 export * from './utils/torneo';
 export * from './utils/uid';
 export * from './utils/username';

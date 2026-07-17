@@ -1,6 +1,7 @@
 import type { Lega, Sessione } from '../types';
 import { normalizzaNome } from './normalizzaNome';
 import { èSeiTuRecord } from './personale';
+import { soloVive } from './tombstone';
 
 /* ══════════════════════════════════════════════════════
    GIOCATORI — validazioni condivise (#4.7c)
@@ -30,7 +31,10 @@ export function validaRinomina(
   if (!rec) return 'Giocatore non trovato';
   if (èSeiTuRecord(rec, accountId)) return 'Il tuo nome si cambia dall\'account';
   const norm = normalizzaNome(n);
-  if (lega.nomi.some(x => x.id !== idNome && normalizzaNome(x.nome) === norm)) {
+  // soloVive: un giocatore CANCELLATO non deve bloccare il nome — altrimenti
+  // "Anna" resterebbe impronunciabile per sempre solo perché una vecchia Anna
+  // è stata eliminata (la sua lapide resta nell'array, R7.4a-3).
+  if (soloVive(lega.nomi).some(x => x.id !== idNome && normalizzaNome(x.nome) === norm)) {
     return 'Nome già presente';
   }
   return null;
@@ -44,19 +48,24 @@ export function validaRinomina(
  * coda), sessioni/partite/serate multigioco. Pura.
  */
 export function giocatoreInUso(lega: Lega, idNome: number): boolean {
-  if (lega.partite.some(p => p.giocatori.some(g => g.id_nome === idNome))) return true;
+  // soloVive ovunque (R7.4a-3): una partita/sessione/serata CANCELLATA non
+  // "usa" più nessuno — se contasse, un giocatore resterebbe non-eliminabile
+  // per colpa di una partita che l'utente ha già buttato via.
+  // Lo stato LIVE (sessioneAttiva/serate_bg) non ha tombstone: non è
+  // sincronizzato e si cancella davvero (fuori scope R7).
+  if (soloVive(lega.partite).some(p => soloVive(p.giocatori).some(g => g.id_nome === idNome))) return true;
 
   const inSessionePoker = (s: Sessione | undefined): boolean =>
     !!s && s.giocatori.some(g => g.id_nome === idNome);
   if (inSessionePoker(lega.sessioneAttiva)) return true;
   if (lega.serate_bg.some(inSessionePoker)) return true;
 
-  if ((lega.sessioniGioco ?? []).some(sg =>
+  if (soloVive(lega.sessioniGioco).some(sg =>
     sg.partecipanti.includes(idNome) ||
-    sg.partite.some(p => p.vincitori.includes(idNome) || (p.partecipanti ?? []).includes(idNome)),
+    soloVive(sg.partite).some(p => p.vincitori.includes(idNome) || (p.partecipanti ?? []).includes(idNome)),
   )) return true;
 
-  if ((lega.serate ?? []).some(s => s.partecipanti.includes(idNome))) return true;
+  if (soloVive(lega.serate).some(s => s.partecipanti.includes(idNome))) return true;
 
   return false;
 }

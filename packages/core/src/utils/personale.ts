@@ -1,5 +1,6 @@
 import type { Lega, NomeGiocatore, User } from '../types';
 import { normalizzaNome } from './normalizzaNome';
+import { soloVive } from './tombstone';
 import { nuovoSync, touchSync } from './uid';
 
 /* ══════════════════════════════════════════════════════
@@ -50,12 +51,14 @@ export function èSeiTuRecord(rec: Pick<NomeGiocatore, 'accountId'>, accountId?:
 export function reclamaGiocatoreInLega(lega: Lega, user: User): Lega {
   const accountId = user.id;
   if (!accountId) return lega;
-  if (lega.nomi.some(n => n.accountId === accountId)) return lega; // già reclamato
+  // soloVive (R7.4a-3): un record cancellato non vale come "già reclamato" e
+  // non si reclama — altrimenti il tuo giocatore resterebbe una lapide.
+  if (soloVive(lega.nomi).some(n => n.accountId === accountId)) return lega; // già reclamato
 
   const uUsername = normalizzaNome(user.username);
   const uDisplay = user.displayName ? normalizzaNome(user.displayName) : '';
   const idx = lega.nomi.findIndex(n => {
-    if (n.accountId) return false;
+    if (n.accountId || n.deletedAt) return false;
     const nn = normalizzaNome(n.nome);
     return (!!uUsername && nn === uUsername) || (!!uDisplay && nn === uDisplay);
   });
@@ -82,7 +85,7 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   if (!accountId) {
     // niente account (demo): dedup per nome come prima
     const u = normalizzaNome(user.username);
-    if (!u || personale.nomi.some(n => normalizzaNome(n.nome) === u)) return personale;
+    if (!u || soloVive(personale.nomi).some(n => normalizzaNome(n.nome) === u)) return personale;
     return {
       ...personale,
       nomi: [...personale.nomi, { id: personale._nid, nome: display, ...nuovoSync() }],
@@ -91,7 +94,7 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
   }
 
   // 1) già reclamato da questo account
-  if (personale.nomi.some(n => n.accountId === accountId)) return personale;
+  if (soloVive(personale.nomi).some(n => n.accountId === accountId)) return personale;
 
   // 2) reclama un record libero che combacia per nome (migrazione del vecchio)
   const reclamata = reclamaGiocatoreInLega(personale, user);
@@ -110,6 +113,6 @@ export function assicuraGiocatorePersonale(personale: Lega, user: User): Lega {
     normale nessuno. Pura: dipende da lega + accountId. */
 export function idBloccatiInclusi(lega: Lega, accountId?: string | null): number[] {
   if (!lega.personale || !accountId) return [];
-  const rec = lega.nomi.find(n => èSeiTuRecord(n, accountId));
+  const rec = soloVive(lega.nomi).find(n => èSeiTuRecord(n, accountId));
   return rec ? [rec.id] : [];
 }

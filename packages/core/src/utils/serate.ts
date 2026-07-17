@@ -1,5 +1,6 @@
 import type { Lega, SerataMulti, SessioneGioco } from '../types';
 import { partecipantiPartita } from './sessioneGioco';
+import { soloVive } from './tombstone';
 
 /* ══════════════════════════════════════════════════════
    SERATA MULTI-GIOCO (R4) — logica pura.
@@ -8,14 +9,14 @@ import { partecipantiPartita } from './sessioneGioco';
    solo l'AGGREGATO della serata (nessun dato duplicato).
 ══════════════════════════════════════════════════════ */
 
-/** Le sessioni-gioco che appartengono a una serata multi-gioco. */
+/** Le sessioni-gioco VIVE che appartengono a una serata multi-gioco. */
 export function sessioniDiSerata(lega: Lega, serataId: number): SessioneGioco[] {
-  return (lega.sessioniGioco ?? []).filter((s) => s.serataId === serataId);
+  return soloVive(lega.sessioniGioco).filter((s) => s.serataId === serataId);
 }
 
-/** La serata multi-gioco per id (o undefined). */
+/** La serata multi-gioco per id, se viva (o undefined). */
 export function trovaSerata(lega: Lega, serataId: number): SerataMulti | undefined {
-  return (lega.serate ?? []).find((s) => s.id === serataId);
+  return soloVive(lega.serate).find((s) => s.id === serataId);
 }
 
 export interface PuntoSerata {
@@ -39,7 +40,7 @@ export function classificaSerata(lega: Lega, serataId: number): PuntoSerata[] {
   for (const id of trovaSerata(lega, serataId)?.partecipanti ?? []) punti.set(id, 0);
 
   for (const sess of sessioniDiSerata(lega, serataId)) {
-    for (const partita of sess.partite) {
+    for (const partita of soloVive(sess.partite)) {
       if (partita.pareggio) {
         for (const id of partecipantiPartita(sess, partita)) add(id, 0.5);
       } else {

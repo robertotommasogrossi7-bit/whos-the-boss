@@ -1,4 +1,5 @@
 import type { Sessione, Premio, Lega } from '../types';
+import { soloVive } from './tombstone';
 
 export function calcolaMontepremi(sess: Sessione): number {
   // Monte TEORICO: include tutti i contributi (pagati e non).
@@ -39,11 +40,14 @@ export function calcolaPremiPagati(sess: Sessione): number {
   return Math.round(totale * 100) / 100;
 }
 
-/** Conta i debiti non ancora pagati in tutte le partite di una lega */
+/** Conta i debiti non ancora pagati in tutte le partite VIVE di una lega.
+    soloVive (R7.4a-3): cancellare una partita cancella i suoi debiti — un
+    debito che sopravvive alla sua partita chiederebbe soldi per una serata che
+    non esiste più. */
 export function contaDebitiAperti(lega: Lega): number {
   let count = 0;
-  for (const p of lega.partite) {
-    for (const s of p.settlements) {
+  for (const p of soloVive(lega.partite)) {
+    for (const s of soloVive(p.settlements)) {
       if (!s.pagato) count++;
     }
   }

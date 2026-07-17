@@ -2,6 +2,7 @@ import type { GiocoLega, SessioneGioco, Lega, Partita } from '../types';
 import { calcolaStatsGioco, type StatsGiocatore } from './statsGiochi';
 import { GIOCHI_PREIMPOSTATI } from './giochi';
 import { normalizzaNome } from './normalizzaNome';
+import { soloVive } from './tombstone';
 
 /* ══════════════════════════════════════════════════════
    CLASSIFICHE (Card Tracker M4) — funzioni pure
@@ -130,10 +131,10 @@ export function statsPersonaCrossContesto(
   let totale: StatsGiocatore = { ...ZERO_STATS };
 
   for (const lega of leghe) {
-    const giocatore = lega.nomi.find(n => normalizzaNome(n.nome) === target);
+    const giocatore = soloVive(lega.nomi).find(n => normalizzaNome(n.nome) === target);
     if (!giocatore) continue;
 
-    const sessioniChiuse = (lega.sessioniGioco ?? []).filter(
+    const sessioniChiuse = soloVive(lega.sessioniGioco).filter(
       s => s.stato === 'chiusa' && s.giocoId === gioco.id,
     );
     const stats = calcolaStatsGioco(gioco, sessioniChiuse, giocatore.id);
@@ -156,7 +157,7 @@ export function statsPersonaCrossContesto(
  */
 export function resolveGiocoLega(giocoId: string, lega: Lega): GiocoLega | null {
   if (giocoId === 'poker') return null;
-  const custom = lega.giochi?.find(g => g.id === giocoId);
+  const custom = soloVive(lega.giochi).find(g => g.id === giocoId);
   if (custom) return custom;
   const cat = GIOCHI_PREIMPOSTATI.find(g => g.id === giocoId);
   if (!cat) return null;
@@ -213,7 +214,10 @@ export function classificaPoker(
 ): RigaClassificaU[] {
   const nomeById = (id: number) => idNomi.find(n => n.id === id)?.nome ?? '?';
 
-  const filtrate = partite.filter(p => {
+  // soloVive (R7.4a-3): una partita cancellata non conta più nel netto — se
+  // contasse, cancellarla non cambierebbe nulla in classifica e i soldi
+  // resterebbero attribuiti a una serata che non esiste più.
+  const filtrate = soloVive(partite).filter(p => {
     if (range?.from && p.data < range.from) return false;
     if (range?.to   && p.data > range.to)   return false;
     return true;
@@ -221,7 +225,7 @@ export function classificaPoker(
 
   const agg = new Map<number, { partite: number; vittorie: number; netto: number }>();
   for (const p of filtrate) {
-    for (const g of p.giocatori) {
+    for (const g of soloVive(p.giocatori)) {
       const prev = agg.get(g.id_nome) ?? { partite: 0, vittorie: 0, netto: 0 };
       agg.set(g.id_nome, {
         partite:  prev.partite  + 1,
@@ -282,15 +286,22 @@ export function classificaGiocoU(
  * Gioco non risolvibile → classifica 'punti' vuota.
  */
 export function classificaUnificata(lega: Lega, giocoId: string): ClassificaU {
+  // ⚠️ `idNomi` ha DUE semantiche diverse nei due rami, e il tombstone le separa:
+  //  · poker → è solo una LOOKUP per il nome (le righe nascono dalle partite):
+  //    va passato INTERO, o una partita vecchia di un giocatore cancellato
+  //    mostrerebbe '?' al posto del nome;
+  //  · punti → è il ROSTER: `classificaGioco` fa `idNomi.map()`, una riga per
+  //    nome. Qui `soloVive` è obbligatorio, altrimenti un giocatore cancellato
+  //    ricompare in classifica (con 0 partite) — R7.4a-3.
   if (giocoId === 'poker') {
     return { tipo: 'soldi', righe: classificaPoker(lega.partite, lega.nomi) };
   }
   const gioco = resolveGiocoLega(giocoId, lega);
   if (!gioco) return { tipo: 'punti', righe: [] };
-  const sessioniChiuse = (lega.sessioniGioco ?? []).filter(
+  const sessioniChiuse = soloVive(lega.sessioniGioco).filter(
     s => s.stato === 'chiusa' && s.giocoId === giocoId,
   );
-  return { tipo: 'punti', righe: classificaGiocoU(gioco, sessioniChiuse, lega.nomi) };
+  return { tipo: 'punti', righe: classificaGiocoU(gioco, sessioniChiuse, soloVive(lega.nomi)) };
 }
 
 /* ── Poker globale "La tua situazione" (#4.6), gemello soldi di
@@ -326,12 +337,12 @@ export function classificaPokerCrossContesto(
 
   if (target) {
     for (const lega of leghe) {
-      const giocatore = lega.nomi.find(n => normalizzaNome(n.nome) === target);
+      const giocatore = soloVive(lega.nomi).find(n => normalizzaNome(n.nome) === target);
       if (!giocatore) continue;
 
       let cNetto = 0, cPartite = 0, cVittorie = 0;
-      for (const p of lega.partite) {
-        for (const g of p.giocatori) {
+      for (const p of soloVive(lega.partite)) {
+        for (const g of soloVive(p.giocatori)) {
           if (g.id_nome !== giocatore.id) continue;
           cPartite++;
           if (g.vincitore) cVittorie++;

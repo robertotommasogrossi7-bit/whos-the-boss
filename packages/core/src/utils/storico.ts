@@ -1,5 +1,6 @@
 import type { Lega, Partita, SessioneGioco } from '../types';
 import { normalizzaNome } from './normalizzaNome';
+import { soloVive } from './tombstone';
 
 /* ══════════════════════════════════════════════════════
    STORICO UNIFICATO (Card Tracker #4.6) — layer-dati, funzioni pure
@@ -41,7 +42,8 @@ export function vociStorico(
 
   // Poker: incluso se il filtro è 'poker' o assente.
   if (giocoId === 'poker' || giocoId === undefined) {
-    for (const partita of lega.partite) {
+    // soloVive: lo storico non mostra ciò che è stato cancellato (R7.4a-3).
+    for (const partita of soloVive(lega.partite)) {
       if (!inRange(partita.data)) continue;
       voci.push({ kind: 'poker', data: partita.data, partita });
     }
@@ -49,7 +51,7 @@ export function vociStorico(
 
   // Giochi non-poker: inclusi se il filtro è un gioco specifico o assente.
   if (giocoId !== 'poker') {
-    for (const sessione of lega.sessioniGioco ?? []) {
+    for (const sessione of soloVive(lega.sessioniGioco)) {
       if (sessione.stato !== 'chiusa') continue;
       if (giocoId !== undefined && sessione.giocoId !== giocoId) continue;
       if (!inRange(sessione.data)) continue;
@@ -82,10 +84,11 @@ export function voceCoinvolgeNome(
   const idMatcha = (id: number) => normalizzaNome(nomeById(id)).includes(q);
 
   if (voce.kind === 'poker') {
-    return voce.partita.giocatori.some(g => idMatcha(g.id_nome));
+    return soloVive(voce.partita.giocatori).some(g => idMatcha(g.id_nome));
   }
   const ids = new Set<number>(voce.sessione.partecipanti);
-  for (const p of voce.sessione.partite) {
+  // una partita annullata non fa "comparire" i suoi partecipanti nel filtro
+  for (const p of soloVive(voce.sessione.partite)) {
     if (p.partecipanti) for (const id of p.partecipanti) ids.add(id);
   }
   for (const id of ids) if (idMatcha(id)) return true;
