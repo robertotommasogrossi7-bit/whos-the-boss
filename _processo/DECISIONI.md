@@ -810,3 +810,17 @@
   payload, invarianti pre/post, matrice operativa, meno anchoring); il red team di design vero lo
   fa un **agente Opus interno** con accesso al codice reale (vantaggio: verifica sul codice, non
   su descrizioni). Esito → registro in `REDTEAM-R73-IMPORT.md`.
+
+## 2026-07-17 — R7.4 delta-sync: spec + red team (DS9)
+
+- **Red team R7.4** (agente Opus interno sul codice, formato metodo v1.6): 7 finding S4-R1..R7
+  tutti CONFERMATI su file:riga — registro `REDTEAM-R74-SYNC.md`, fix in `R7_SCHEMA.md` P.8.
+  I 2 critici (S4-R1/R2): il sync per-uid NON può unire i dati creati indipendentemente su un 2°
+  device (li duplica, e la 2ª Personale va in deadlock su `leghe_personale_uniq`) — la promessa
+  "li unirà il delta-sync" scritta nell'import era falsa e va corretta.
+- **DS9 — ✅ DECISA (utente): il 2° device ADOTTA IL CLOUD.** Telefono vuoto → pull e via (caso
+  comune, zero attriti). Telefono con dati locali + account già importato → avviso + conferma
+  esplicita, i dati locali vengono SOSTITUITI dal cloud, con copia di sicurezza del blob salvata
+  sul telefono prima della sostituzione (`…:backup-pre-adozione`). L'"unione intelligente" by
+  natural-key = scartata (lavoro sproporzionato per uno scenario raro a questa scala); il claim
+  degli ospiti resta R8.
