@@ -452,13 +452,26 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     `applicaStampPush` (syncedRev = revisione spedita, lastSyncedAt = updated_at ritornato dalla RPC —
     chiude il contratto O.3/I-R3). **405 test core + 18 state.** Caso soldi coperto: settlement saldato
     sotto partita pulita → UPDATE mirato. → **con c1, tutta la PARTE PURA di R7.4 è fatta** (a+b+c1).
-  - **PROSSIMO: R7.4c-c2** — la **migration #10 `push_lega`** (RPC CAS: UPDATE se `updated_at`==pegno,
-    altrimenti abort tx `conflict`; INSERT nuove `ON CONFLICT DO NOTHING`; ledger solo-INSERT
-    parent-first; `unique_violation`→errore parlante P.8.2; ritorna `updated_at` per-riga per lo
-    stamp + conteggi) + gate `scripts/gate-push.ts` (`pnpm gate:push`) su Postgres reale (Docker).
-    ⚠️ **È la #10** (la #9 `gioco_key` è già di G1). Poi **R7.4d** (orchestratore pull→push + trigger
+  - **c2 FATTO** (`b131474` migration, `4f4e027` gate, chat Fable): **migration #10 `push_lega`**
+    (RPC CAS per-lega, SECURITY INVOKER, parent-first): pegno null → INSERT `ON CONFLICT (id) DO
+    NOTHING` (arbiter ESPLICITO su id, così `leghe_personale_uniq` solleva); pegno pieno → UPDATE
+    `WHERE updated_at=pegno`, 0 righe → abort TOTALE `conflict` (stile WatermelonDB); ledger
+    solo-INSERT prima dei settlement (I5/S13); ponti DO NOTHING (immutabili col genitore);
+    `unique_violation` → errore parlante vincolo+hint (P.8.2); ritorna `{conteggi, applicate}`
+    (uid→updated_at per lo stamp). Scoperta utile (B31): il trigger `updated_at` non bumpa sugli
+    UPDATE no-op → l'eco di un retry col pegno giusto si auto-risolve senza conflitto fantasma.
+    **Gate `pnpm gate:push` 13/13 su Postgres reale** (builder+stamp VERI: insert+conteggi+stamp→zero
+    delta · update col pegno · conflitto CAS con rollback totale + recovery LWW · eco senza duplicati
+    né clobber · movimento rispedito = 1 record · 2ª Personale parlante · versione ignota · RLS in 3
+    varianti) + **3 sabotaggi della RPC** (CAS spento / DO NOTHING tolto / unique muta) → ognuno il
+    SUO rosso, poi verde da db ricreato. → **✅✅ R7.4c COMPLETA (c1+c2).**
+  - **PROSSIMO: R7.4d** — orchestratore `orchestraSync` pull→push (deps iniettate) + trigger
     boot/foreground + mutex + logout-guard + **adozione DS9** del 2° device + correggere i testi
-    "unione" in `orchestraImport.ts`/`carica-dati.tsx`) ed **R7.4e** (chaos su DB reale).
+    "unione" in `orchestraImport.ts`/`carica-dati.tsx` + **applicare la #10 sul cloud** (quando
+    l'app la usa). Poi **R7.4e** (chaos su DB reale).
+  - ⚠️ **PROMEMORIA ATTIVO (SQL pendente)**: la **migration #10** (`20260717180000_r74_push_rpc.sql`)
+    è applicata SOLO in locale — sul cloud sono 1→9. Va applicata in R7.4d, con conferma esplicita
+    dell'utente (fonte di verità: inventario `supabase/README.md`).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
