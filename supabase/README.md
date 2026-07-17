@@ -4,7 +4,7 @@ Migrazioni versionate del database (identità, ruoli, sync). Il progetto Supabas
 vive nella dashboard (URL + anon key in `apps/mobile/.env`, gitignorato); qui sta
 lo **schema come codice**, così è riproducibile e mostra il processo.
 
-## Migrazioni — inventario numerato (8 file totali, applicare in ordine 1→8)
+## Migrazioni — inventario numerato (10 file totali, applicare in ordine 1→10)
 
 > ⚠️ **Fonte di verità sullo stato**: questa tabella. Se un'altra chat/nota dice qualcosa di diverso,
 > fidati di QUESTA tabella (e ri-conferma con l'utente prima di dare per applicato un file nuovo).
@@ -21,9 +21,11 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 
 | 8 | `migrations/20260717120000_r73_import_rpc.sql` | R7.3b | **RPC `import_locale(payload jsonb)`**: travaso one-shot del db locale (13 tabelle + 4 ponti) in **una transazione** (PostgREST). `SECURITY INVOKER` (RLS attiva) · **guardia atomica** su `profiles.imported_at` (I-R1: due import concorrenti non passano entrambi) · payload **versionato** (I-R7) · insert **parent-first** (I-R2: la RLS non è deferibile) · ritorna i **conteggi per tabella** (I-R6) · `grant execute` (I-R8). | ✅ **APPLICATA** (locale: gate+chaos **17/17** · cloud: **confermato dall'utente 2026-07-17**) |
 | 9 | `migrations/20260717150000_g1_gioco_key.sql` | G1 (bonifica) | **`sessioni_gioco.gioco_key`** = quale gioco è stato giocato (la chiave locale `giocoId`). Prima l'unico legame era la FK `gioco_lega_id → giochi_lega`, tabella che **nessuno popola** (la UI giochi custom è M5) → il cloud **non registrava mai** a cosa si fosse giocato, e il preflight bloccava ogni import multigioco. Ricrea anche la RPC `import_locale` (che ora porta `gioco_key`): `create or replace` esige tutto il corpo, il resto è identico alla #8. Mini-spec: `_processo/R7_SCHEMA.md` sez. Q. | ✅ **APPLICATA** (locale: gate+chaos **18/18** su DB ricreato da zero · cloud: **confermato dall'utente 2026-07-17**) |
+| 10 | `migrations/20260717180000_r74_push_rpc.sql` | R7.4c | **RPC `push_lega(payload jsonb)`**: il delta-push di UNA lega, transazionale (PostgREST), `SECURITY INVOKER` (RLS attiva). **CAS per riga**: pegno `expected_updated_at` nullo → `INSERT … ON CONFLICT (id) DO NOTHING` (retry-safe S10); pegno pieno → `UPDATE … WHERE updated_at = pegno`, 0 righe → **abort dell'intera transazione con `conflict`** (stile WatermelonDB: il client ri-pulla e riprova). Ledger `poker_movimenti` solo-INSERT prima dei settlements (I5/S13), ponti `ON CONFLICT DO NOTHING` (immutabili col genitore), `unique_violation` → **errore parlante** col nome del vincolo (P.8.2). Ritorna `{conteggi, applicate}`: gli `updated_at` per-riga alimentano `applicaStampPush` (nuovo pegno senza pull intermedio). Design: `R7_SCHEMA.md` P.2/P.8.2. | ⏳ **NON applicata sul cloud** (scelta: si applica in R7.4d, quando l'app la userà). Locale: validata dal gate `pnpm gate:push` su Postgres reale. |
 
-> ✅ **TUTTE e 9 le migration sono APPLICATE sul cloud** (1→6 il 2026-07-11; #7, #8 e #9 il
-> 2026-07-17). Cloud e file del repo sono **allineati**. Nessun SQL pendente.
+> ⚠️ **Stato cloud: 9/10** — le migration 1→9 sono APPLICATE sul cloud (1→6 il 2026-07-11; #7, #8 e
+> #9 il 2026-07-17); la **#10 è volutamente pendente** (si applica in R7.4d insieme all'orchestratore
+> che la chiama). Cloud e repo sono allineati su 1→9.
 > ℹ️ La #9 è stata applicata **senza provare l'import dal telefono** (scelta dell'utente: prima si
 > finisce R7, poi si prova tutto insieme). La prova sul cloud vero resta quindi **da fare**: in
 > locale il gate+chaos la copre 18/18, ma nessuno ha ancora premuto "Carica i dati" su un telefono.
