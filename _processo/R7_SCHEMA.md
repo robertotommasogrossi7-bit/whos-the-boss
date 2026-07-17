@@ -746,3 +746,126 @@ HH:MM" nel Profilo) · claim ospiti (R8).
 - **P.7 emendato:** R7.4a (cablaggio) è la superficie più rischiosa, spezzata in: a1 = creazioni
   con `nuovoSync` + test dirty→payload · a2 = mutazioni con `touchSync` · a3 = cancellazioni→
   tombstone con cascade + `soloVive()` + test stats. R7.4d include il flusso di adozione (P.8.1).
+
+---
+
+# Q — BONIFICA G1: "quale gioco" non arriva nel cloud (mini-spec, 2026-07-17) ⏳ DECISIONE APERTA
+
+> Trovato dal **gate di R7.4a-1** (`packages/state/src/sync-cablaggio.test.ts`) mentre si scriveva
+> il flusso multigioco: non da un red team, ma dal primo test che guida le azioni vere dello store.
+> **Blocca l'import multigioco, che è GIÀ LIVE sul telefono** (R7.3c + migration #8 sul cloud), e
+> blocca la materializzazione di R7.4b. Ordine deciso con l'utente: **bonifica PRIMA di a2/a3**.
+
+## Q.1 — Il difetto, con la prova
+
+Eseguito sul codice reale (store → `preflightImport`), non dedotto:
+
+```
+lega.giochi = undefined
+preflight   = [{ tipo: 'fk_orfana',
+                 messaggio: 'sessione "scopa" del 2026-07-17 in lega "Personale":
+                             il gioco "scopa" non è più configurato nella lega.' }]
+```
+
+La catena:
+1. **Nessuno popola `lega.giochi`**: l'app pesca i giochi dal catalogo globale
+   (`GIOCHI_PREIMPOSTATI`, 11 giochi nel binario). L'unico costruttore di `GiocoLega` è
+   `nuovoGiocoCustom`, che **non ha chiamanti** (la UI giochi custom è M5, mai fatta).
+2. Nel cloud, `sessioni_gioco` **non ha nessuna colonna per il gioco**: l'unico legame è la FK
+   `gioco_lega_id → giochi_lega` (nullable). `giochi_lega` è l'unica tabella referenziata da lì.
+3. Quindi: `giochi_lega` sempre vuota → `gioco_lega_id` sempre `null` → **il cloud non registra
+   MAI quale gioco è stato giocato**.
+4. `preflightImport` lo segnala come `fk_orfana` **bloccante** → l'utente non può importare.
+
+**Doppio difetto, non uno:**
+- il **messaggio è falso**: dice "non è *più* configurato", ma non lo è mai stato;
+- e **ammorbidire la guardia non basta**: senza il blocco l'import "riuscirebbe" perdendo in
+  silenzio l'identità del gioco. Al primo pull su un 2° device (R7.4b) la sessione tornerebbe
+  senza gioco (`sessioneGiocoFromCloudRow` ripiega su `base.giocoId`, che per una riga
+  materializzata ex-novo **non esiste**) → classifica multigioco (che raggruppa per `giocoId`) rotta.
+  La guardia sta proteggendo un import lossy: sbaglia motivo e messaggio, non l'istinto.
+
+## Q.2 — Ricerca (app note e solide)
+
+**Board Game Stats** (standard di categoria per il tracking di partite, già riferimento del progetto
+per R3): mantiene **un record Game per ogni gioco unico giocato**, e l'aggancio a BoardGameGeek è
+**opzionale** (senza, la partita resta locale e non si pubblica su BGG); se un import BGG non trova
+match, **crea un nuovo Game** con il link BGG dentro.
+
+⚠️ **Ma il driver non è il nostro**: BGG è un catalogo *remoto* di 100k+ giochi — BG Stats *deve*
+materializzare un record locale perché non può avere il catalogo in tasca. Noi abbiamo **11 giochi
+nel binario**. Il riferimento è autorevole ma la sua causa non si trasferisce: preso alla lettera
+porterebbe a copiare per-lega dati che già abbiamo. (Metodo: confrontarsi coi leader, non copiarli
+alla cieca.)
+
+Sul lato sync, il pattern ricorrente: i **dati di riferimento/catalogo** viaggiano read-only verso
+il device e non si ri-caricano; ciò che è **creato dall'utente** deve sincronizzare. Da qui la
+riga di taglio: *preimpostati = catalogo (non sync), custom = dato utente (sync)*.
+
+## Q.3 — Il modello locale, letto sul codice (il punto che decide)
+
+`resolveGiocoLega(giocoId, lega)` (`utils/classifiche.ts`) dice già qual è il modello:
+
+> cerca prima in `lega.giochi`, **poi nel catalogo** (con default `pareggioComeVittoria: true`)
+
+Quindi, in locale:
+- **`SessioneGioco.giocoId` (stringa) È l'identità** del gioco — sempre presente, sempre risolvibile;
+- **`lega.giochi` è un layer OPZIONALE** di override/custom sopra il catalogo (`GiocoLega` porta
+  `accent`/`foto`/`attivo`/`pareggioComeVittoria` per-lega). `MULTIGIOCO_SPEC §4`: *"undefined =
+  solo poker implicito"*.
+
+**Lo schema R7.1 ha invertito il modello**: ha buttato la parte *obbligatoria* (`giocoId`) e ha
+tenuto solo la parte *opzionale* (la FK all'override). È questa l'origine del difetto.
+
+## Q.4 — Le due opzioni
+
+**A — Popolare `lega.giochi`** (materializzare la riga GiocoLega al primo uso, + backfill in
+`migrateLega` per i dati già sul telefono). La FK torna a risolvere.
+- ✅ rende `giochi_lega` reale; allineata alla lettera a BG Stats; serve comunque a M5.
+- ❌ **cambia il modello locale**: `lega.giochi` da override opzionale diventa obbligatorio, e il
+  fallback di `resolveGiocoLega` diventa codice morto;
+- ❌ **copia per-lega dati del catalogo** → copie stantie appena il catalogo evolve (rinominiamo
+  "Scala 40" e le leghe vecchie restano indietro), più righe da sincronizzare, più superficie di
+  conflitto — per un dato che è già nel binario e non cambia mai per-lega;
+- ❌ richiede una migrazione dei dati locali esistenti.
+
+**B — `sessioni_gioco.gioco_id text`** (l'identità nel cloud, come in locale). `giochi_lega` resta
+il layer di override/custom, sincronizzato **quando esiste** (cioè da M5 in poi).
+- ✅ **fedele al modello locale**: la colonna rispecchia 1:1 `SessioneGioco.giocoId`;
+- ✅ `sessioneGiocoFromCloudRow` diventa corretto (`giocoId: row.gioco_id`, niente ripiego su
+  `base` — che è proprio il buco di R7.4b);
+- ✅ i custom continuano a sincronizzare via `giochi_lega` quando M5 li creerà: **una sola** fonte
+  di verità per l'identità (il testo) e una per la configurazione (la riga);
+- ✅ minima: una colonna, una migration, nessun tocco al modello locale né migrazione di dati;
+- ❌ `giochi_lega` resta vuota finché non arriva M5 (ma è **corretto**: oggi non esistono override).
+
+**Raccomandazione: B.** A risolve il sintomo copiando il catalogo dentro ogni lega; B rimette nel
+cloud l'informazione che il modello locale ha sempre avuto. La colonna `gioco_lega_id` esistente
+diventa ridondante per l'identità: si può lasciare (nullable, popolata solo se un override esiste;
+`GiocoLega.id === giocoId`, quindi l'override si ritrova per `(lega_id, gioco_id)`).
+
+## Q.5 — Design proposto (se B)
+
+1. **Migration #9**: `alter table sessioni_gioco add column gioco_id text;` + backfill dalle righe
+   esistenti via `giochi_lega` dove non nullo (oggi: nessuna). Non `not null` subito: le righe già
+   nel cloud dell'utente non ce l'hanno (→ `not null` solo dopo il backfill, se vale la pena).
+2. **Mapping**: `sessioneGiocoToCloudRow` scrive `gioco_id: s.giocoId`;
+   `sessioneGiocoFromCloudRow` legge `giocoId: row.gioco_id ?? base.giocoId` (il `??` copre solo le
+   righe pre-#9).
+3. **Preflight**: **togliere** il check `fk_orfana` sul `giocoId` — codifica un modello sbagliato.
+   Gli altri check (serata, nomi, uid) restano.
+4. **Test**: nel gate di a1 il flusso multigioco pretende `preflightImport(db) === []` e
+   `payload.sessioni_gioco[0].gioco_id === 'scopa'`; round-trip `to→from` senza base locale.
+5. **RPC `import_locale`**: la insert di `sessioni_gioco` porta anche `gioco_id` (la #8 è già sul
+   cloud → serve la #9 comunque).
+
+## Q.6 — Sotto-fasi (micro-commit)
+- **G1-a** — migration #9 + mapping + preflight + test (gate multigioco verde end-to-end).
+- **G1-b** — applicare #9 sul cloud (azione utente) → l'import torna usabile dal telefono.
+
+## Q.7 — Fuori scope / rischi
+- **M5 (UI giochi custom)** resta dov'è: B non la anticipa, la aspetta.
+- Righe `sessioni_gioco` già nel cloud senza `gioco_id`: **nessuna** (l'import non è mai passato —
+  è proprio il bug). Quindi il backfill è teorico e il `??` nel mapping è pura prudenza.
+- Il debito noto `nuovoGiocoCustom` id `custom-${Date.now()}` (collisione teorica) resta a M5:
+  con B non ha nuovi chiamanti.
