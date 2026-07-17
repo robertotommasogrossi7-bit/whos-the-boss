@@ -66,7 +66,9 @@ describe('assicuraGiocatorePersonale — aggancia l\'account (R6)', () => {
   it('MIGRA il vecchio record creato per nome (senza accountId): lo reclama, stesso id', () => {
     const l = { ...creaLegaPersonale(1), nomi: [{ id: 1, nome: 'Anna' }], _nid: 2 };
     const out = assicuraGiocatorePersonale(l, u({ username: 'anna', id: 'a1' }));
-    expect(out.nomi).toEqual([{ id: 1, nome: 'Anna', accountId: 'a1' }]);
+    // toMatchObject: dal 2026-07-17 il reclamo aggiunge anche i campi sync
+    // (touchSync, R7.4a-2) — qui interessa l'identità, non il tracking.
+    expect(out.nomi).toMatchObject([{ id: 1, nome: 'Anna', accountId: 'a1' }]);
     expect(out._nid).toBe(2); // nessun nuovo record
   });
 
@@ -92,7 +94,7 @@ describe('assicuraGiocatorePersonale — aggancia l\'account (R6)', () => {
     // lo username non combacia col guest, ma il displayName sì -> deve reclamare, non duplicare.
     const l = { ...creaLegaPersonale(1), nomi: [{ id: 1, nome: 'Mario' }], _nid: 2 };
     const out = assicuraGiocatorePersonale(l, u({ username: 'mario_rossi', id: 'a1', displayName: 'Mario' }));
-    expect(out.nomi).toEqual([{ id: 1, nome: 'Mario', accountId: 'a1' }]);
+    expect(out.nomi).toMatchObject([{ id: 1, nome: 'Mario', accountId: 'a1' }]);
     expect(out._nid).toBe(2); // nessun secondo "Mario"
   });
 });
@@ -105,13 +107,23 @@ describe('reclamaGiocatoreInLega — migrazione one-shot claim-by-name (R6-B2/M7
   it('reclama il record libero che combacia per USERNAME, stesso id', () => {
     const l = mkLega({ nomi: [{ id: 1, nome: 'giulio_rossi' }] });
     const out = reclamaGiocatoreInLega(l, u({ username: 'giulio_rossi', id: 'a1' }));
-    expect(out.nomi).toEqual([{ id: 1, nome: 'giulio_rossi', accountId: 'a1' }]);
+    expect(out.nomi).toMatchObject([{ id: 1, nome: 'giulio_rossi', accountId: 'a1' }]);
+  });
+
+  /* R7.4a-2: agganciare l'accountId cambia la colonna `account_id` nel cloud.
+     Senza touchSync la rivendicazione resterebbe su QUESTO device e gli altri
+     continuerebbero a vedere un ospite libero. */
+  it('il reclamo rimette la riga in coda per il push (touchSync)', () => {
+    const l = mkLega({ nomi: [{ id: 1, nome: 'giulio_rossi', uid: 'u1', syncRev: 3, syncedRev: 3 }] });
+    const out = reclamaGiocatoreInLega(l, u({ username: 'giulio_rossi', id: 'a1' }));
+    expect(out.nomi[0].syncRev).toBe(4);
+    expect(out.nomi[0].syncedRev).toBe(3);  // il server è fermo → sporca
   });
 
   it('reclama per DISPLAYNAME quando lo username non combacia (M8)', () => {
     const l = mkLega({ nomi: [{ id: 1, nome: 'Giulio' }] });
     const out = reclamaGiocatoreInLega(l, u({ username: 'g_rossi_99', id: 'a1', displayName: 'Giulio' }));
-    expect(out.nomi[0]).toEqual({ id: 1, nome: 'Giulio', accountId: 'a1' });
+    expect(out.nomi[0]).toMatchObject({ id: 1, nome: 'Giulio', accountId: 'a1' });
   });
 
   it('idempotente: già reclamato → stesso riferimento', () => {

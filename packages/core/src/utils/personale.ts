@@ -1,6 +1,6 @@
 import type { Lega, NomeGiocatore, User } from '../types';
 import { normalizzaNome } from './normalizzaNome';
-import { nuovoSync } from './uid';
+import { nuovoSync, touchSync } from './uid';
 
 /* ══════════════════════════════════════════════════════
    LEGA "PERSONALE" (Card Tracker §2)
@@ -61,7 +61,10 @@ export function reclamaGiocatoreInLega(lega: Lega, user: User): Lega {
   });
   if (idx < 0) return lega;
 
-  return { ...lega, nomi: lega.nomi.map((n, i) => (i === idx ? { ...n, accountId } : n)) };
+  // touchSync: agganciare l'accountId CAMBIA la riga `giocatori` nel cloud
+  // (colonna account_id) — senza, la rivendicazione resterebbe solo su questo
+  // device e gli altri continuerebbero a vedere un ospite libero (R7.4a-2).
+  return { ...lega, nomi: lega.nomi.map((n, i) => (i === idx ? touchSync({ ...n, accountId }) : n)) };
 }
 
 /** Assicura che nel Personale esista IL giocatore dell'utente loggato (R6).

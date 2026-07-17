@@ -16,7 +16,7 @@ import { validaRinomina, giocatoreInUso } from '@whos-the-boss/core';
 import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
-import { conUid, nuovoSync } from '@whos-the-boss/core';
+import { conUid, nuovoSync, touchSync } from '@whos-the-boss/core';
 import { calcolaSettlement } from '@whos-the-boss/core';
 import { calcolaSettlementTorneo } from '@whos-the-boss/core';
 import type { Trasferimento } from '@whos-the-boss/core';
@@ -583,7 +583,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const err = validaRinomina(lega, idNome, nuovoNome, get().utente?.id);
         if (err) return err;
         const n = nuovoNome.trim();
-        saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? { ...x, nome: n } : x)) });
+        saveLega({ ...lega, nomi: lega.nomi.map(x => (x.id === idNome ? touchSync({ ...x, nome: n }) : x)) });
         return null;
       },
 
@@ -607,7 +607,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             return {
               ...p,
               settlements: p.settlements.map((s, i) =>
-                i === idx ? { ...s, pagato: !s.pagato } : s,
+                i === idx ? touchSync({ ...s, pagato: !s.pagato }) : s,
               ),
             };
           }),
@@ -625,7 +625,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             return {
               ...p,
               settlements: p.settlements.map((s, i) =>
-                i === idx ? { ...s, pagato: true } : s,
+                i === idx ? touchSync({ ...s, pagato: true }) : s,
               ),
             };
           }),
@@ -644,9 +644,9 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
             settlements: p.settlements.map(s => {
               if (!s.pagato && (debtorId === undefined || s.from === debtorId)) {
                 count++;
-                return { ...s, pagato: true };
+                return touchSync({ ...s, pagato: true });
               }
-              return s;
+              return s;   // già pagato: NON si tocca (un touchSync a vuoto = un push inutile)
             }),
           })),
         });
@@ -1662,7 +1662,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         if (!lega) return;
         const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
           s.id === sessId && s.stato === 'pre'
-            ? { ...s, stato: 'attiva' as const, ora_inizio: nowHHMM() }
+            ? touchSync({ ...s, stato: 'attiva' as const, ora_inizio: nowHHMM() })
             : s,
         );
         saveLega({ ...lega, sessioniGioco });
@@ -1704,9 +1704,12 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
 
         const sessioniGioco = (lega.sessioniGioco ?? []).map(s => {
           if (s.id !== sessId) return s;
+          // touchSync sulla PARTITA, non sulla sessione: sono righe di tabelle
+          // diverse nel cloud (partite_gioco / sessioni_gioco) e la riga della
+          // sessione qui non cambia — marcarla sporca sarebbe un push a vuoto.
           const partite = s.partite.map(p =>
             p.id === partitaId
-              ? { ...p, ora_fine: p.ora_fine || nowHHMM(), vincitori, pareggio: esito.pareggio, partecipanti: override, nomeLibero }
+              ? touchSync({ ...p, ora_fine: p.ora_fine || nowHHMM(), vincitori, pareggio: esito.pareggio, partecipanti: override, nomeLibero })
               : p,
           );
           return { ...s, partite };
@@ -1735,7 +1738,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         }
         const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
           s.id === sessId
-            ? { ...s, stato: 'chiusa' as const, ora_fine: nowHHMM(), esitoPareggio: !!esitoPareggio }
+            ? touchSync({ ...s, stato: 'chiusa' as const, ora_fine: nowHHMM(), esitoPareggio: !!esitoPareggio })
             : s,
         );
         saveLega({ ...lega, sessioniGioco });

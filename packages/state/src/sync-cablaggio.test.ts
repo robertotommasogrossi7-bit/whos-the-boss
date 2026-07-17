@@ -6,6 +6,8 @@ import {
   revisioniSpedite,
   type ConSync, type Db,
 } from '@whos-the-boss/core';
+/* `sostituisciDb` è l'azione con cui l'app riscrive il db dopo l'import: qui la
+   si usa per simulare "il push è andato a buon fine" senza toccare la rete. */
 import { createAppStore } from './store';
 
 /* ══════════════════════════════════════════════════════
@@ -21,10 +23,11 @@ import { createAppStore } from './store';
    l'app e controlla il risultato sul db. Un punto di creazione nuovo che si
    dimentica `nuovoSync()`/`conUid()` fa fallire qui.
 
-   Le due proprietà che il push (R7.4c) richiede, e che qui si pretendono:
+   Le proprietà che il push (R7.4c) richiede, e che qui si pretendono:
      1. ogni entità creata è DIRTY  → il filtro del push la seleziona;
      2. ogni entità/movimento ha un UID → il payload si costruisce SENZA
-        battezzaDb (nel delta-sync il battesimo dell'import non c'è).
+        battezzaDb (nel delta-sync il battesimo dell'import non c'è);
+     3. (a-2) ogni MUTAZIONE rimette la riga in coda — e solo quella riga.
 ══════════════════════════════════════════════════════ */
 
 function fakeStorage(): StateStorage {
@@ -158,6 +161,78 @@ describe('R7.4a-1 — le entità create dallo store nascono pronte per il sync',
     for (const { dove, e } of entitaSincronizzate(pulito)) {
       expect(haCambiamentiLocaliNonSincronizzati(e), `${dove} ancora dirty dopo lo stamp`).toBe(false);
     }
+  });
+
+  /* ── R7.4a-2: le MUTAZIONI ──
+     Una riga già sincronizzata che l'utente modifica deve tornare "da
+     spedire", altrimenti la modifica resta su questo telefono per sempre.
+     Il ciclo completo: creo → dirty → stamp (push) → pulito → MODIFICO →
+     dirty di nuovo. Senza touchSync, l'ultimo passo fallisce. */
+  function dbPulito(): { s: () => ReturnType<ReturnType<typeof nuovoStore>>; legaId: number } {
+    const s = nuovoStore();
+    s().runMigrations();
+    const legaId = s().db.leghe.find((l) => l.personale)!.id;
+    s().aggiungiGiocatore(legaId, 'Anna');
+    s().aggiungiGiocatore(legaId, 'Bruno');
+    // simula un push riuscito: da qui in poi tutto è pulito
+    s().sostituisciDb(applicaStampImport(s().db, revisioniSpedite(s().db)));
+    for (const { dove, e } of entitaSincronizzate(s().db)) {
+      expect(haCambiamentiLocaliNonSincronizzati(e), `${dove} parte già dirty: il test non proverebbe nulla`).toBe(false);
+    }
+    return { s, legaId };
+  }
+
+  it('rinominare un giocatore lo rimette in coda per il push', () => {
+    const { s, legaId } = dbPulito();
+    const anna = s().db.leghe[0].nomi.find((n) => n.nome === 'Anna')!;
+    expect(s().rinominaGiocatore(legaId, anna.id, 'Anna B.')).toBeNull();
+
+    const dopo = s().db.leghe[0].nomi.find((n) => n.id === anna.id)!;
+    expect(dopo.nome).toBe('Anna B.');
+    expect(haCambiamentiLocaliNonSincronizzati(dopo), 'rinomina non spedita: resterebbe su questo telefono').toBe(true);
+    expect(dopo.syncRev).toBe(2);           // era 1 (creazione), stampata a 1 → ora 2
+    expect(dopo.syncedRev).toBe(1);         // il server è fermo alla 1 → sporca
+    // gli ALTRI non si toccano: un touchSync a pioggia = push inutili
+    const bruno = s().db.leghe[0].nomi.find((n) => n.nome === 'Bruno')!;
+    expect(haCambiamentiLocaliNonSincronizzati(bruno), 'Bruno non è stato toccato, non deve risultare sporco').toBe(false);
+  });
+
+  it('segnare un debito come pagato rimette in coda SOLO quel debito', () => {
+    const s = nuovoStore();
+    s().runMigrations();
+    const { db } = dbConPartitaPoker();
+    s().sostituisciDb(applicaStampImport(db, revisioniSpedite(db)));
+    const legaId = s().db.leghe[0].id;
+    const partita = s().db.leghe[0].partite[0];
+
+    s().toggleSettlementPaid(legaId, partita.id, 0);
+
+    const dopo = s().db.leghe[0].partite[0];
+    expect(dopo.settlements[0].pagato).toBe(true);
+    expect(haCambiamentiLocaliNonSincronizzati(dopo.settlements[0]), 'il debito saldato non verrebbe spedito').toBe(true);
+    // la partita e i suoi giocatori sono righe DIVERSE nel cloud: non si toccano
+    expect(haCambiamentiLocaliNonSincronizzati(dopo), 'la partita non è cambiata: marcarla sporca = push a vuoto').toBe(false);
+    expect(haCambiamentiLocaliNonSincronizzati(dopo.giocatori[0])).toBe(false);
+  });
+
+  it('chiudere una sessione di gioco la rimette in coda (e chiude la partita)', () => {
+    const s = nuovoStore();
+    s().runMigrations();
+    const legaId = s().db.leghe.find((l) => l.personale)!.id;
+    s().aggiungiGiocatore(legaId, 'Anna');
+    const ids = s().db.leghe[0].nomi.map((n) => n.id);
+    const sessId = s().creaSessioneGioco(legaId, 'scopa', ids, '2026-07-17', '21:00')!;
+    s().avviaSessioneGioco(legaId, sessId);
+    const pid = s().aggiungiPartita(legaId, sessId)!;
+    s().sostituisciDb(applicaStampImport(s().db, revisioniSpedite(s().db)));
+
+    s().chiudiPartita(legaId, sessId, pid, { vincitori: [ids[0]], pareggio: false });
+    s().chiudiSessioneGioco(legaId, sessId, false);
+
+    const sess = s().db.leghe[0].sessioniGioco!.find((x) => x.id === sessId)!;
+    expect(sess.stato).toBe('chiusa');
+    expect(haCambiamentiLocaliNonSincronizzati(sess), 'sessione chiusa non spedita').toBe(true);
+    expect(haCambiamentiLocaliNonSincronizzati(sess.partite[0]), 'partita chiusa non spedita').toBe(true);
   });
 
   it('multigioco: serata + sessione + partita nascono DIRTY e con uid', () => {
