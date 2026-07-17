@@ -17,6 +17,7 @@ import { nuovoGiocatoreSessione } from '@whos-the-boss/core';
 import { assegnaPostoIngresso, riequilibraTavoli, tavoliNecessari } from '@whos-the-boss/core';
 import { nowHHMM } from '@whos-the-boss/core';
 import { conUid, nuovoSync, touchSync } from '@whos-the-boss/core';
+import { tombstona, tombstonaPartita, tombstonaSessioneGioco } from '@whos-the-boss/core';
 import { calcolaSettlement } from '@whos-the-boss/core';
 import { calcolaSettlementTorneo } from '@whos-the-boss/core';
 import type { Trasferimento } from '@whos-the-boss/core';
@@ -571,7 +572,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         // + multigioco sessioni/partite/serate), non solo le partite poker —
         // altrimenti restavano orfani in storico/classifiche multigioco.
         if (giocatoreInUso(lega, idNome)) return 'Il giocatore ha partecipato a partite e non può essere eliminato';
-        saveLega({ ...lega, nomi: lega.nomi.filter(nm => nm.id !== idNome) });
+        // Tombstone, non delete fisico (R7.4a-3): il push deve poter dire
+        // all'altro device "questo giocatore non c'è più". `giocatoreInUso`
+        // qui sopra garantisce zero figli → nessun cascade.
+        const now = new Date().toISOString();
+        saveLega({ ...lega, nomi: lega.nomi.map(nm => nm.id === idNome ? tombstona(nm, now) : nm) });
         return null;
       },
 
@@ -592,7 +597,10 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
-        saveLega({ ...lega, partite: lega.partite.filter(p => p.id !== partitaId) });
+        // Tombstone + cascade su giocatori/settlement (R7.4a-3): i soldi della
+        // partita cancellata smettono di contare, e il push lo propaga.
+        const now = new Date().toISOString();
+        saveLega({ ...lega, partite: lega.partite.map(p => p.id === partitaId ? tombstonaPartita(p, now) : p) });
       },
 
       /* ── Debiti ── */
@@ -1721,8 +1729,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
+        // Tombstone, non delete (R7.4a-3): anche annullare una partita di gioco
+        // dev'essere propagato. La sessione padre NON si tocca (non cambia).
+        const now = new Date().toISOString();
         const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
-          s.id === sessId ? { ...s, partite: s.partite.filter(p => p.id !== partitaId) } : s,
+          s.id === sessId ? { ...s, partite: s.partite.map(p => p.id === partitaId ? tombstona(p, now) : p) } : s,
         );
         saveLega({ ...lega, sessioniGioco });
       },
@@ -1749,7 +1760,11 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
-        const sessioniGioco = (lega.sessioniGioco ?? []).filter(s => s.id !== sessId);
+        // Tombstone + cascade sulle partite (R7.4a-3).
+        const now = new Date().toISOString();
+        const sessioniGioco = (lega.sessioniGioco ?? []).map(s =>
+          s.id === sessId ? tombstonaSessioneGioco(s, now) : s,
+        );
         saveLega({ ...lega, sessioniGioco });
       },
 
@@ -1772,11 +1787,16 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
         const { db, saveLega } = get();
         const lega = db.leghe.find(l => l.id === legaId);
         if (!lega) return;
-        // Rimuove la serata E le sue sessioni-gioco (il gruppo intero).
+        // Tombstona la serata E le sue sessioni-gioco (il gruppo intero, col
+        // loro sottoalbero di partite) — R7.4a-3. Un delete fisico non direbbe
+        // mai all'altro device che il gruppo è sparito.
+        const now = new Date().toISOString();
         saveLega({
           ...lega,
-          serate: (lega.serate ?? []).filter(s => s.id !== serataId),
-          sessioniGioco: (lega.sessioniGioco ?? []).filter(s => s.serataId !== serataId),
+          serate: (lega.serate ?? []).map(s => s.id === serataId ? tombstona(s, now) : s),
+          sessioniGioco: (lega.sessioniGioco ?? []).map(s =>
+            s.serataId === serataId ? tombstonaSessioneGioco(s, now) : s,
+          ),
         });
       },
 

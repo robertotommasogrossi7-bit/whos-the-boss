@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { classificaUnificata, GIOCHI_PREIMPOSTATI, resolveGiocoLega, type Lega } from '@whos-the-boss/core';
+import { classificaUnificata, GIOCHI_PREIMPOSTATI, resolveGiocoLega, soloVive, type Lega } from '@whos-the-boss/core';
 
 import ClassificaTable from '@/components/classifica/ClassificaTable';
 import FiltroNome from '@/components/classifica/FiltroNome';
@@ -18,10 +18,12 @@ export default function LegaClassifica({ lega }: { lega: Lega }) {
   const [query, setQuery] = useState('');
 
   const icona = (id: string) => GIOCHI_PREIMPOSTATI.find((g) => g.id === id)?.icona ?? 'mazzo';
-  const sessChiuse = (lega.sessioniGioco ?? []).filter((s) => s.stato === 'chiusa');
+  // soloVive: le sessioni/partite cancellate non generano un'opzione di gioco
+  // (R7.4a-3) — dopo aver cancellato l'ultima partita, "Poker" non deve restare.
+  const sessChiuse = soloVive(lega.sessioniGioco).filter((s) => s.stato === 'chiusa');
   const giochiIds = [...new Set(sessChiuse.map((s) => s.giocoId))].filter((id) => id !== 'poker');
   const opzioni: OpzioneGioco[] = [
-    ...(lega.partite.length > 0 ? [{ id: 'poker', nome: 'Poker', icona: icona('poker') }] : []),
+    ...(soloVive(lega.partite).length > 0 ? [{ id: 'poker', nome: 'Poker', icona: icona('poker') }] : []),
     ...giochiIds.flatMap((id) => {
       const g = resolveGiocoLega(id, lega);
       return g ? [{ id, nome: g.nome, icona: icona(id) }] : [];

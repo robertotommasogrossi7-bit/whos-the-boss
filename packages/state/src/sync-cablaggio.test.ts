@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { StateStorage } from 'zustand/middleware';
 import {
-  applicaStampImport, conteggiPayload, costruisciPayloadImport, creaSessione,
+  applicaStampImport, classificaPokerCrossContesto, conteggiPayload, costruisciPayloadImport, creaSessione,
   haCambiamentiLocaliNonSincronizzati, nuovoGiocatoreSessione, preflightImport,
-  revisioniSpedite,
+  revisioniSpedite, vociStorico,
   type ConSync, type Db,
 } from '@whos-the-boss/core';
 /* `sostituisciDb` è l'azione con cui l'app riscrive il db dopo l'import: qui la
@@ -267,5 +267,81 @@ describe('R7.4a-1 — le entità create dallo store nascono pronte per il sync',
     expect(db.leghe[0].giochi, 'l\'app non popola lega.giochi: è il caso normale, non un errore').toBeUndefined();
     expect(preflightImport(db)).toEqual([]);
     expect(costruisciPayloadImport(db, 'owner-1').sessioni_gioco[0].gioco_key).toBe('scopa');
+  });
+
+  /* ── R7.4a-3: le CANCELLAZIONI diventano tombstone ──
+     Il gate di P.8.4: "tombstono → sparisce dalle stats". Ma anche il rovescio,
+     che è la ragione del cambio di semantica: la riga NON sparisce dall'array,
+     resta come lapide DIRTY così il push la spedisce. Un delete fisico non
+     avrebbe nulla da spedire e sull'altro telefono il dato resterebbe vivo. */
+
+  it('eliminare una partita poker: sparisce da storico e classifica, ma resta come tombstone da spedire', () => {
+    const { db, legaId } = dbConPartitaPoker();
+    const s = nuovoStore();
+    s().runMigrations();
+    s().sostituisciDb(applicaStampImport(db, revisioniSpedite(db)));
+    const lega0 = s().db.leghe.find((l) => l.id === legaId)!;
+    const partitaId = lega0.partite[0].id;
+
+    // prima: la partita è in storico e nelle stats
+    expect(vociStorico(lega0).length).toBe(1);
+    const nettoPrima = classificaPokerCrossContesto('Anna', [lega0]).totale;
+    expect(nettoPrima.partite).toBe(1);
+
+    s().eliminaPartita(legaId, partitaId);
+
+    const lega1 = s().db.leghe.find((l) => l.id === legaId)!;
+    // la riga NON è sparita dall'array: è una lapide
+    expect(lega1.partite.length).toBe(1);
+    expect(lega1.partite[0].deletedAt).toBeTruthy();
+    // ...ma per stats e storico è come se non ci fosse più
+    expect(vociStorico(lega1).length).toBe(0);
+    expect(classificaPokerCrossContesto('Anna', [lega1]).totale.partite).toBe(0);
+    // ...ed è dirty (con i figli): il push deve propagare la cancellazione
+    expect(haCambiamentiLocaliNonSincronizzati(lega1.partite[0]), 'la partita tombstonata non verrebbe spedita').toBe(true);
+    expect(haCambiamentiLocaliNonSincronizzati(lega1.partite[0].settlements[0]), 'il settlement figlio non è stato tombstonato (cascade mancante)').toBe(true);
+    expect(lega1.partite[0].settlements[0].deletedAt, 'cascade sui settlement').toBeTruthy();
+    expect(lega1.partite[0].giocatori[0].deletedAt, 'cascade sui giocatori').toBeTruthy();
+  });
+
+  it('eliminare una sessione di gioco tombstona anche le sue partite (cascade)', () => {
+    const s = nuovoStore();
+    s().runMigrations();
+    const legaId = s().db.leghe.find((l) => l.personale)!.id;
+    s().aggiungiGiocatore(legaId, 'Anna');
+    const ids = s().db.leghe[0].nomi.map((n) => n.id);
+    const sessId = s().creaSessioneGioco(legaId, 'scopa', ids, '2026-07-17', '21:00')!;
+    s().avviaSessioneGioco(legaId, sessId);
+    const pid = s().aggiungiPartita(legaId, sessId)!;
+    s().chiudiPartita(legaId, sessId, pid, { vincitori: [ids[0]], pareggio: false });
+    s().chiudiSessioneGioco(legaId, sessId, false);
+    s().sostituisciDb(applicaStampImport(s().db, revisioniSpedite(s().db)));
+
+    expect(vociStorico(s().db.leghe[0]).length).toBe(1);
+    s().eliminaSessioneGioco(legaId, sessId);
+
+    const sess = s().db.leghe[0].sessioniGioco!.find((x) => x.id === sessId)!;
+    expect(sess.deletedAt, 'sessione tombstonata').toBeTruthy();
+    expect(sess.partite[0].deletedAt, 'cascade sulla partita di gioco').toBeTruthy();
+    expect(haCambiamentiLocaliNonSincronizzati(sess), 'tombstone non spedito').toBe(true);
+    expect(vociStorico(s().db.leghe[0]).length, 'la sessione cancellata resta nello storico').toBe(0);
+  });
+
+  it('un giocatore diventa eliminabile dopo che le sue partite sono state cancellate', () => {
+    const { db, legaId } = dbConPartitaPoker();
+    const s = nuovoStore();
+    s().runMigrations();
+    s().sostituisciDb(db);
+    const anna = s().db.leghe[0].nomi.find((n) => n.nome === 'Anna')!.id;
+
+    // con una partita giocata, non è eliminabile
+    expect(s().eliminaGiocatore(legaId, anna)).toMatch(/non può essere eliminato/);
+    // cancellata la partita, il tombstone la toglie da "in uso" → ora si può
+    s().eliminaPartita(legaId, s().db.leghe[0].partite[0].id);
+    expect(s().eliminaGiocatore(legaId, anna)).toBeNull();
+
+    const rec = s().db.leghe[0].nomi.find((n) => n.id === anna)!;
+    expect(rec.deletedAt, 'il giocatore è tombstonato, non rimosso').toBeTruthy();
+    expect(haCambiamentiLocaliNonSincronizzati(rec)).toBe(true);
   });
 });

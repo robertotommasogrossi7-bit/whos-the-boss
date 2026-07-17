@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { classificaSerata, fmtData, getNome, sessioniDiSerata, vincitoriSerata, type Lega } from '@whos-the-boss/core';
+import { classificaSerata, fmtData, getNome, sessioniDiSerata, soloVive, vincitoriSerata, type Lega } from '@whos-the-boss/core';
 
 import { IconChevronRight, IconCrown } from '@/components/icons';
 import { useTheme } from '@/theme/ThemeContext';
@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeContext';
 export default function SerateLista({ lega }: { lega: Lega }) {
   const t = useTheme();
 
-  const serate = (lega.serate ?? [])
+  const serate = soloVive(lega.serate)   // no serate cancellate (R7.4a-3)
     .filter((s) => sessioniDiSerata(lega, s.id).length > 0)
     .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : b.id - a.id));
 

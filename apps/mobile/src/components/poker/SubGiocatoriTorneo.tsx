@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { euro, getNome, type Lega, type Sessione } from '@whos-the-boss/core';
+import { euro, getNome, soloVive, type Lega, type Sessione } from '@whos-the-boss/core';
 
 import { IconPlus, IconTrophy, IconUsers, IconWarning } from '@/components/icons';
 import { Button, Card, EmptyState, Sheet } from '@/components/ui';
@@ -42,7 +42,7 @@ export default function SubGiocatoriTorneo({ lega, sess }: { lega: Lega; sess: S
   const canAdd = lateRegOpen || sess.stato === 'pre';
 
   const inSess = new Set(sess.giocatori.map((g) => g.id_nome));
-  const disponibili = lega.nomi.filter((n) => !inSess.has(n.id));
+  const disponibili = soloVive(lega.nomi).filter((n) => !inSess.has(n.id)); // no giocatori cancellati (R7.4a-3)
 
   function aggiungi(nome: string) {
     const n = nome.trim();

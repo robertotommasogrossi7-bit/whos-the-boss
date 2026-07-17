@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import { GIOCHI_PREIMPOSTATI, vociStorico, type Lega } from '@whos-the-boss/core';
+import { GIOCHI_PREIMPOSTATI, soloVive, vociStorico, type Lega } from '@whos-the-boss/core';
 
 import FiltroNome from '@/components/classifica/FiltroNome';
 import GiocoPills, { type OpzioneGioco } from '@/components/lega/GiocoPills';
@@ -17,11 +17,12 @@ export default function LegaStorico({ lega }: { lega: Lega }) {
   const icona = (id: string) => GIOCHI_PREIMPOSTATI.find((g) => g.id === id)?.icona ?? 'mazzo';
   const nomeGioco = (id: string) =>
     GIOCHI_PREIMPOSTATI.find((g) => g.id === id)?.nome ?? lega.giochi?.find((g) => g.id === id)?.nome ?? 'Gioco';
-  const sessChiuse = (lega.sessioniGioco ?? []).filter((s) => s.stato === 'chiusa');
+  // soloVive: le opzioni-gioco del selettore nascono solo dai dati VIVI (R7.4a-3).
+  const sessChiuse = soloVive(lega.sessioniGioco).filter((s) => s.stato === 'chiusa');
   const giochiIds = [...new Set(sessChiuse.map((s) => s.giocoId))].filter((id) => id !== 'poker');
   const opzioni: OpzioneGioco[] = [
     { id: '', nome: 'Tutti', icona: null },
-    ...(lega.partite.length > 0 ? [{ id: 'poker', nome: 'Poker', icona: icona('poker') }] : []),
+    ...(soloVive(lega.partite).length > 0 ? [{ id: 'poker', nome: 'Poker', icona: icona('poker') }] : []),
     ...giochiIds.map((id) => ({ id, nome: nomeGioco(id), icona: icona(id) })),
   ];
 

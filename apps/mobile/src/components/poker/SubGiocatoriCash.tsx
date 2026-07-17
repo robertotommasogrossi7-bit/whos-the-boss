@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { euro, getNome, type Lega, type Sessione } from '@whos-the-boss/core';
+import { euro, getNome, soloVive, type Lega, type Sessione } from '@whos-the-boss/core';
 
 import { IconPlus, IconUsers } from '@/components/icons';
 import MoneyInput from '@/components/poker/MoneyInput';
@@ -22,7 +22,7 @@ export default function SubGiocatoriCash({ lega, sess }: { lega: Lega; sess: Ses
   const [newName, setNewName] = useState('');
 
   const inSess = new Set(sess.giocatori.map((g) => g.id_nome));
-  const disponibili = lega.nomi.filter((n) => !inSess.has(n.id));
+  const disponibili = soloVive(lega.nomi).filter((n) => !inSess.has(n.id)); // no giocatori cancellati (R7.4a-3)
 
   function aggiungi(nome: string) {
     const n = nome.trim();
