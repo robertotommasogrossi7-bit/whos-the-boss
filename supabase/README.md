@@ -20,11 +20,13 @@ lo **schema come codice**, così è riproducibile e mostra il processo.
 | 7 | `migrations/20260714140000_grants_authenticated.sql` | R7.2d-5 | **GRANT DML espliciti** a `authenticated` (schema-as-code portabile). Scoperto dal **gate su DB reale**: senza, un DB ricreato da zero dà `permission denied for table` (i grant di default ci sono sul cloud, non in un ambiente pulito). Idempotente/additiva. | ✅ **APPLICATA** (locale: gate d5 · cloud: confermato dall'utente 2026-07-17) |
 
 | 8 | `migrations/20260717120000_r73_import_rpc.sql` | R7.3b | **RPC `import_locale(payload jsonb)`**: travaso one-shot del db locale (13 tabelle + 4 ponti) in **una transazione** (PostgREST). `SECURITY INVOKER` (RLS attiva) · **guardia atomica** su `profiles.imported_at` (I-R1: due import concorrenti non passano entrambi) · payload **versionato** (I-R7) · insert **parent-first** (I-R2: la RLS non è deferibile) · ritorna i **conteggi per tabella** (I-R6) · `grant execute` (I-R8). | ✅ **APPLICATA** (locale: gate+chaos **17/17** · cloud: **confermato dall'utente 2026-07-17**) |
-| 9 | `migrations/20260717150000_g1_gioco_key.sql` | G1 (bonifica) | **`sessioni_gioco.gioco_key`** = quale gioco è stato giocato (la chiave locale `giocoId`). Prima l'unico legame era la FK `gioco_lega_id → giochi_lega`, tabella che **nessuno popola** (la UI giochi custom è M5) → il cloud **non registrava mai** a cosa si fosse giocato, e il preflight bloccava ogni import multigioco. Ricrea anche la RPC `import_locale` (che ora porta `gioco_key`): `create or replace` esige tutto il corpo, il resto è identico alla #8. Mini-spec: `_processo/R7_SCHEMA.md` sez. Q. | ⏳ **DA APPLICARE SUL CLOUD** (locale: gate+chaos **18/18** su DB ricreato da zero) |
+| 9 | `migrations/20260717150000_g1_gioco_key.sql` | G1 (bonifica) | **`sessioni_gioco.gioco_key`** = quale gioco è stato giocato (la chiave locale `giocoId`). Prima l'unico legame era la FK `gioco_lega_id → giochi_lega`, tabella che **nessuno popola** (la UI giochi custom è M5) → il cloud **non registrava mai** a cosa si fosse giocato, e il preflight bloccava ogni import multigioco. Ricrea anche la RPC `import_locale` (che ora porta `gioco_key`): `create or replace` esige tutto il corpo, il resto è identico alla #8. Mini-spec: `_processo/R7_SCHEMA.md` sez. Q. | ✅ **APPLICATA** (locale: gate+chaos **18/18** su DB ricreato da zero · cloud: **confermato dall'utente 2026-07-17**) |
 
-> ⏳ **La #9 è l'unica pendente sul cloud** (1→6 applicate il 2026-07-11; #7 e #8 il 2026-07-17).
-> **Finché non la applichi, l'import dal telefono resta bloccato per chi ha giocato a giochi
-> non-poker** (cioè: adesso). Le prime 8 sono allineate col repo.
+> ✅ **TUTTE e 9 le migration sono APPLICATE sul cloud** (1→6 il 2026-07-11; #7, #8 e #9 il
+> 2026-07-17). Cloud e file del repo sono **allineati**. Nessun SQL pendente.
+> ℹ️ La #9 è stata applicata **senza provare l'import dal telefono** (scelta dell'utente: prima si
+> finisce R7, poi si prova tutto insieme). La prova sul cloud vero resta quindi **da fare**: in
+> locale il gate+chaos la copre 18/18, ma nessuno ha ancora premuto "Carica i dati" su un telefono.
 > ✅ **Sync vero validato in locale** (gate `scripts/gate-db.mjs`, R7.2d-5): round-trip, RLS owner-only,
 > upsert-by-uid, `updated_at` server-side — 8/8 verdi su Postgres reale ricreato da zero.
 
