@@ -824,3 +824,21 @@
   sul telefono prima della sostituzione (`…:backup-pre-adozione`). L'"unione intelligente" by
   natural-key = scartata (lavoro sproporzionato per uno scenario raro a questa scala); il claim
   degli ospiti resta R8.
+
+## 2026-07-17 — G1 (bonifica in R7.4a): "quale gioco" nel cloud — opzione B
+
+- **Problema** (trovato dal gate di R7.4a-1 pilotando lo store vero, non da un red team): `sessioni_gioco`
+  non aveva NESSUNA colonna per il gioco — solo la FK `gioco_lega_id → giochi_lega`, tabella che **l'app
+  non popola mai** (i giochi vengono dal catalogo globale; la UI custom è M5). Quindi il cloud non
+  registrava mai a cosa si fosse giocato e `preflightImport` bloccava OGNI import multigioco. Radice:
+  lo schema R7.1 ha **invertito il modello** (in locale `SessioneGioco.giocoId` È l'identità,
+  `lega.giochi` è un override opzionale — lo dice `resolveGiocoLega`).
+- **Opzioni**: **A** popolare `lega.giochi` (come BG Stats, ma il suo driver è un catalogo remoto da
+  100k giochi, noi ne abbiamo 11 nel binario → copierebbe il catalogo in ogni lega, copie stantie) ·
+  **B** colonna `sessioni_gioco.gioco_key text` = l'identità, come in locale.
+- **✅ SCELTA: B** (migration #9). Fedele al modello locale, una colonna, nessuna copia stantia, e
+  sistema gratis il buco della materializzazione R7.4b. `giochi_lega` resta l'override per M5. Nome
+  `gioco_key` (non `gioco_id`): `giochi_lega` ha già la colonna omonima, l'intento originale di R7.1.
+  Dettaglio in `R7_SCHEMA.md` sez. Q. **Esito osservato**: gate+chaos 18/18 su Postgres reale; #9
+  applicata sul cloud (conferma utente). **Lezione**: il gate che pilota lo store vero trova bug che
+  le fixture scritte a mano (il gate R7.3 scriveva `giochi:[]` a mano → passava 10/10 mentre l'app si bloccava).
