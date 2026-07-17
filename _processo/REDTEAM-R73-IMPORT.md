@@ -91,11 +91,27 @@ Niente allarmismo enterprise: app tra amici, non una banca — ma sui soldi non 
 
 ---
 
-## Registro finding R7.3 (da compilare al ritorno dei red team)
+## Registro finding R7.3 (compilato 2026-07-17)
 
-> Verdetti: **CONFERMATO** (problema reale del design) · **PREVENTIVO** (riguarda codice futuro,
-> diventa requisito) · **CONFUTATO** (verificato falso) · **ACCETTATO** (tradeoff, si documenta).
+> **Come si è svolto** (variante decisa dall'utente, vedi DECISIONI 2026-07-17): ChatGPT esterno ha
+> fatto la **meta-review del dossier** (suggerimenti accolti negli angoli d'attacco); il red team di
+> design l'ha fatto un **agente Opus interno con accesso al codice reale** — finding già verificati
+> su file:riga, non su descrizioni. Calibrazione vincolante: dati attuali usa-e-getta, niente
+> gold-plating, solo difetti strutturali.
+> Verdetti: **CONFERMATO** (problema reale del design) · **PREVENTIVO** (requisito per codice futuro)
+> · **CONFUTATO** (verificato falso) · **ACCETTATO** (tradeoff documentato).
 
-| ID | Sev | Finding | Verdetto | Verifica | Dove si risolve |
-|----|-----|---------|----------|----------|-----------------|
-| — | — | *(in attesa dei red team)* | — | — | — |
+| ID | Sev | Finding | Verdetto | Fix (recepito nella spec finale, `R7_SCHEMA.md` sez. O) |
+|----|-----|---------|----------|--------------------------------------------------------|
+| **I-R1** | ALTA | Guardia `imported_at` check-then-set = **race TOCTOU**: due device passano entrambi → dati doppi | **CONFERMATO** (colonna nullable senza vincolo, `r7_core.sql:25`) | Guardia **atomica**: `UPDATE … SET imported_at=now() WHERE id=auth.uid() AND imported_at IS NULL` come PRIMO atto; `IF NOT FOUND → raise 'already_imported'`. Il rollback la annulla (all-or-nothing). |
+| **I-R2** | MEDIA | "FK deferite → ordine libero" **falso per la RLS**: `WITH CHECK owns_lega()` gira all'INSERT, non al commit → figli-prima abortisce | **CONFERMATO** (`r6b5_hardening.sql:135-150` + `r7_core.sql:45-50`; RLS non deferibile) | Insert **rigorosamente parent-first** nel corpo RPC. La FK deferita copre solo i riferimenti incrociati. |
+| **I-R3** | MEDIA | Stamp post-import indefinito: nessuna `*FromCloudRow` scrive `syncedRev` → o tutto resta "sporco" (ri-push doppio in R7.4) o stamp cieco perde edit concorrenti | **CONFERMATO** (`mapping*.ts`, `merge.ts:21`) | **Contratto R7.3→R7.4** (la cosa più importante emersa): `syncedRev` = revisione spedita, applicato **per-riga** solo alle righe importate; edit nella finestra restano dirty. Da testare come le invarianti. |
+| **I-R4** | MEDIA | `already_imported` + "segna importato" **perde i dati del 2° device divergente** | **CONFERMATO** (design) | Su `already_imported` MAI marcare clean dati divergenti: il 2° device resta **dirty** (li unirà R7.4) + avviso una-tantum "account già con dati sul cloud, i tuoi verranno uniti". |
+| **I-R5** | MEDIA | Battesimo senza persist **confermato** prima della RPC → dopo un crash gli uid locali divergono dal server → duplicati al primo sync | **CONFERMATO** (design + `uid.ts`) | Ordine ferreo testato: battezza (SOLO se uid manca, idempotente) → `await` persist confermato → RPC. |
+| **I-R6** | MEDIA | "Pull di verifica" vaga: una tabella persa in silenzio (es. settlements) passerebbe inosservata | **CONFERMATO** (design) | La RPC **ritorna i conteggi inseriti per tabella**; il client li confronta coi conteggi del payload PRIMA di segnare importato. Qui vive anche il flag anomalie della riconciliazione. |
+| **I-R7** | BASSA | Payload non versionato → dati locali vecchi + RPC nuova = mis-parse silenzioso | **CONFERMATO** (design) | `payload.version` (int); la RPC **rifiuta** versioni ignote. |
+| **I-R8** | BASSA | `leghe_personale_uniq` o `execute` mancante sulla funzione → abort con errore criptico | **CONFERMATO** (`r7_core.sql:42`, `grants_authenticated.sql`) | Pre-flight strutturale client-side (1 sola personale, uid unici, FK interne complete) + `grant execute on function` esplicito. |
+
+**Confutati/scartati dal revisore stesso** (a questa scala): trigger append-only che bloccherebbero l'import (**CONFUTATO**: è RLS, non trigger, e gli INSERT passano) · collisione uid con Math.random (~72 bit random: trascurabile) · performance RLS su bulk (initplan già ottimizzato, volumi KB-MB) · injection jsonb (basta `jsonb_to_recordset` tipato, niente SQL dinamico).
+
+**Verdetto d'insieme sulle 8 decisioni del dossier**: 5 TIENI (backup non-gate · battesimo con vincolo I-R5 · riconciliazione soft potenziata da I-R6 · storage per-account · test plan ampliato) · 3 CAMBIA (guardia atomica I-R1 + ordine parent-first I-R2 · semantica already_imported I-R4 · stamp definito I-R3).

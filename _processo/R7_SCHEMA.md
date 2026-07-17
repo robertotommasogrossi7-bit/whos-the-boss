@@ -564,3 +564,57 @@ WatermelonDB/RxDB nella pratica (chiudono/ri-aprono il DB ad ogni cambio utente,
 7. Commit + aggiornare checkbox qui + `AUDIT_R6_R7.md`/M12.
 
 **Chiedo conferma su questa mini-spec (sez. M) prima di toccare `_layout.tsx`/`authSlice.ts`/`store.ts`.**
+
+---
+
+# O — R7.3: design FINALE import one-shot (post red-team, 2026-07-17)
+
+> Mini-spec approvata + 8 correzioni dal red team (registro `REDTEAM-R73-IMPORT.md`, agente Opus
+> su codice reale). Questa sezione è la **fonte unica** per l'implementazione. Calibrazione utente:
+> dati attuali usa-e-getta, niente gold-plating; priorità ai test.
+
+## O.1 — Flusso client
+1. **Backup** (non-gate): export JSON completo via Share; se fallisce/annullato si può proseguire
+   (il locale NON viene mai cancellato dall'import — è lui il vero backup).
+2. **Battesimo idempotente** [I-R5]: assegna uid SOLO dove manca (movimenti inclusi) →
+   **`await` persist locale confermato** → solo dopo, la RPC. Un retry rispedisce gli stessi uid.
+3. **Pre-flight strutturale** [I-R8] (client, puro): esattamente 1 lega personale · uid unici ·
+   ogni FK interna al payload ha il padre nel payload → errore leggibile PRIMA di spedire.
+   + **Riconciliazione soft** (B3/F2): somme settlement/buy-in; anomalie → flag nel payload, mai blocco.
+4. **RPC unica** `import_locale(payload jsonb)` (vedi O.2). Payload = 1 JSONB, 13 tabelle,
+   **`version` int** [I-R7].
+5. **Verifica conteggi** [I-R6]: la RPC ritorna righe-inserite-per-tabella; il client confronta coi
+   conteggi del payload PRIMA di segnare l'import riuscito.
+6. **Stamp per-riga** [I-R3]: `syncedRev = syncRev spedito` SOLO sulle righe importate;
+   `lastSyncedAt` dal pull successivo. Edit avvenuti nella finestra restano dirty.
+
+## O.2 — RPC `import_locale` (migration nuova)
+- **SECURITY INVOKER** (RLS attiva, `auth.uid()` reale) + `grant execute … to authenticated` [I-R8].
+- **PRIMO atto — guardia ATOMICA** [I-R1]: `UPDATE public.profiles SET imported_at = now()
+  WHERE id = auth.uid() AND imported_at IS NULL; IF NOT FOUND THEN RAISE EXCEPTION 'already_imported';`
+  (row-lock serializza i concorrenti; il rollback la annulla → all-or-nothing).
+- `IF (payload->>'version')::int <> 1 THEN RAISE 'unsupported_payload_version'` [I-R7].
+- Insert **parent-first obbligatorio** [I-R2]: profiles(già c'è) → leghe → giocatori + giochi_lega →
+  partite_poker → partita_poker_giocatori → poker_movimenti + settlements → serate → sessioni_gioco →
+  partite_gioco → ponti. (La RLS `WITH CHECK owns_lega()` gira all'INSERT: le FK deferite NON bastano.)
+- Parsing: `jsonb_to_recordset` con colonne tipate per tabella (niente SQL dinamico).
+- **Ritorno**: jsonb `{tabella: n_inserite, …, anomalie: […]}` [I-R6].
+
+## O.3 — Contratto R7.3→R7.4 (il pezzo che mancava — da testare come le invarianti)
+> **Per ogni riga importata, `syncedRev` = la revisione spedita; ogni edit nella finestra
+> dell'import resta dirty; nessuna riga divergente di un altro device viene mai marcata pulita.**
+- **`already_imported` sul 2° device (dati divergenti)** [I-R4]: MAI marcare clean; i dati locali
+  restano dirty (li unirà il delta-sync R7.4 via upsert-by-uid) + avviso una-tantum all'utente
+  ("questo account ha già dati sul cloud: i tuoi verranno uniti alla prossima sincronizzazione").
+  L'import "semina" il cloud dal primo device; gli altri si uniscono, non importano.
+
+## O.4 — Sotto-fasi (micro-commit, pause tra i pezzi)
+- **R7.3a** — funzioni pure core: battesimo idempotente + pre-flight + payload builder v1 +
+  conteggi attesi. Test-first. *(Opus high)*
+- **R7.3b** — migration RPC + **integration test su Supabase locale** (Docker, riusa il gate d5):
+  import ok → conteggi giusti · doppio import → `already_imported` · **import CONCORRENTE** (2 client
+  simultanei → uno solo passa) [I-R1] · kill a metà → rollback totale · versione payload ignota → rifiuto.
+- **R7.3c** — orchestrazione app: backup/Share → battesimo+persist → RPC → verifica conteggi →
+  stamp per-riga + ramo `already_imported` (avviso, niente stamp). UI minima.
+- **R7.3d** — chaos: crash post-commit pre-risposta (retry → already_imported → NO clean) ·
+  uid-divergence dopo crash del persist [I-R5].

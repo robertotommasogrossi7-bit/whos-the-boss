@@ -364,9 +364,19 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   (Docker + Supabase CLI locale, `scripts/gate-db.mjs`) **8/8 verde** su DB ricreato da zero; ha
   scovato un bug di portabilità (grant di default impliciti → `permission denied`) → **fix migration
   #7** (GRANT espliciti a `authenticated`, applicata solo in LOCALE, sul cloud pendente non urgente).
-  → **✅ R7.2d COMPLETO (d1-d5)** = tutto l'hardening del sync fatto. **PROSSIMO: R7.3 — import
-  one-shot** dal locale (backup-first, RPC transazionale, guardato da `profiles.imported_at`) → R7.4
-  (aggancio store: push CAS + cablaggio dirty/uid + mappe). **308 test core + gate DB verde.**
+  → **✅ R7.2d COMPLETO (d1-d5)** = tutto l'hardening del sync fatto. **308 test core + gate DB verde.**
+  · Migration #7 poi **applicata anche sul cloud** (conferma utente 2026-07-17: cloud e repo allineati).
+- ✅ **R7.3 SPEC CHIUSA post red-team** (2026-07-17): ricerca (RPC PostgREST transazionale, fonti in
+  chat) → mini-spec → **red team ibrido** (ChatGPT esterno = meta-review del dossier; **agente Opus
+  interno sul codice reale** = design review; esito nel log ESPERIMENTI). **8 finding I-R1..I-R8, tutti
+  recepiti** — registro `REDTEAM-R73-IMPORT.md`. **Design finale = `R7_SCHEMA.md` sez. O**: guardia
+  `imported_at` ATOMICA (update condizionale, I-R1) · insert parent-first perché la RLS non è deferibile
+  (I-R2) · **contratto syncedRev R7.3→R7.4** (I-R3, il pezzo che mancava) · 2° device divergente = mai
+  clean, si unisce in R7.4 (I-R4) · battesimo→persist confermato→RPC (I-R5) · conteggi di ritorno per
+  tabella (I-R6) · payload versionato (I-R7) · pre-flight strutturale + grant execute (I-R8).
+  **PROSSIMO: implementare R7.3a→d** (sotto-fasi in sez. O.4: a=funzioni pure test-first, Opus high ·
+  b=RPC+integration test su Docker locale · c=orchestrazione app · d=chaos). Calibrazione utente a
+  verbale: dati attuali usa-e-getta, fase corta, priorità ai test. Poi R7.4.
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
@@ -462,10 +472,8 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
 - ~~`utils/giochi.ts` senza test~~ → **risolto in R/M2** (`giochi.test.ts`).
 
 ## Promemoria attivi (la chat base li controlla e li ricorda all'utente)
-- ⏳ **Migration #7 (`20260714140000_grants_authenticated.sql`) DA APPLICARE sul cloud** (R7.2d-5):
-  oggi applicata **solo in LOCALE** (per il gate). Sul cloud **non urgente** (i grant di default già
-  funzionano là), ma applicarla rende lo schema esplicito/portabile. Via dashboard SQL Editor o CLI.
-  Fonte di verità sullo stato: `supabase/README.md` (inventario, ora 7 file).
+- ✅ **Migration #7 APPLICATA anche sul cloud** (conferma utente 2026-07-17) → tutte e 7 le migration
+  allineate tra repo e cloud. Fonte di verità sullo stato: `supabase/README.md` (inventario, 7 file).
 - 🐳 **Ambiente dev sync (dal 2026-07-14)**: Docker + Supabase CLI locale installati. Comandi:
   `pnpm db:start` (stack locale), `pnpm db:reset` (ricrea + riapplica migration), `pnpm gate:db`
   (il gate). La CLI è dev-dep del monorepo; per `db push` sul cloud serve prima il `migration repair`
