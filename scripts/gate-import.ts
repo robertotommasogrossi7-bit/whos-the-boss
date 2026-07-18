@@ -257,7 +257,7 @@ async function chaos() {
   ok('zero duplicati sul server dopo il retry (gli uid stabili hanno retto)');
 
   assert.ok(haCambiamentiLocaliNonSincronizzati(retry.db().leghe[0]), 'su gia_importato il locale NON va marcato pulito');
-  ok('su `gia_importato` il locale resta dirty: lo unira il delta-sync (I-R4)');
+  ok('su `gia_importato` il locale resta dirty: R7.4d proporra l\'adozione DS9 (I-R4)');
 
   // ── CHAOS 2: il disco non conferma → non si spedisce nulla ──
   const G = await nuovoUtente('G');

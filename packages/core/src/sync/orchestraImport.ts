@@ -17,7 +17,9 @@
      · I-R6  lo stamp si applica SOLO se i conteggi della RPC combaciano
              (una tabella persa in silenzio non deve passare per "importata");
      · I-R4  su `already_imported` NON si stampa nulla: i dati di un secondo
-             device restano dirty e li unirà il delta-sync (R7.4).
+             device restano locali e MAI marcati puliti. Il sync per-uid non
+             può unirli (S4-R1: mondi nati separati → duplicati): il delta-sync
+             proporrà l'ADOZIONE del cloud (DS9, backup + sostituzione).
 ══════════════════════════════════════════════════════ */
 
 import type { Db } from '../types';
@@ -31,7 +33,8 @@ export type EsitoImport =
   /** Importato: i dati sono sul cloud e il locale è marcato sincronizzato. */
   | { stato: 'ok'; conteggi: Record<string, number>; anomalie: ProblemaImport[] }
   /** L'account aveva già importato (altro device): niente stamp, i dati locali
-      restano da sincronizzare — li unirà R7.4 (I-R4). */
+      restano com'erano (I-R4). Il delta-sync NON li unirà (impossibile per-uid,
+      S4-R1): proporrà l'adozione del cloud, con backup locale (DS9). */
   | { stato: 'gia_importato' }
   /** Problemi strutturali: non si spedisce nulla, si mostrano all'utente (I-R8). */
   | { stato: 'bloccato'; problemi: ProblemaImport[] }
@@ -97,7 +100,8 @@ export async function orchestraImport(deps: DepsImport): Promise<EsitoImport> {
   const risposta = await deps.chiamaRpc(payload);
   if ('errore' in risposta) {
     // I-R4: l'account ha già importato da un altro device. NON è un fallimento:
-    // i nostri dati restano dirty e li unirà il delta-sync. Mai marcarli puliti.
+    // i dati restano locali e MAI marcati puliti; sarà il delta-sync a proporre
+    // l'adozione del cloud (DS9) — niente unione per-uid, duplicherebbe tutto.
     if (risposta.errore.includes('already_imported')) return { stato: 'gia_importato' };
     return { stato: 'errore', messaggio: risposta.errore };
   }

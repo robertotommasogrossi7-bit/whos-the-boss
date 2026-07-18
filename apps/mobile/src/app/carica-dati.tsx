@@ -62,8 +62,9 @@ export default function ImportScreen() {
         <Card style={[styles.card, { borderColor: t.accent }]}>
           <Text style={[styles.h, { color: t.text }]}>Questo account ha già dei dati</Text>
           <Text style={[styles.p, { color: t.textMuted }]}>
-            Hai già caricato i dati da un altro dispositivo. Quelli di questo telefono non sono andati persi:
-            verranno uniti a quelli sul cloud alla prossima sincronizzazione.
+            Hai già caricato i dati da un altro dispositivo, quindi questo telefono non può caricarli
+            di nuovo. Alla prossima sincronizzazione ti verrà proposto di usare i dati del tuo account
+            anche qui: quelli locali non si perdono, restano in una copia di sicurezza sul telefono.
           </Text>
         </Card>
       ) : null}

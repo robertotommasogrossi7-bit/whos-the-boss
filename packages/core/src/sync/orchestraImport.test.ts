@@ -78,7 +78,7 @@ describe('orchestraImport (R7.3c)', () => {
     const esito = await orchestraImport(b.deps);
 
     expect(esito.stato).toBe('gia_importato');
-    // il locale resta dirty: lo unirà R7.4. Marcarlo pulito = perdere i dati.
+    // il locale resta dirty: R7.4 proporrà l'adozione (DS9). Pulito = dati persi.
     const l = b.dbFinale().leghe[0];
     expect(sporca(l)).toBe(true);
     expect(l.nomi.every(sporca)).toBe(true);

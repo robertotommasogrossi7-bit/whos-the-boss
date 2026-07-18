@@ -401,7 +401,7 @@ export function revisioniSpedite(db: Db): Map<string, number> {
  *
  * ⚠️ NON va chiamata sul ramo `already_imported` di un secondo device con dati
  * divergenti: quei dati non sono sul server, marcarli puliti li perderebbe
- * (I-R4). Restano dirty e li unirà il delta-sync (R7.4).
+ * (I-R4). Restano dirty; il delta-sync proporrà l'adozione del cloud (DS9).
  */
 export function applicaStampImport(db: Db, spedite: Map<string, number>): Db {
   const stampa = <T extends { uid?: string; syncedRev?: number }>(e: T): T => {
