@@ -493,8 +493,20 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     trigger → mutex (S11) · tombstone+cascade propagati (delete-wins). 2 sabotaggi RPC (CAS spento,
     DO NOTHING tolto) → 2 rossi giusti, poi verde da db ricreato.
     → **✅✅✅ R7.4 COMPLETA (a+b+c+d+e) → R7 (sync cross-device) COSTRUITA TUTTA.**
-  - **PROSSIMO**: la **prova reale dal telefono** (import "Carica i dati" + sync — mai premuti su un
-    device vero; il cloud è pronto, 10/10) e poi il **merge di `rn-r74-sync` in `main`**.
+  ✅ **AUDIT S5 + BONIFICA** (2026-07-18, pre-merge): audit multi-agente MEDIO (3 revisori Sonnet
+    mirati + dedup Haiku + verifica adversariale — 10 agenti, ~1,04M token). **5 confermati
+    (1 ALTA), 1 confutato** — registro **`AUDIT_R74_SYNC.md`**, tutto bonificato subito
+    (`d15385e`,`ee77562`,`928e8a7`, test-first rosso→verde, gate chaos 11/11 rigirato):
+    S5-R1 C4 completo nel pull (merge+livello serata) · S5-R2 il LIVE conta nell'adozione ·
+    S5-R3 conflitto per-lega non blocca le altre · **S5-R4 ALTA: il logout sovrascriveva il blob
+    dell'account con un db vuoto** (regressione R7.2b: persist non sganciato + `utente` mai
+    azzerato → gate UI e S20 monchi) · S5-R5 backup pre-adozione dallo stato vivo.
+    La verifica adversariale ha sia confutato 1 finding sia AGGRAVATO S5-R4 (la parte storage
+    l'ha trovata il verificatore provando a confutare).
+  ✅ **MERGE in `main`** (2026-07-18): `rn-r74-sync` → `main`.
+  - **PROSSIMO**: la **prova reale dal telefono** (protocollo in 9 passi consegnato all'utente:
+    import → sync → edit → boot → offline → logout S5-R4 → eventuale 2° device/adozione).
+    Poi H-block pre-pubblicazione.
   - ✅ **Migration #10 applicata anche sul cloud** (conferma utente 2026-07-18): **10/10 allineate,
     nessun SQL pendente.** Il sync è usabile dal telefono (prova reale ancora da fare, dopo R7.4e).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
