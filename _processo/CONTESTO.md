@@ -486,10 +486,8 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
   - **PROSSIMO: R7.4e** — chaos su DB reale (2 device che editano offline stessa riga/righe diverse ·
     conflitto CAS → re-pull → re-push · kill a metà push · logout durante sync · retry doppio),
     stile gate-import ma sull'orchestratore vero. Poi la prova dal telefono (import + sync).
-  - ⚠️ **PROMEMORIA ATTIVO (SQL pendente)**: la **migration #10** (`20260717180000_r74_push_rpc.sql`)
-    è applicata SOLO in locale — sul cloud sono 1→9. **Ora l'app la USA** (lib/sync.ts): va applicata
-    sul cloud PRIMA di provare il sync dal telefono, con conferma esplicita dell'utente (fonte di
-    verità: inventario `supabase/README.md`).
+  - ✅ **Migration #10 applicata anche sul cloud** (conferma utente 2026-07-18): **10/10 allineate,
+    nessun SQL pendente.** Il sync è usabile dal telefono (prova reale ancora da fare, dopo R7.4e).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
