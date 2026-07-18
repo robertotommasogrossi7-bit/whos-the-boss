@@ -483,9 +483,18 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     manuale · `descriviEsitoSync` per i toast) + **trigger P.5** in `_layout` (boot su dbReady+utente,
     foreground via AppState, niente timer) + Profilo: **"Sincronizza ora" + "Ultimo sync alle HH:MM"**
     (store `ultimoSyncAlle`, solo UI).
-  - **PROSSIMO: R7.4e** — chaos su DB reale (2 device che editano offline stessa riga/righe diverse ·
-    conflitto CAS → re-pull → re-push · kill a metà push · logout durante sync · retry doppio),
-    stile gate-import ma sull'orchestratore vero. Poi la prova dal telefono (import + sync).
+  ✅ **R7.4e COMPLETO** (`ff311d2`, 2026-07-18): **chaos con l'orchestratore VERO su Postgres reale**
+    — gate `pnpm gate:sync` **11/11**: `creaSync` coi fili veri (select PostgREST + RPC), due "device"
+    simulati. Coperti: da_importare su cloud vergine · primo sync post-import = no-op che semina i
+    pegni (O.3/I-R3) · adozione automatica (B) e con conferma (C), soldi/ledger/gioco_key integri
+    attraverso la materializzazione · righe diverse → convergenza in 3 giri · **stessa riga in race
+    (scrittura interlacciata fra pull e push) → `conflitto`, il giro dopo risolve, LWW** · **crash
+    post-commit → retry auto-guarito, zero duplicati nel ledger** · logout → scartato (S20) · doppio
+    trigger → mutex (S11) · tombstone+cascade propagati (delete-wins). 2 sabotaggi RPC (CAS spento,
+    DO NOTHING tolto) → 2 rossi giusti, poi verde da db ricreato.
+    → **✅✅✅ R7.4 COMPLETA (a+b+c+d+e) → R7 (sync cross-device) COSTRUITA TUTTA.**
+  - **PROSSIMO**: la **prova reale dal telefono** (import "Carica i dati" + sync — mai premuti su un
+    device vero; il cloud è pronto, 10/10) e poi il **merge di `rn-r74-sync` in `main`**.
   - ✅ **Migration #10 applicata anche sul cloud** (conferma utente 2026-07-18): **10/10 allineate,
     nessun SQL pendente.** Il sync è usabile dal telefono (prova reale ancora da fare, dopo R7.4e).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
