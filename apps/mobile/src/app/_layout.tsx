@@ -85,7 +85,17 @@ export default function RootLayout() {
       try {
         setDbReady(false);
         if (!accountId) {
-          clearDbLocale(); // logout / mai loggato: niente storage per questo account
+          // Logout / mai loggato. ⚠️ ORDINE (audit S5-R4): persist scrive su
+          // storage ad OGNI set → prima si SGANCIA la chiave dell'account
+          // (altrimenti clearDbLocale sovrascriverebbe il blob salvato
+          // dell'account con un db vuoto: perdita vera dei dati locali non
+          // ancora sincronizzati). La chiave-parcheggio ':sloggato' assorbe
+          // le scritture a vuoto. `applyUtente(null)` riporta il gate UI alla
+          // LoginScreen e fa vedere "nessun account" alla guardia S20 del
+          // sync (accountAttuale legge `utente`) — regressione di R7.2b.
+          useStore.persist.setOptions({ name: `${STORE_KEY}:sloggato` });
+          applyUtente(null);
+          clearDbLocale();
           return;
         }
         useStore.persist.setOptions({ name: chiaveStorage(STORE_KEY, accountId) });

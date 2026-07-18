@@ -39,15 +39,22 @@ async function scaricaSnapshot(): Promise<{ snapshot: SnapshotCloud } | { errore
   return { snapshot };
 }
 
-/* DS9: prima di sostituire il locale col cloud, il blob si salva in una
-   chiave di backup accanto a quella dell'account. I sync normali non la
-   toccano mai: solo un'altra adozione la rimpiazzerebbe. */
+/* DS9: prima di sostituire il locale col cloud, una copia di sicurezza in una
+   chiave accanto a quella dell'account. Dallo stato LIVE, non dal blob su
+   disco (audit S5-R5): zustand persist scrive async e senza conferma — il
+   blob potrebbe non avere ancora l'ultimo edit, e il backup deve fotografare
+   esattamente ciò che l'adozione sta per sostituire. Stesso formato JSON di
+   zustand persist ({state:{…partialize},version:0}) → ripristinabile
+   copiandolo sulla chiave dell'account. I sync normali non la toccano mai. */
 async function salvaBackupPreAdozione(): Promise<void> {
-  const account = useStore.getState().utente?.id;
+  const s = useStore.getState();
+  const account = s.utente?.id;
   if (!account) return;
-  const chiave = chiaveStorage(STORE_KEY, account);
-  const blob = await mobileStorageAdapter.getItem(chiave);
-  if (blob != null) await mobileStorageAdapter.setItem(`${chiave}:backup-pre-adozione`, blob);
+  const blob = JSON.stringify({
+    state: { db: s.db, giocoFiltro: s.giocoFiltro, gameBarVisible: s.gameBarVisible, gameBarPinned: s.gameBarPinned },
+    version: 0,
+  });
+  await mobileStorageAdapter.setItem(`${chiaveStorage(STORE_KEY, account)}:backup-pre-adozione`, blob);
 }
 
 const deps: DepsSync = {
@@ -84,6 +91,21 @@ export async function sincronizzaProponendoAdozione(opz?: { manuale?: boolean })
   if (esito.stato !== 'adozione_richiesta') return esito;
   if (adozioneGiaProposta && !opz?.manuale) return esito;
   adozioneGiaProposta = true;
+  // Una serata in corso non è sincronizzata ma è il dato più fresco che c'è:
+  // l'adozione la farebbe sparire dalla UI (audit S5-R2). Prima si chiude
+  // (o si annulla) la serata, poi si adotta.
+  const serataInCorso = useStore.getState().db.leghe.some(
+    (l) => l.sessioneAttiva !== undefined || (l.serate_bg?.length ?? 0) > 0,
+  );
+  if (serataInCorso) {
+    Alert.alert(
+      'C\'è una serata in corso',
+      'Questo account ha già dei dati sul cloud, ma su questo telefono c\'è una serata aperta: '
+      + 'finiscila (o annullala), poi tocca di nuovo "Sincronizza ora" per usare i dati del tuo account.',
+      [{ text: 'Ok' }],
+    );
+    return esito;
+  }
   Alert.alert(
     'Questo account ha già dei dati',
     'Sul tuo account ci sono già i dati caricati da un altro dispositivo, e quelli di questo telefono '
