@@ -208,6 +208,14 @@ export function applicaPull(db: Db, snap: SnapshotCloud): Db {
     }
     const risolviSerataId = (uid: string): number | undefined => serateToLocal.get(uid);
 
+    // C4 al livello SOPRA (audit S5-R1): il tombstone della SERATA scende
+    // sulle sessioni che vi appartengono, come quello della sessione scende
+    // sulle partite — in ENTRAMBI i rami (nuova e merge). Senza questo, una
+    // sessione creata da un altro device sotto una serata cancellata
+    // resterebbe viva per sempre (e conteggiata nelle stats).
+    const serataMorta = new Map<string, string>();
+    for (const s of serate) if (s.uid && s.deletedAt) serataMorta.set(s.uid, s.deletedAt);
+
     // ── Sessioni gioco + le loro partite_gioco (con orfani ancestor-aware) ──
     let _sgid = lega._sgid ?? 1;
     const sessioni: SessioneGioco[] = [...(lega.sessioniGioco ?? [])];
@@ -233,22 +241,30 @@ export function applicaPull(db: Db, snap: SnapshotCloud): Db {
           if (ancestorDeleted && !nuova.deletedAt) nuova = { ...nuova, deletedAt: ancestorDeleted };
           pg.push(nuova);
         } else {
-          pg[i] = mergeConPegno(pg[i], partitaGiocoFromCloudRow(pgRow, pg[i]));
+          // C4 anche in MERGE (audit S5-R1): una partita GIÀ locale non
+          // sopravvive al padre morto — il device che ha cancellato la
+          // sessione poteva non conoscerla, quindi sul cloud arriva viva.
+          let m = mergeConPegno(pg[i], partitaGiocoFromCloudRow(pgRow, pg[i]));
+          if (ancestorDeleted && !m.deletedAt) m = { ...m, deletedAt: ancestorDeleted };
+          pg[i] = m;
         }
       }
       return pg;
     };
 
     for (const sgRow of sessioniPerLega.get(row.id) ?? []) {
+      const avoMorto = sgRow.serata_id ? serataMorta.get(sgRow.serata_id) : undefined;
       const i = sessioniIdx.get(sgRow.id);
       if (i === undefined) {
         const partecipanti = ponteFromUids((sessionePartPerSessione.get(sgRow.id) ?? []).map((r) => r.giocatore_id), risolviIdNome);
         const serataId = sgRow.serata_id ? risolviSerataId(sgRow.serata_id) : undefined;
-        const sess = materializzaSessioneGioco(sgRow, _sgid++, partecipanti, serataId);
+        let sess = materializzaSessioneGioco(sgRow, _sgid++, partecipanti, serataId);
+        if (avoMorto && !sess.deletedAt) sess = { ...sess, deletedAt: avoMorto };
         sess.partite = riconciliaPartiteGioco(sgRow.id, [], sess.deletedAt);
         sessioni.push(sess);
       } else {
-        const merged = mergeConPegno(sessioni[i], sessioneGiocoFromCloudRow(sgRow, sessioni[i], risolviSerataId));
+        let merged = mergeConPegno(sessioni[i], sessioneGiocoFromCloudRow(sgRow, sessioni[i], risolviSerataId));
+        if (avoMorto && !merged.deletedAt) merged = { ...merged, deletedAt: avoMorto };
         sessioni[i] = { ...merged, partite: riconciliaPartiteGioco(sgRow.id, merged.partite, merged.deletedAt) };
       }
     }

@@ -211,6 +211,88 @@ describe('applicaPull — multigioco da un altro device', () => {
     expect(gioco.pareggioComeVittoria).toBe(false);
   });
 
+  /* ── Bonifica audit S5-R1: C4 valeva solo per i figli NUOVI ── */
+
+  it('C4 in MERGE: il tombstone della sessione dal cloud uccide anche la partita GIÀ locale', () => {
+    const VECCHIO = '2026-07-01T00:00:00.000Z';
+    const db = dbVuoto({
+      _lid: 2,
+      leghe: [{
+        id: 1, nome: 'Amici', foto: '', nomi: [], partite: [],
+        sessioneAttiva: undefined, serate_bg: [], _nid: 1, _pid: 1, _sgid: 2,
+        sessioniGioco: [{
+          id: 1, giocoId: 'scopa', data: '2026-07-17', stato: 'chiusa',
+          ora_inizio: '21:00', ora_fine: '22:00', partecipanti: [], esitoPareggio: false,
+          uid: 'SG1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO,
+          partite: [{
+            id: 1, ora_inizio: '21:00', ora_fine: '21:30', vincitori: [], pareggio: false,
+            uid: 'PG1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO,
+          }],
+        }],
+        uid: 'L1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO,
+      }],
+    });
+    // un altro device ha cancellato la sessione SENZA conoscere PG1: sul cloud
+    // la sessione è morta ma la partita risulta ancora viva
+    const snap: SnapshotCloud = {
+      ...snapVuoto(),
+      leghe: [legaRow()],
+      sessioni_gioco: [{
+        id: 'SG1', lega_id: 'L1', local_id: 1, gioco_key: 'scopa', gioco_lega_id: null, data: '2026-07-17',
+        stato: 'chiusa', ora_inizio: '21:00', ora_fine: '22:00', esito_pareggio: false, serata_id: null,
+        created_at: T, updated_at: T, deleted_at: T,
+      }],
+      partite_gioco: [{
+        id: 'PG1', sessione_gioco_id: 'SG1', local_id: 1, ora_inizio: '21:00', ora_fine: '21:30',
+        pareggio: false, nome_libero: null, ordine: 1, created_at: T, updated_at: T, deleted_at: null,
+      }],
+    };
+    const sess = applicaPull(db, snap).leghe[0].sessioniGioco![0];
+    expect(sess.deletedAt, 'la sessione muore (delete-wins)').toBe(T);
+    expect(sess.partite[0].deletedAt, 'la partita GIÀ locale non sopravvive al padre morto').toBeTruthy();
+  });
+
+  it('C4 al livello SERATA: le sessioni sotto una serata tombstonata muoiono con lei (nuove E già locali)', () => {
+    const VECCHIO = '2026-07-01T00:00:00.000Z';
+    const snap: SnapshotCloud = {
+      ...snapVuoto(),
+      leghe: [legaRow()],
+      serate: [{ id: 'SER1', lega_id: 'L1', local_id: 1, data: '2026-07-17', created_at: T, updated_at: T, deleted_at: T }],
+      // sessione ancora viva sul cloud (creata da un device che non sapeva della cancellazione)
+      sessioni_gioco: [{
+        id: 'SG1', lega_id: 'L1', local_id: 1, gioco_key: 'scopa', gioco_lega_id: null, data: '2026-07-17',
+        stato: 'chiusa', ora_inizio: '21:00', ora_fine: '22:00', esito_pareggio: false, serata_id: 'SER1',
+        created_at: T, updated_at: T, deleted_at: null,
+      }],
+      partite_gioco: [{
+        id: 'PG1', sessione_gioco_id: 'SG1', local_id: 1, ora_inizio: '21:00', ora_fine: '21:30',
+        pareggio: false, nome_libero: null, ordine: 1, created_at: T, updated_at: T, deleted_at: null,
+      }],
+    };
+    // ramo MATERIALIZZA (device nuovo)
+    const nuova = applicaPull(dbVuoto(), snap).leghe[0].sessioniGioco![0];
+    expect(nuova.deletedAt, 'sessione nuova sotto serata morta: nasce morta').toBeTruthy();
+    expect(nuova.partite[0].deletedAt, 'cascade fino alle partite').toBeTruthy();
+
+    // ramo MERGE (sessione e serata già locali, vive)
+    const db = dbVuoto({
+      _lid: 2,
+      leghe: [{
+        id: 1, nome: 'Amici', foto: '', nomi: [], partite: [],
+        sessioneAttiva: undefined, serate_bg: [], _nid: 1, _pid: 1, _sgid: 2, _serataId: 2,
+        serate: [{ id: 1, data: '2026-07-17', partecipanti: [], uid: 'SER1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO }],
+        sessioniGioco: [{
+          id: 1, giocoId: 'scopa', data: '2026-07-17', stato: 'chiusa',
+          ora_inizio: '21:00', ora_fine: '22:00', partecipanti: [], esitoPareggio: false, serataId: 1,
+          uid: 'SG1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO, partite: [],
+        }],
+        uid: 'L1', syncRev: 1, syncedRev: 1, lastSyncedAt: VECCHIO,
+      }],
+    });
+    const merged = applicaPull(db, snap).leghe[0].sessioniGioco![0];
+    expect(merged.deletedAt, 'sessione GIÀ locale sotto serata morta: muore anche lei').toBeTruthy();
+  });
+
   it('ORFANO ancestor-aware (C4): una partita-gioco nuova sotto una sessione tombstonata nasce tombstonata', () => {
     const snap: SnapshotCloud = {
       ...snapVuoto(),
