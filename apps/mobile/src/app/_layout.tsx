@@ -1,12 +1,13 @@
 import { STORE_KEY, chiaveStorage, migraBlobUnicoSeNecessario } from '@whos-the-boss/state';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, ScrollView, Text, View } from 'react-native';
 
 import LoginScreen from '@/components/auth/LoginScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import GlobalToast from '@/components/GlobalToast';
 import { installaCrashLogger, leggiUltimoCrash, pulisciUltimoCrash } from '@/lib/crashLog';
+import { sincronizzaProponendoAdozione } from '@/lib/sync';
 import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
 import { mobileStorageAdapter, useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
@@ -101,6 +102,21 @@ export default function RootLayout() {
     })();
     return () => { cancellato = true; };
   }, [accountId, authLoading, runMigrations, applyUtente, clearDbLocale, setDbReady]);
+
+  // 3) Delta-sync (R7.4d, trigger P.5): al boot — quando db e utente sono
+  //    pronti — e a ogni ritorno in foreground. NIENTE timer di background
+  //    (scala amici). I trigger possono sovrapporsi senza danni: il mutex
+  //    S11 vive nell'istanza unica di lib/sync; il logout-guard S20 scarta
+  //    i risultati se l'account cambia a metà ciclo.
+  const utenteId = utente?.id ?? null;
+  useEffect(() => {
+    if (authLoading || !dbReady || !utenteId) return;
+    void sincronizzaProponendoAdozione();
+    const sub = AppState.addEventListener('change', (stato) => {
+      if (stato === 'active') void sincronizzaProponendoAdozione();
+    });
+    return () => sub.remove();
+  }, [authLoading, dbReady, utenteId]);
 
   const navTheme = {
     ...DarkTheme,

@@ -48,6 +48,10 @@ interface UiState {
   // true quando lo storage locale è quello giusto per `authUser` corrente
   // (ri-idratato o azzerato). Il gate UI aspetta authLoading E dbReady.
   dbReady: boolean;
+  // R7.4d: orario "HH:MM" dell'ultimo sync riuscito ("ultimo sync" nel
+  // Profilo, P.6). Solo UI, non persistito: al riavvio riparte vuoto e il
+  // sync di boot lo rivalorizza subito.
+  ultimoSyncAlle: string | null;
 
   // Nuova lega
   nlFoto: string;
@@ -135,6 +139,7 @@ interface StoreActions {
   // dopo lo storage swap).
   setAuthUser: (user: User | null) => void;
   setDbReady: (ready: boolean) => void;
+  setUltimoSyncAlle: (orario: string | null) => void;
   clearDbLocale: () => void;   // logout: niente storage da leggere, azzera e basta
   /** Rimpiazza l'INTERO db locale. Riservata all'import one-shot (R7.3), che
       lo riscrive due volte: col battesimo degli uid e con lo stamp post-import.
@@ -334,6 +339,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       authLoading: true,
       authUser: null,
       dbReady: false,
+      ultimoSyncAlle: null,
       nlFoto: '',
       overlayOpen: false,
       serataView: 'hub',
@@ -388,6 +394,7 @@ export function createAppStore({ storage, auth }: AppStoreDeps) {
       setAuthLoading: (loading) => set({ authLoading: loading }),
       setAuthUser: (user) => set({ authUser: user }),
       setDbReady: (ready) => set({ dbReady: ready }),
+      setUltimoSyncAlle: (orario) => set({ ultimoSyncAlle: orario }),
       clearDbLocale: () => set({ db: emptyDb() }),
       sostituisciDb: (db) => set({ db }),
       initAuth: () => set({ authLoading: false }),

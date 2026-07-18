@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChangeEmailSheet, ChangePasswordSheet } from '@/components/auth/CredentialSheets';
 import { IconChevronRight, IconLogout } from '@/components/icons';
 import { Avatar, Button, Card, ListRow } from '@/components/ui';
+import { descriviEsitoSync, sincronizzaProponendoAdozione } from '@/lib/sync';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -16,9 +17,24 @@ export default function ProfiloScreen() {
   const t = useTheme();
   const utente = useStore((s) => s.utente);
   const logout = useStore((s) => s.logout);
+  const toast = useStore((s) => s.toast);
+  const ultimoSyncAlle = useStore((s) => s.ultimoSyncAlle);
 
   const [sheet, setSheet] = useState<null | 'pwd' | 'email'>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [syncInCorso, setSyncInCorso] = useState(false);
+
+  // R7.4d: sync manuale (P.5). Il grosso del lavoro lo fanno i trigger
+  // automatici (boot/foreground): questo bottone serve per il "adesso!"
+  // e per rivedere la proposta di adozione se era stata rimandata.
+  async function doSync() {
+    if (syncInCorso) return;
+    setSyncInCorso(true);
+    const esito = await sincronizzaProponendoAdozione({ manuale: true });
+    setSyncInCorso(false);
+    const msg = descriviEsitoSync(esito);
+    if (msg) toast(msg);
+  }
 
   function doLogout() {
     Alert.alert('Esci dall’account', 'La sessione verra’ chiusa su questo dispositivo.', [
@@ -59,6 +75,12 @@ export default function ProfiloScreen() {
 
       <Card style={styles.card}>
         <Text style={[styles.section, { color: t.textMuted }]}>DATI</Text>
+        <ListRow
+          title={syncInCorso ? 'Sincronizzo…' : 'Sincronizza ora'}
+          subtitle={ultimoSyncAlle ? `Ultimo sync alle ${ultimoSyncAlle}` : 'Allinea questo telefono col tuo account'}
+          right={<IconChevronRight size={18} color={t.textMuted} />}
+          onPress={doSync}
+        />
         <ListRow
           title="Carica i dati sul tuo account"
           subtitle="Una volta sola: li ritrovi sugli altri dispositivi"
