@@ -98,7 +98,11 @@ export function haDatiSignificativi(db: Db): boolean {
     || l.partite.length > 0
     || (l.sessioniGioco?.length ?? 0) > 0
     || (l.serate?.length ?? 0) > 0
-    || l.nomi.length > 1,
+    || l.nomi.length > 1
+    // una serata LIVE non è sincronizzata ma è il dato più fresco che c'è:
+    // mai adottare in silenzio sopra una sessione in corso (audit S5-R2)
+    || l.sessioneAttiva !== undefined
+    || (l.serate_bg?.length ?? 0) > 0,
   );
 }
 
@@ -162,6 +166,7 @@ async function ciclo(deps: DepsSync, account: string, opz: OpzioniSync): Promise
 
   // ── 4. PUSH: una RPC per lega (S9), stamp a conferma (O.3) ──
   let pushate = 0;
+  let conflitto = false;
   const uids = deps.leggiDb().leghe.map((l) => l.uid);
   for (const uid of uids) {
     if (!uid) continue; // lega senza uid: non sincronizzabile (non dovrebbe esistere)
@@ -173,9 +178,11 @@ async function ciclo(deps: DepsSync, account: string, opz: OpzioniSync): Promise
 
     const risposta = await deps.chiamaRpcPush(payload);
     if ('errore' in risposta) {
-      // Conflitto CAS: qualcun altro ha scritto prima. Nessun retry qui: il
-      // prossimo giro ri-pulla (pegno rinfrescato) e ri-pusha (P.2).
-      if (risposta.errore.includes('conflict')) return { stato: 'conflitto' };
+      // Conflitto CAS su QUESTA lega: qualcun altro ha scritto prima. Le
+      // ALTRE leghe (RPC indipendenti, S9) si tentano comunque (audit S5-R3);
+      // l'esito del giro resta 'conflitto' e il prossimo ciclo ri-pulla
+      // (pegno rinfrescato) e ri-pusha questa (P.2). Nessun retry qui.
+      if (risposta.errore.includes('conflict')) { conflitto = true; continue; }
       return { stato: 'errore', messaggio: risposta.errore };
     }
 
@@ -188,5 +195,5 @@ async function ciclo(deps: DepsSync, account: string, opz: OpzioniSync): Promise
     });
     pushate += Object.values(risposta.conteggi).reduce((a, b) => a + b, 0);
   }
-  return { stato: 'ok', pushate };
+  return conflitto ? { stato: 'conflitto' } : { stato: 'ok', pushate };
 }

@@ -178,6 +178,15 @@ describe('adozione del 2° device (P.8.1/DS9)', () => {
     expect(db().leghe.map((l) => l.uid)).toEqual(['L1']);
   });
 
+  it('haDatiSignificativi: una serata LIVE conta come dati (mai adozione silenziosa sopra una sessione in corso) — S5-R2', () => {
+    const conLive = dbTelefonoNuovo();
+    conLive.leghe[0] = { ...conLive.leghe[0], sessioneAttiva: { modalita: 'cash' } as never };
+    expect(haDatiSignificativi(conLive)).toBe(true);
+    const conBg = dbTelefonoNuovo();
+    conBg.leghe[0] = { ...conBg.leghe[0], serate_bg: [{ modalita: 'cash' } as never] };
+    expect(haDatiSignificativi(conBg)).toBe(true);
+  });
+
   it('haDatiSignificativi: il Personale conta solo se ci hai messo qualcosa', () => {
     expect(haDatiSignificativi(dbTelefonoNuovo())).toBe(false);
     const conPartita = dbTelefonoNuovo();
@@ -232,6 +241,33 @@ describe('il ciclo normale: pull → merge → push → stamp', () => {
     const anna = db().leghe[0].nomi.find((n) => n.uid === 'G1')!;
     expect(haCambiamentiLocaliNonSincronizzati(anna)).toBe(true);
     expect(anna.syncedRev).toBe(1);
+  });
+
+  it('un conflitto su UNA lega non blocca il push delle ALTRE (S5-R3): esito conflitto a fine giro', async () => {
+    const legaSincronizzata = (id: number, uidLega: string, uidG: string) => ({
+      id, nome: `Lega ${uidLega}`, foto: '', _nid: 2, _pid: 1,
+      nomi: [{ id: 1, nome: 'Dirty', uid: uidG, syncRev: 2, syncedRev: 1, lastSyncedAt: T0 }],
+      partite: [], sessioneAttiva: undefined, serate_bg: [],
+      uid: uidLega, syncRev: 1, syncedRev: 1, lastSyncedAt: T0,
+    });
+    const db2: Db = {
+      _lid: 3, _currentLegaId: 1,
+      leghe: [legaSincronizzata(1, 'L1', 'G1'), legaSincronizzata(2, 'L2', 'G2')],
+    };
+    const fixture = depsFinte(db2, snapVuoto());
+    const rpcVera = fixture.deps.chiamaRpcPush;
+    let tentativi = 0;
+    fixture.deps.chiamaRpcPush = async (payload) => {
+      tentativi++;
+      return payload.lega_uid === 'L1' ? { errore: 'conflict: giocatori uid G1' } : rpcVera(payload);
+    };
+
+    expect(await creaSync(fixture.deps)()).toEqual({ stato: 'conflitto' });
+    expect(tentativi, 'ANCHE la seconda lega va tentata').toBe(2);
+    const [l1, l2] = fixture.db().leghe;
+    expect(haCambiamentiLocaliNonSincronizzati(l1.nomi[0]), 'la lega in conflitto resta dirty').toBe(true);
+    expect(haCambiamentiLocaliNonSincronizzati(l2.nomi[0]), 'l\'altra lega è stata pushata e stampata').toBe(false);
+    expect(l2.nomi[0].lastSyncedAt).toBe(T1);
   });
 
   it('un edit arrivato DURANTE la RPC resta dirty da solo (O.3)', async () => {
