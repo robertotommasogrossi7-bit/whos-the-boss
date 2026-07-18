@@ -465,13 +465,31 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     né clobber · movimento rispedito = 1 record · 2ª Personale parlante · versione ignota · RLS in 3
     varianti) + **3 sabotaggi della RPC** (CAS spento / DO NOTHING tolto / unique muta) → ognuno il
     SUO rosso, poi verde da db ricreato. → **✅✅ R7.4c COMPLETA (c1+c2).**
-  - **PROSSIMO: R7.4d** — orchestratore `orchestraSync` pull→push (deps iniettate) + trigger
-    boot/foreground + mutex + logout-guard + **adozione DS9** del 2° device + correggere i testi
-    "unione" in `orchestraImport.ts`/`carica-dati.tsx` + **applicare la #10 sul cloud** (quando
-    l'app la usa). Poi **R7.4e** (chaos su DB reale).
+  ✅ **R7.4d COMPLETO** (2026-07-18, branch `rn-r74-sync`, chat Fable): l'**orchestratore** e il
+  cablaggio in app. **419 test core + 18 state**, typecheck + expo export verdi a ogni commit.
+  - **d1** (`83c8cf3`): **`sync/orchestraSync.ts`** — `creaSync(deps)` col mutex S11 nella closure,
+    logout-guard S20 (account ricontrollato prima di OGNI scrittura), **primo contatto P.8.1/DS9**
+    (cloud vergine → `da_importare`; cloud popolato + locale mai sincronizzato → **adozione**, MAI
+    unione per-uid: automatica su telefono nuovo = solo Personale auto-creato vuoto, con conferma se
+    ci sono dati veri; backup prima della sostituzione), ciclo pull→merge→push per lega→stamp con le
+    revisioni SPEDITE (O.3), conflitto CAS → esito `conflitto` senza retry (il giro dopo risolve).
+    Niente confermaPersist: gli uid nascono con le righe, una copia persa si rimaterializza dal pull.
+    14 test; 3 sabotaggi (guard tolta / revisioni dopo la RPC / adozione senza conferma) → 3 rossi giusti.
+  - **d2** (`e627dac`): corretti TUTTI i testi che promettevano "li unirà il delta-sync" (S4-R2:
+    promessa falsa) — commenti orchestraImport/import, gate-import, card `gia_importato` di
+    carica-dati: ora dicono adozione con copia di sicurezza.
+  - **d3** (`70db3b4`): **`lib/sync.ts`** (snapshot 14 select PostgREST · RPC `push_lega` · backup
+    `…:backup-pre-adozione` · Alert di adozione, proposto max 1 volta/avvio dai trigger, sempre dal
+    manuale · `descriviEsitoSync` per i toast) + **trigger P.5** in `_layout` (boot su dbReady+utente,
+    foreground via AppState, niente timer) + Profilo: **"Sincronizza ora" + "Ultimo sync alle HH:MM"**
+    (store `ultimoSyncAlle`, solo UI).
+  - **PROSSIMO: R7.4e** — chaos su DB reale (2 device che editano offline stessa riga/righe diverse ·
+    conflitto CAS → re-pull → re-push · kill a metà push · logout durante sync · retry doppio),
+    stile gate-import ma sull'orchestratore vero. Poi la prova dal telefono (import + sync).
   - ⚠️ **PROMEMORIA ATTIVO (SQL pendente)**: la **migration #10** (`20260717180000_r74_push_rpc.sql`)
-    è applicata SOLO in locale — sul cloud sono 1→9. Va applicata in R7.4d, con conferma esplicita
-    dell'utente (fonte di verità: inventario `supabase/README.md`).
+    è applicata SOLO in locale — sul cloud sono 1→9. **Ora l'app la USA** (lib/sync.ts): va applicata
+    sul cloud PRIMA di provare il sync dal telefono, con conferma esplicita dell'utente (fonte di
+    verità: inventario `supabase/README.md`).
 - **H-block pre-pubblicazione**: resend+password dimenticata (B25) · crash reporting · SMTP · privacy/ToS · pulizia dep + B26/B27/B28.
 - **ULTIMISSIMI (volontà utente)**: R11 feature nuove · R12 restyle grande · RP pubblicazione + **GRANDE TEST** (device/E2E, scelta di studio — include R6.V).
 
