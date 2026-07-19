@@ -1,6 +1,7 @@
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ChangeEmailSheet, ChangePasswordSheet } from '@/components/auth/CredentialSheets';
 import { IconChevronRight, IconLogout } from '@/components/icons';
@@ -8,6 +9,10 @@ import { Avatar, Button, Card, ListRow } from '@/components/ui';
 import { descriviEsitoSync, sincronizzaProponendoAdozione } from '@/lib/sync';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
+
+const SVILUPPATORE = 'Roberto Tommaso Grossi';
+const EMAIL_ASSISTENZA = 'robertotommasogrossi7@gmail.com';
+const buildInfo = (Constants.expoConfig?.extra as { buildInfo?: { commit: string; data: string } } | undefined)?.buildInfo;
 
 /* PROFILO (R2.5/R2.6) — info account, cambio password/email (Sheet) e Logout.
    Al logout lo store azzera `utente` (auth listener Supabase) e il gate del root
@@ -89,6 +94,25 @@ export default function ProfiloScreen() {
         />
       </Card>
 
+      {/* Pattern standard (WhatsApp/Telegram: versione in fondo ad Aiuto/Impostazioni;
+          le app indie mettono lì il contatto sviluppatore). buildInfo arriva da
+          app.config.js valutato al bundling: dice QUALE codice sta girando davvero. */}
+      <Card style={styles.card}>
+        <Text style={[styles.section, { color: t.textMuted }]}>ASSISTENZA</Text>
+        <ListRow
+          title="Scrivi allo sviluppatore"
+          subtitle={`${SVILUPPATORE} · ${EMAIL_ASSISTENZA}`}
+          right={<IconChevronRight size={18} color={t.textMuted} />}
+          onPress={() => {
+            Linking.openURL(`mailto:${EMAIL_ASSISTENZA}?subject=${encodeURIComponent("Who's the Boss — assistenza")}`)
+              .catch(() => { /* nessun client email: l'indirizzo resta leggibile qui sopra */ });
+          }}
+        />
+        <Text style={[styles.versione, { color: t.textMuted }]}>
+          Versione {Constants.expoConfig?.version ?? '?'} · build {buildInfo?.data ?? '?'} · {buildInfo?.commit ?? '?'}
+        </Text>
+      </Card>
+
       <Button block variant="danger" onPress={doLogout}>
         <IconLogout size={18} color="#FFFFFF" />
         <Text style={styles.logoutLabel}>Esci</Text>
@@ -118,4 +142,5 @@ const styles = StyleSheet.create({
   section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
   okBanner: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   logoutLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  versione: { fontSize: 12, textAlign: 'center', paddingTop: 2 },
 });
