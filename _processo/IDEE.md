@@ -3,6 +3,14 @@
 > Le chat base ci ripassano a inizio sessione e ai punti di svolta. Quando un'idea si **decide**,
 > migra in `DECISIONI.md` (e nella roadmap di `CONTESTO.md`).
 
+## 2026-07-18 — Versione del build visibile nel Profilo 🏷️
+
+> Nato dalla prova telefono di R7.4: Expo Go, senza Metro raggiungibile, apre in SILENZIO l'ultima
+> copia in cache — l'utente ha testato un bundle vecchio credendolo nuovo (due volte). Contromisura
+> banale: mostrare nel Profilo (in piccolo, in fondo) **data/commit del build** (es. via
+> `expo-constants` o una costante scritta al bundling), così si capisce al volo quale versione gira.
+> Colloca: H-block o primo ritocco utile. Il problema sparirà comunque con la build vera (store/EAS).
+
 ## 2026-07-01 — Analitiche & grafici (payoff dello schema relazionale) 📈
 
 > Idea utente durante R7.1: "possiamo fare grafici tipo il picco di un giocatore, in che periodo,
