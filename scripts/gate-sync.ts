@@ -6,8 +6,9 @@
    (select PostgREST per lo snapshot, RPC push_lega), due "device" simulati
    (stesso account, db locali separati) e i guasti veri di P.7/R7.4e:
 
-     1. cloud vergine + dati locali → `da_importare` (non si semina col push)
-     2. import → primo sync = no-op che SEMINA i pegni (contratto O.3/I-R3)
+     1. cloud vergine + dati locali → PRIMA SEMINA automatica dentro il ciclo
+        (R7.4f: nessun pulsante; passa dall'import, mai dal push)
+     2. secondo giro = no-op che SEMINA i pegni (contratto O.3/I-R3)
      3. edit → sync → il server ha la modifica
      4. device B nuovo → ADOZIONE automatica con backup; i dati passano
         integri per la materializzazione (soldi, ledger, gioco_key)
@@ -65,12 +66,12 @@ interface Device {
   sync: (opz?: { adozioneConfermata?: boolean }) => Promise<EsitoSync>;
   db: () => Db;
   setDb: (d: Db) => void;
-  contatori: { backup: number; push: number };
+  contatori: { backup: number; push: number; import: number };
 }
 
 function creaDevice(client: SupabaseClient, userId: string, iniziale: Db): Device {
   let db = iniziale;
-  const contatori = { backup: 0, push: 0 };
+  const contatori = { backup: 0, push: 0, import: 0 };
   const deps: DepsSync = {
     leggiDb: () => db,
     scriviDb: (d) => { db = d; },
@@ -83,6 +84,23 @@ function creaDevice(client: SupabaseClient, userId: string, iniziale: Db): Devic
       return data as { conteggi: Record<string, number>; applicate: Record<string, string> };
     },
     salvaBackupPreAdozione: async () => { contatori.backup++; },
+    // La prima semina, come in app (R7.4f): l'orchestratore dell'import VERO
+    // agganciato alla RPC vera — nessun pulsante, la chiama il ciclo di sync.
+    eseguiImport: () => {
+      contatori.import++;
+      const depsImport: DepsImport = {
+        leggiDb: () => db,
+        scriviDb: (d) => { db = d; },
+        confermaPersist: async () => true,
+        chiamaRpc: async (payload) => {
+          const { data, error } = await client.rpc('import_locale', { payload });
+          if (error) return { errore: error.message };
+          return { conteggi: (data ?? {}) as Record<string, number> };
+        },
+        ownerId: userId,
+      };
+      return orchestraImport(depsImport);
+    },
   };
   return { deps, sync: creaSync(deps), db: () => db, setDb: (d) => { db = d; }, contatori };
 }
@@ -187,32 +205,26 @@ async function main() {
   assert(!eReg && reg.session, `signUp: ${eReg?.message}`);
   const userId = reg.user!.id;
 
-  // ── 1. cloud vergine: il sync NON semina, rimanda all'import ──
+  // ── 1. cloud vergine: la PRIMA SEMINA parte da sola, dentro il ciclo (R7.4f) ──
   const A = creaDevice(client, userId, battezzaDb(dbFinto()));
-  assert.deepEqual(await A.sync(), { stato: 'saltato', motivo: 'da_importare' });
-  assert.equal(A.contatori.push, 0);
-  ok('cloud vergine + dati locali → `da_importare`: la semina resta all\'import');
+  const s1 = await A.sync();
+  assert.equal(s1.stato, 'ok', `prima semina fallita: ${JSON.stringify(s1)}`);
+  assert.ok(s1.stato === 'ok' && s1.importato, 'il primo giro deve dichiarare la semina');
+  assert.equal(A.contatori.import, 1, 'la semina passa dall\'import…');
+  assert.equal(A.contatori.push, 0, '…mai dalla RPC push');
+  const { data: legheSeminate } = await client.from('leghe').select('id');
+  assert.equal(legheSeminate?.length, 2, 'i dati locali non sono arrivati sul cloud');
+  ok('cloud vergine + dati locali → semina AUTOMATICA nel ciclo, senza pulsanti (R7.4f)');
 
-  // ── 2. import reale, poi primo sync = no-op che semina i pegni (O.3/I-R3) ──
-  const depsImport: DepsImport = {
-    leggiDb: A.db, scriviDb: A.setDb,
-    confermaPersist: async () => true,
-    chiamaRpc: async (payload) => {
-      const { data, error } = await client.rpc('import_locale', { payload });
-      if (error) return { errore: error.message };
-      return { conteggi: (data ?? {}) as Record<string, number> };
-    },
-    ownerId: userId,
-  };
-  assert.equal((await orchestraImport(depsImport)).stato, 'ok', 'seed via import fallito');
-
+  // ── 2. secondo giro: no-op che semina i pegni del CAS (O.3/I-R3) ──
   const s2 = await A.sync();
   assert.deepEqual(s2, { stato: 'ok', pushate: 0 }, `atteso no-op, ricevuto ${JSON.stringify(s2)}`);
-  assert.equal(A.contatori.push, 0, 'niente delta dopo l\'import → la RPC push non va chiamata');
+  assert.equal(A.contatori.import, 1, 'la semina NON si ripete');
+  assert.equal(A.contatori.push, 0, 'niente delta dopo la semina → la RPC push non va chiamata');
   const amiciA = A.db().leghe.find((l) => !l.personale)!;
   assert.ok(amiciA.lastSyncedAt, 'il primo pull deve SEMINARE il pegno (regola del pegno)');
   assert.ok(amiciA.nomi.every((n) => n.lastSyncedAt), 'pegno seminato su tutte le righe');
-  ok('import → primo sync: no-op (zero push) che semina i pegni del CAS (O.3/I-R3)');
+  ok('secondo giro dopo la semina: no-op (zero push) che semina i pegni del CAS (O.3/I-R3)');
 
   const uidAmici = amiciA.uid!;
   const uidAnna = amiciA.nomi.find((n) => n.nome === 'Anna')!.uid!;

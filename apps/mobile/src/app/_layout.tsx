@@ -7,7 +7,7 @@ import LoginScreen from '@/components/auth/LoginScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import GlobalToast from '@/components/GlobalToast';
 import { installaCrashLogger, leggiUltimoCrash, pulisciUltimoCrash } from '@/lib/crashLog';
-import { sincronizzaProponendoAdozione } from '@/lib/sync';
+import { sincronizzaConAvvisi } from '@/lib/sync';
 import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
 import { mobileStorageAdapter, useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
@@ -115,15 +115,16 @@ export default function RootLayout() {
 
   // 3) Delta-sync (R7.4d, trigger P.5): al boot — quando db e utente sono
   //    pronti — e a ogni ritorno in foreground. NIENTE timer di background
-  //    (scala amici). I trigger possono sovrapporsi senza danni: il mutex
-  //    S11 vive nell'istanza unica di lib/sync; il logout-guard S20 scarta
-  //    i risultati se l'account cambia a metà ciclo.
+  //    (scala amici). Include la PRIMA SEMINA del cloud (R7.4f): l'utente non
+  //    deve premere niente, mai. I trigger possono sovrapporsi senza danni: il
+  //    mutex S11 vive nell'istanza unica di lib/sync; il logout-guard S20
+  //    scarta i risultati se l'account cambia a metà ciclo.
   const utenteId = utente?.id ?? null;
   useEffect(() => {
     if (authLoading || !dbReady || !utenteId) return;
-    void sincronizzaProponendoAdozione();
+    void sincronizzaConAvvisi();
     const sub = AppState.addEventListener('change', (stato) => {
-      if (stato === 'active') void sincronizzaProponendoAdozione();
+      if (stato === 'active') void sincronizzaConAvvisi();
     });
     return () => sub.remove();
   }, [authLoading, dbReady, utenteId]);
@@ -166,10 +167,6 @@ export default function RootLayout() {
               <Stack.Screen
                 name="giocatori/[legaId]"
                 options={{ headerShown: true, title: 'Giocatori' }}
-              />
-              <Stack.Screen
-                name="carica-dati"
-                options={{ headerShown: true, title: 'Carica sul cloud' }}
               />
               <Stack.Screen name="serata/[legaId]/[serataId]" options={{ headerShown: false }} />
             </Stack>

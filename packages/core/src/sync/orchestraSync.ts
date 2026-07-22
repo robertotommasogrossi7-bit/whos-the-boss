@@ -33,6 +33,8 @@
 ══════════════════════════════════════════════════════ */
 
 import type { Db } from '../types';
+import type { ProblemaImport } from './import';
+import type { EsitoImport } from './orchestraImport';
 import { applicaPull, type SnapshotCloud } from './pull';
 import {
   applicaStampPush, costruisciPayloadPush, haRigheDaPushare, revisioniPush,
@@ -58,6 +60,11 @@ export interface DepsSync {
   /** Salva la copia di sicurezza del blob locale PRIMA dell'adozione (DS9:
       la chiave `…:backup-pre-adozione`). */
   salvaBackupPreAdozione: () => Promise<void>;
+  /** La PRIMA semina del cloud (`orchestraImport`): cloud vergine + dati
+      locali. Non è una scelta dell'utente — se il tuo account è vuoto e sul
+      telefono ci sono dati, l'unica cosa sensata è caricarli — quindi la
+      lancia il ciclo, non un pulsante (R7.4f). */
+  eseguiImport: () => Promise<EsitoImport>;
 }
 
 export interface OpzioniSync {
@@ -67,9 +74,14 @@ export interface OpzioniSync {
 
 export type EsitoSync =
   /** Ciclo completo. `pushate` = righe applicate dal server; `adottato` =
-      questo giro ha sostituito il locale col cloud (primo contatto). */
-  | { stato: 'ok'; pushate: number; adottato?: boolean }
-  | { stato: 'saltato'; motivo: 'in_corso' | 'nessun_account' | 'da_importare' }
+      questo giro ha sostituito il locale col cloud (primo contatto);
+      `importato` = questo giro ha fatto la prima semina del cloud. */
+  | { stato: 'ok'; pushate: number; adottato?: boolean; importato?: boolean }
+  | { stato: 'saltato'; motivo: 'in_corso' | 'nessun_account' }
+  /** La prima semina è stata rifiutata dal pre-flight: problemi STRUTTURALI
+      nei dati locali (es. due leghe "Personale"). Da mostrare all'utente:
+      finché restano, questo account non può salvare sul cloud. */
+  | { stato: 'bloccato'; problemi: ProblemaImport[] }
   /** Serve la conferma dell'utente: locale con dati veri mai sincronizzati +
       cloud già popolato (P.8.1). Si rilancia con `adozioneConfermata`. */
   | { stato: 'adozione_richiesta' }
@@ -150,7 +162,21 @@ async function ciclo(deps: DepsSync, account: string, opz: OpzioniSync): Promise
   // ── 2. Primo contatto: import o adozione (P.8.1/DS9) ──
   const db = deps.leggiDb();
   if (!giaSincronizzato(db)) {
-    if (snap.leghe.length === 0) return { stato: 'saltato', motivo: 'da_importare' };
+    // 2a. Cloud VERGINE → prima semina, in automatico (R7.4f). L'import è una
+    // strada diversa dal push (una transazione, guardia anti-doppione) ma non
+    // è una decisione: se il tuo account è vuoto, i dati del telefono salgono.
+    if (snap.leghe.length === 0) {
+      // niente di qua e niente di là: giro a vuoto, non un errore
+      if (db.leghe.length === 0) return { stato: 'ok', pushate: 0 };
+      const esito = await deps.eseguiImport();
+      if (esito.stato === 'bloccato') return { stato: 'bloccato', problemi: esito.problemi };
+      if (esito.stato === 'errore') return { stato: 'errore', messaggio: esito.messaggio };
+      // `gia_importato`: un altro device ha seminato fra il nostro pull e ora.
+      // Il prossimo giro vedrà il cloud pieno e proporrà l'adozione.
+      if (esito.stato === 'gia_importato') return { stato: 'conflitto' };
+      const righe = Object.values(esito.conteggi).reduce((a, b) => a + b, 0);
+      return { stato: 'ok', pushate: righe, importato: true };
+    }
     if (haDatiSignificativi(db) && !opz.adozioneConfermata) {
       return { stato: 'adozione_richiesta' };
     }

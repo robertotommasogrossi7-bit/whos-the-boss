@@ -1,8 +1,12 @@
 /* ══════════════════════════════════════════════════════
-   IMPORT ONE-SHOT — gli agganci veri (R7.3c)
+   PRIMA SEMINA DEL CLOUD — gli agganci veri (R7.3c)
    ─────────────────────────────────────────────────────
    La logica (ordine, rami, contratto O.3) vive in `orchestraImport` nel core,
    testata senza device. Qui ci sono solo i fili: store, disco, rete.
+
+   ⚠️ Da R7.4f NON esiste più una schermata che la lancia: la chiama il ciclo
+   di sync (`lib/sync.ts` → dep `eseguiImport`) quando il cloud dell'account è
+   vergine. L'utente non preme niente — non era una sua decisione.
 ══════════════════════════════════════════════════════ */
 
 import { orchestraImport, type DepsImport, type EsitoImport, type PayloadImport } from '@whos-the-boss/core';
@@ -55,11 +59,6 @@ export async function importaSulCloud(): Promise<EsitoImport> {
   return orchestraImport(deps);
 }
 
-/** Righe totali che l'import manderebbe: serve alla UI per dire "cosa sto per caricare". */
-export function contaDatiLocali(): number {
-  const { db } = useStore.getState();
-  return db.leghe.reduce((tot, l) => (
-    tot + 1 + l.nomi.length + (l.giochi?.length ?? 0) + (l.serate?.length ?? 0)
-    + (l.sessioniGioco?.length ?? 0) + l.partite.length
-  ), 0);
-}
+/* `contaDatiLocali` (righe che l'import manderebbe) è stato rimosso con la
+   schermata "Carica i dati" in R7.4f: la semina è automatica, non c'è più una
+   UI che debba dire "sto per caricare N elementi". */

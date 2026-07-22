@@ -504,6 +504,26 @@ Native** (più mercato, obiettivo CV). Dettaglio completo + reuse/rebuild in **`
     La verifica adversariale ha sia confutato 1 finding sia AGGRAVATO S5-R4 (la parte storage
     l'ha trovata il verificatore provando a confutare).
   ✅ **MERGE in `main`** (2026-07-18): `rn-r74-sync` → `main`.
+  ✅ **R7.4f — IL SYNC SPARISCE DALLA UI** (2026-07-19, decisione utente dopo la prova telefono:
+    *"deve succedere in automatico senza che lo faccia l'utente, senza quei pulsanti che confondono"*).
+    Ricerca (local-first UX): standard = **sync automatico su più trigger + indicatore passivo**,
+    mai un pulsante come meccanismo; il pull-to-refresh "crea uno strato superficiale fra utente e
+    contenuti". Applicato:
+    - **la PRIMA SEMINA del cloud è automatica** — `orchestraSync` ha la dep `eseguiImport` e la
+      chiama quando il cloud dell'account è vergine (non era una scelta dell'utente: account vuoto +
+      dati sul telefono = si caricano). Nuovi esiti `ok.importato` e `bloccato` (pre-flight);
+      `gia_importato` in corsa → `conflitto` (il giro dopo propone l'adozione).
+    - **VIA i due pulsanti** dal Profilo e **rimossa la schermata `carica-dati.tsx`** (doppione:
+      la semina non ha più un innesco manuale). Al loro posto una **riga PASSIVA**: "Dati salvati
+      sul tuo account · aggiornato alle HH:MM"; diventa toccabile SOLO se c'è da decidere
+      (adozione) o da leggere (errore/pre-flight bloccante). Store: `ultimoSyncAlle` →
+      **`statoSync {inCorso, ultimoAlle, avviso}`**.
+    - L'**adozione DS9 resta l'unica domanda** (rara, una volta per dispositivo) e si ripropone
+      toccando la riga di stato. Semina annunciata una volta con un toast.
+    - Trigger invariati (boot + foreground, scelta utente: niente timer né debounce post-modifica).
+    **426 test core + 18 state**, typecheck + expo export verdi; 4 test nuovi verificati che sappiano
+    fallire. ⚠️ **`pnpm gate:sync` NON rigirato** (Docker Desktop in crash sul componente Inference,
+    2026-07-19): il gate è aggiornato al nuovo flusso ma **da eseguire** appena Docker torna su.
   - **PROSSIMO**: la **prova reale dal telefono** (protocollo in 9 passi consegnato all'utente:
     import → sync → edit → boot → offline → logout S5-R4 → eventuale 2° device/adozione).
     Poi H-block pre-pubblicazione.

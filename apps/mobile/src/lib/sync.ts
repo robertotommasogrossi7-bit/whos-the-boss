@@ -1,10 +1,21 @@
 /* ══════════════════════════════════════════════════════
-   DELTA-SYNC — gli agganci veri (R7.4d)
+   DELTA-SYNC — gli agganci veri (R7.4d, semplificato in R7.4f)
    ─────────────────────────────────────────────────────
-   La logica (mutex, adozione, ciclo pull→merge→push→stamp) vive in
-   `creaSync` nel core, testata senza device. Qui i fili: store, rete
-   (PostgREST + RPC push_lega), storage per il backup pre-adozione, e la
-   PROPOSTA di adozione (Alert nativo — si propone, non si impone, DS9).
+   La logica (mutex, prima semina, adozione, ciclo pull→merge→push→stamp) vive
+   in `creaSync` nel core, testata senza device. Qui i fili: store, rete
+   (PostgREST + RPC push_lega), storage per il backup pre-adozione.
+
+   R7.4f — **il sync non si chiede, si fa** (ricerca: local-first = sync
+   automatico su più trigger + indicatore passivo, mai un pulsante come
+   meccanismo). Quindi:
+     · NIENTE bottone "Sincronizza ora" e NIENTE schermata "Carica i dati":
+       il ciclo parte da solo (boot + ritorno in primo piano) e, se il cloud
+       dell'account è vergine, fa da sé anche la PRIMA SEMINA (l'import);
+     · l'unica cosa che resta una domanda è l'**adozione** (DS9): due mondi
+       nati separati non si fondono, lì decide l'utente. Rara, una volta per
+       dispositivo;
+     · lo stato del giro finisce in `statoSync` dello store → riga PASSIVA nel
+       Profilo, toccabile solo quando c'è davvero qualcosa da fare.
 ══════════════════════════════════════════════════════ */
 
 import { Alert } from 'react-native';
@@ -15,6 +26,7 @@ import {
 } from '@whos-the-boss/core';
 import { chiaveStorage, STORE_KEY } from '@whos-the-boss/state';
 
+import { importaSulCloud } from '@/lib/import';
 import { supabase } from '@/lib/supabase';
 import { mobileStorageAdapter, useStore } from '@/store/useStore';
 
@@ -68,43 +80,84 @@ const deps: DepsSync = {
     return data as { conteggi: Record<string, number>; applicate: Record<string, string> };
   },
   salvaBackupPreAdozione,
+  eseguiImport: importaSulCloud,
 };
 
 /* UNA istanza per tutta l'app: il mutex S11 vive nella sua closure. */
 const eseguiSync = creaSync(deps);
 
-/** Esegue un ciclo di sync e aggiorna "ultimo sync" nel Profilo. */
-export async function sincronizza(opz?: { adozioneConfermata?: boolean }): Promise<EsitoSync> {
+/** Un ciclo di sync + aggiornamento della riga di stato nel Profilo. */
+async function sincronizza(opz?: { adozioneConfermata?: boolean }): Promise<EsitoSync> {
+  const { setStatoSync } = useStore.getState();
+  setStatoSync({ inCorso: true });
   const esito = await eseguiSync(opz);
-  if (esito.stato === 'ok') useStore.getState().setUltimoSyncAlle(nowHHMM());
+  const patch: Parameters<typeof setStatoSync>[0] = { inCorso: false };
+
+  switch (esito.stato) {
+    case 'ok':
+      patch.ultimoAlle = nowHHMM();
+      patch.avviso = null;
+      break;
+    case 'adozione_richiesta':
+      patch.avviso = { tipo: 'adozione', messaggio: 'Questo account ha già dei dati salvati da un altro dispositivo.' };
+      break;
+    case 'bloccato':
+      patch.avviso = {
+        tipo: 'bloccato',
+        messaggio: `Non posso salvare i dati sul tuo account:\n\n${esito.problemi.map((p) => `• ${p.messaggio}`).join('\n')}`,
+      };
+      break;
+    case 'errore':
+      patch.avviso = { tipo: 'errore', messaggio: esito.messaggio };
+      break;
+    // 'conflitto' e 'saltato' non cambiano la riga: si risolvono da soli al giro dopo
+  }
+  setStatoSync(patch);
   return esito;
 }
 
-/* Dai trigger automatici (boot/foreground) l'Alert si mostra al massimo una
-   volta per avvio dell'app — un promemoria, non un tormentone; dal bottone
-   manuale si rimostra sempre (l'utente sta guardando). */
+/* La prima semina va annunciata UNA volta: è il momento in cui i dati
+   iniziano a vivere anche fuori dal telefono, e l'utente deve saperlo. */
+let seminaAnnunciata = false;
+/* Dai trigger automatici l'Alert di adozione si mostra al massimo una volta
+   per avvio (un promemoria, non un tormentone); toccando la riga di stato nel
+   Profilo si ripropone sempre — è lì che l'utente va a cercarlo. */
 let adozioneGiaProposta = false;
 
-/** Sync che, se serve l'adozione (P.8.1), la propone con un Alert nativo. */
-export async function sincronizzaProponendoAdozione(opz?: { manuale?: boolean }): Promise<EsitoSync> {
+/** Il ciclo come lo chiamano i trigger dell'app (boot, ritorno in primo piano)
+    e il tap sulla riga di stato. Gestisce da sé i due messaggi all'utente. */
+export async function sincronizzaConAvvisi(opz?: { forzaProposta?: boolean }): Promise<EsitoSync> {
   const esito = await sincronizza();
+
+  if (esito.stato === 'ok' && esito.importato && !seminaAnnunciata) {
+    seminaAnnunciata = true;
+    useStore.getState().toast('I tuoi dati sono ora salvati sul tuo account ✓');
+    return esito;
+  }
   if (esito.stato !== 'adozione_richiesta') return esito;
-  if (adozioneGiaProposta && !opz?.manuale) return esito;
+  if (adozioneGiaProposta && !opz?.forzaProposta) return esito;
   adozioneGiaProposta = true;
+  proponiAdozione();
+  return esito;
+}
+
+/** L'unica domanda vera del sync (DS9): due mondi nati separati non si
+    fondono per uid — si duplicherebbero, e la 2ª lega Personale bloccherebbe
+    tutto. Quindi si sceglie, una volta per dispositivo. */
+export function proponiAdozione(): void {
   // Una serata in corso non è sincronizzata ma è il dato più fresco che c'è:
-  // l'adozione la farebbe sparire dalla UI (audit S5-R2). Prima si chiude
-  // (o si annulla) la serata, poi si adotta.
+  // l'adozione la farebbe sparire dalla UI (audit S5-R2). Prima si chiude.
   const serataInCorso = useStore.getState().db.leghe.some(
     (l) => l.sessioneAttiva !== undefined || (l.serate_bg?.length ?? 0) > 0,
   );
   if (serataInCorso) {
     Alert.alert(
       'C\'è una serata in corso',
-      'Questo account ha già dei dati sul cloud, ma su questo telefono c\'è una serata aperta: '
-      + 'finiscila (o annullala), poi tocca di nuovo "Sincronizza ora" per usare i dati del tuo account.',
+      'Questo account ha già dei dati salvati da un altro dispositivo, ma qui c\'è una serata aperta: '
+      + 'finiscila (o annullala) e i dati del tuo account arriveranno da soli.',
       [{ text: 'Ok' }],
     );
-    return esito;
+    return;
   }
   Alert.alert(
     'Questo account ha già dei dati',
@@ -118,32 +171,12 @@ export async function sincronizzaProponendoAdozione(opz?: { manuale?: boolean })
         style: 'destructive',
         onPress: () => {
           void sincronizza({ adozioneConfermata: true }).then((e) => {
-            useStore.getState().toast(descriviEsitoSync(e) ?? 'Non ha funzionato, riprova.');
+            useStore.getState().toast(
+              e.stato === 'ok' ? 'Dati dell\'account caricati ✓' : 'Non ha funzionato, riprova.',
+            );
           });
         },
       },
     ],
   );
-  return esito;
-}
-
-/** Messaggio da mostrare (toast) per un esito; null = niente da dire. */
-export function descriviEsitoSync(esito: EsitoSync): string | null {
-  switch (esito.stato) {
-    case 'ok':
-      if (esito.adottato) return 'Dati dell\'account caricati ✓';
-      return esito.pushate > 0 ? `Sincronizzato ✓ (${esito.pushate} righe)` : 'Sincronizzato ✓';
-    case 'conflitto':
-      return 'Un altro dispositivo ha appena salvato: tocca di nuovo per riallineare.';
-    case 'saltato':
-      if (esito.motivo === 'da_importare') return 'Prima carica i dati sul cloud (Profilo → Carica i dati).';
-      if (esito.motivo === 'in_corso') return 'Sincronizzazione già in corso…';
-      return null; // nessun_account: il gate UI non fa arrivare qui senza login
-    case 'adozione_richiesta':
-      return null; // la gestisce l'Alert di sincronizzaProponendoAdozione
-    case 'scartato':
-      return null; // account cambiato durante il ciclo: silenzio
-    case 'errore':
-      return `Sincronizzazione non riuscita: ${esito.messaggio}`;
-  }
 }

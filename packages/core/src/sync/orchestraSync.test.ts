@@ -92,7 +92,7 @@ function dbSincronizzato(): Db {
 /** Deps finte: db in memoria, RPC che conferma tutto con updated_at = T1. */
 function depsFinte(dbIniziale: Db, snap: SnapshotCloud, over: Partial<DepsSync> = {}) {
   let db = dbIniziale;
-  const contatori = { scritture: 0, push: 0, backup: 0, snapshot: 0 };
+  const contatori = { scritture: 0, push: 0, backup: 0, snapshot: 0, import: 0 };
   const ordine: string[] = [];
   let ultimoPayload: PayloadPush | null = null;
   const deps: DepsSync = {
@@ -113,6 +113,11 @@ function depsFinte(dbIniziale: Db, snap: SnapshotCloud, over: Partial<DepsSync> 
       return { conteggi: { righe: righe.length + payload.poker_movimenti.length }, applicate };
     },
     salvaBackupPreAdozione: async () => { contatori.backup++; ordine.push('backup'); },
+    eseguiImport: async () => {
+      contatori.import++;
+      ordine.push('import');
+      return { stato: 'ok', conteggi: { leghe: 1, giocatori: 2 }, anomalie: [] };
+    },
     ...over,
   };
   return { deps, db: () => db, contatori, ordine, payload: () => ultimoPayload };
@@ -142,10 +147,33 @@ describe('guardie: mutex, account, primo contatto', () => {
     expect(contatori.snapshot).toBe(0);
   });
 
-  it('cloud vergine + locale mai sincronizzato → `da_importare` (la semina è l\'import, non il push)', async () => {
+  it('cloud vergine + dati locali → la prima semina parte DA SOLA (R7.4f), mai col push', async () => {
     const { deps, contatori } = depsFinte(dbConDati(), snapVuoto());
-    expect(await creaSync(deps)()).toEqual({ stato: 'saltato', motivo: 'da_importare' });
-    expect(contatori.scritture + contatori.push).toBe(0);
+    expect(await creaSync(deps)()).toEqual({ stato: 'ok', pushate: 3, importato: true });
+    expect(contatori.import, 'la semina passa dall\'import, non dalla RPC push').toBe(1);
+    expect(contatori.push).toBe(0);
+  });
+
+  it('pre-flight bloccante → `bloccato` coi problemi (nessun dato spedito)', async () => {
+    const problemi = [{ tipo: 'personale_duplicata' as const, messaggio: 'Ci sono 2 leghe "Personale".' }];
+    const { deps, contatori } = depsFinte(dbConDati(), snapVuoto(), {
+      eseguiImport: async () => ({ stato: 'bloccato', problemi }),
+    });
+    expect(await creaSync(deps)()).toEqual({ stato: 'bloccato', problemi });
+    expect(contatori.push).toBe(0);
+  });
+
+  it('semina in corsa su un altro device (`gia_importato`) → `conflitto`: il giro dopo proporrà l\'adozione', async () => {
+    const { deps } = depsFinte(dbConDati(), snapVuoto(), {
+      eseguiImport: async () => ({ stato: 'gia_importato' }),
+    });
+    expect(await creaSync(deps)()).toEqual({ stato: 'conflitto' });
+  });
+
+  it('niente di qua e niente di là: giro a vuoto, non un errore', async () => {
+    const { deps, contatori } = depsFinte({ leghe: [], _lid: 1, _currentLegaId: undefined }, snapVuoto());
+    expect(await creaSync(deps)()).toEqual({ stato: 'ok', pushate: 0 });
+    expect(contatori.import).toBe(0);
   });
 });
 

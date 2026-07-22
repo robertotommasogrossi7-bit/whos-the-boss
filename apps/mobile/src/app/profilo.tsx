@@ -6,7 +6,7 @@ import { Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native
 import { ChangeEmailSheet, ChangePasswordSheet } from '@/components/auth/CredentialSheets';
 import { IconChevronRight, IconLogout } from '@/components/icons';
 import { Avatar, Button, Card, ListRow } from '@/components/ui';
-import { descriviEsitoSync, sincronizzaProponendoAdozione } from '@/lib/sync';
+import { proponiAdozione } from '@/lib/sync';
 import { useStore } from '@/store/useStore';
 import { useTheme } from '@/theme/ThemeContext';
 
@@ -22,23 +22,26 @@ export default function ProfiloScreen() {
   const t = useTheme();
   const utente = useStore((s) => s.utente);
   const logout = useStore((s) => s.logout);
-  const toast = useStore((s) => s.toast);
-  const ultimoSyncAlle = useStore((s) => s.ultimoSyncAlle);
+  const statoSync = useStore((s) => s.statoSync);
 
   const [sheet, setSheet] = useState<null | 'pwd' | 'email'>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [syncInCorso, setSyncInCorso] = useState(false);
 
-  // R7.4d: sync manuale (P.5). Il grosso del lavoro lo fanno i trigger
-  // automatici (boot/foreground): questo bottone serve per il "adesso!"
-  // e per rivedere la proposta di adozione se era stata rimandata.
-  async function doSync() {
-    if (syncInCorso) return;
-    setSyncInCorso(true);
-    const esito = await sincronizzaProponendoAdozione({ manuale: true });
-    setSyncInCorso(false);
-    const msg = descriviEsitoSync(esito);
-    if (msg) toast(msg);
+  /* R7.4f — riga PASSIVA, non un pulsante: il sync è automatico (boot +
+     ritorno in primo piano) e la prima semina pure. Qui si legge soltanto
+     com'è andata; si tocca solo quando c'è davvero qualcosa da decidere o
+     da leggere (pattern "Tutte le modifiche salvate" di Google Docs). */
+  const avviso = statoSync.avviso;
+  const testoSync = statoSync.inCorso ? 'Aggiornamento in corso…'
+    : avviso?.tipo === 'adozione' ? 'Questo account ha già dei dati — tocca per scegliere'
+    : avviso ? 'Non riesco a salvare sul tuo account — tocca per i dettagli'
+    : statoSync.ultimoAlle ? `Dati salvati sul tuo account · aggiornato alle ${statoSync.ultimoAlle}`
+    : 'In attesa del primo aggiornamento…';
+
+  function toccaStato() {
+    if (!avviso) return;                       // niente da dire: non è cliccabile
+    if (avviso.tipo === 'adozione') { proponiAdozione(); return; }
+    Alert.alert('Dati e sincronizzazione', avviso.messaggio, [{ text: 'Ok' }]);
   }
 
   function doLogout() {
@@ -80,18 +83,16 @@ export default function ProfiloScreen() {
 
       <Card style={styles.card}>
         <Text style={[styles.section, { color: t.textMuted }]}>DATI</Text>
-        <ListRow
-          title={syncInCorso ? 'Sincronizzo…' : 'Sincronizza ora'}
-          subtitle={ultimoSyncAlle ? `Ultimo sync alle ${ultimoSyncAlle}` : 'Allinea questo telefono col tuo account'}
-          right={<IconChevronRight size={18} color={t.textMuted} />}
-          onPress={doSync}
-        />
-        <ListRow
-          title="Carica i dati sul tuo account"
-          subtitle="Una volta sola: li ritrovi sugli altri dispositivi"
-          right={<IconChevronRight size={18} color={t.textMuted} />}
-          onPress={() => router.push('/carica-dati')}
-        />
+        <Text
+          style={[styles.statoSync, { color: avviso ? t.danger : t.textMuted }]}
+          onPress={avviso ? toccaStato : undefined}
+          suppressHighlighting={!avviso}
+        >
+          {testoSync}
+        </Text>
+        <Text style={[styles.statoNota, { color: t.textMuted }]}>
+          I dati si salvano da soli sul tuo account: li ritrovi su ogni dispositivo dove accedi.
+        </Text>
       </Card>
 
       {/* Pattern standard (WhatsApp/Telegram: versione in fondo ad Aiuto/Impostazioni;
@@ -143,4 +144,6 @@ const styles = StyleSheet.create({
   okBanner: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
   logoutLabel: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   versione: { fontSize: 12, textAlign: 'center', paddingTop: 2 },
+  statoSync: { fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  statoNota: { fontSize: 13, lineHeight: 18 },
 });
