@@ -3,6 +3,17 @@
 > Le chat base ci ripassano a inizio sessione e ai punti di svolta. Quando un'idea si **decide**,
 > migra in `DECISIONI.md` (e nella roadmap di `CONTESTO.md`).
 
+## 2026-07-22 — "Ripristina i dati di questo telefono" (il backup che nessuno legge) 🛟
+
+> Prima di sostituire i dati locali col cloud (adozione DS9) salviamo già una copia in
+> `<chiave-account>:backup-pre-adozione`, ma **nessuna schermata la sa leggere**: se l'adozione si
+> rivela sbagliata non c'è modo di tornare indietro dall'app. Fare una voce nel Profilo che compare
+> **solo se quel backup esiste** ("Ripristina i dati di questo telefono · copia del GG/MM"), con
+> conferma esplicita. **Quando**: in **R8**, insieme alla prova multi-dispositivo (è lì che
+> l'adozione viene esercitata davvero — decisione utente 2026-07-22: "fallo come pensi sia meglio").
+> Nota: un backup/esportazione generico su file resta escluso finché le foto sono in base64 (JSON da
+> MB, vedi R7_SCHEMA O.4/R7.3c).
+
 ## 2026-07-18 — Versione del build visibile nel Profilo 🏷️
 
 > Nato dalla prova telefono di R7.4: Expo Go, senza Metro raggiungibile, apre in SILENZIO l'ultima

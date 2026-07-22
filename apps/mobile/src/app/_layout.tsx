@@ -9,7 +9,7 @@ import GlobalToast from '@/components/GlobalToast';
 import { installaCrashLogger, leggiUltimoCrash, pulisciUltimoCrash } from '@/lib/crashLog';
 import { sincronizzaConAvvisi } from '@/lib/sync';
 import { useDeepLinkAuth } from '@/lib/useDeepLinkAuth';
-import { mobileStorageAdapter, useStore } from '@/store/useStore';
+import { flushLocale, mobileStorageAdapter, useStore } from '@/store/useStore';
 import { ThemeProvider as AppThemeProvider } from '@/theme/ThemeContext';
 import { themeForGame } from '@/theme/theme';
 
@@ -124,7 +124,13 @@ export default function RootLayout() {
     if (authLoading || !dbReady || !utenteId) return;
     void sincronizzaConAvvisi();
     const sub = AppState.addEventListener('change', (stato) => {
-      if (stato === 'active') void sincronizzaConAvvisi();
+      if (stato === 'active') { void sincronizzaConAvvisi(); return; }
+      // Si esce dall'app (background/inactive): PRIMA il disco — garantito e
+      // atteso, è l'ultimo istante utile prima che il sistema possa uccidere
+      // il processo con l'ultima modifica ancora in volo — POI il cloud. Un
+      // sync troncato a metà non fa danni: il giro dopo riprende (CAS + stamp
+      // solo a conferma), mentre una scrittura locale persa sì.
+      void flushLocale().then(() => sincronizzaConAvvisi());
     });
     return () => sub.remove();
   }, [authLoading, dbReady, utenteId]);
