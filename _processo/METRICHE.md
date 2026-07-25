@@ -83,3 +83,14 @@
 > merge). Il confronto costo/qualità Sonnet-vs-Opus su fasi delicate è il dato che l'osservatorio può
 > appaiare dalla dashboard. G1 è la prova che il **gate che pilota lo store vero** trova bug che le
 > fixture scritte a mano (R7.3) mascheravano.
+
+## R7.4f + rifiniture (2026-07-19 → 2026-07-22) — riga di copertura dall'osservatorio
+> Annotata dall'osservatorio SideKick il 2026-07-25 (buco trovato nel controllo annotazioni:
+> METRICHE si fermava a R7.4c-1). Dati da git; token auto in dashboard (chat `WTB/Base_8`,
+> 2026-07-17→22: ~324k output Fable+Opus). La chat WTB può arricchire durate/dettagli.
+
+| Blocco | Commit | Cosa |
+|--------|--------|------|
+| Assistenza nel Profilo | `b4ef2c6`(idea)→`e247454` | Sviluppatore + email cliccabile + **versione del build visibile** — la lezione "bundle in cache" diventata regola di metodo (COSTITUZIONE v1.7, standard minimi di ogni app) |
+| R7.4f — sync invisibile | `b6097e1` | Il sync sparisce dalla UI: prima semina automatica, niente più pulsanti |
+| Bug salvataggio in uscita | `83b64c8` | Salvataggio garantito alla chiusura dell'app (modifica persa alla chiusura) |
